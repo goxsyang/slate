@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slate">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<title>Slate</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a0a;--bg2:#141414;--bg3:#1a1a1a;--border:#2a2a2a;
+  --text:#e0e0e0;--text2:#999;--text3:#666;
+  --blue:#60a5fa;--blue2:#2563eb;--red:#ef4444;--green:#22c55e;
+  --yellow:#fbbf24;--orange:#f97316;--purple:#a78bfa;
+  --radius:12px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;padding-top:var(--safe-t);padding-bottom:var(--safe-b)}
+button,input,select{font-family:inherit;font-size:inherit}
+
+.hdr{background:var(--bg3);border-bottom:1px solid var(--border);padding:10px 16px;position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hdr h1{font-size:15px;font-weight:700;white-space:nowrap}
+.hdr .proj{color:var(--blue);font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-actions{display:flex;gap:6px}
+.hdr-btn{background:var(--bg2);border:1px solid var(--border);color:var(--text2);padding:7px 12px;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap}
+.hdr-btn.primary{background:var(--blue2);border-color:var(--blue2);color:#fff;font-weight:600}
+
+.tabs{display:flex;background:var(--bg3);border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:11px;text-align:center;font-size:13px;font-weight:500;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer;transition:.15s}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* Setup */
+.setup{padding:24px 16px;display:flex;flex-direction:column;gap:16px;max-width:420px;margin:0 auto}
+.setup.hide{display:none}
+.setup h2{font-size:20px;font-weight:700;text-align:center;margin-bottom:4px}
+.setup .logo{text-align:center;margin-bottom:8px}
+.setup .logo img{width:80px;height:80px;border-radius:18px}
+.setup p{font-size:13px;color:var(--text2);text-align:center}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500}
+.field input,.field select{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;color:var(--text);font-size:15px;outline:none}
+.field input:focus,.field select:focus{border-color:var(--blue)}
+.field input::placeholder{color:#444}
+.setup .go-btn{width:100%;padding:16px;background:var(--blue2);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:700;cursor:pointer;margin-top:8px}
+.install-banner{background:#1a2540;border:1px solid #2a3f6a;border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:12px}
+.install-banner.hide{display:none !important}
+.install-banner .ib-icon{font-size:28px;flex-shrink:0}
+.install-banner .ib-text{flex:1}
+.install-banner .ib-text strong{display:block;font-size:13px;color:var(--blue)}
+.install-banner .ib-text span{font-size:11px;color:var(--text2)}
+.install-banner .ib-btn{background:var(--blue2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer}
+.install-banner .ib-dismiss{background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:4px}
+
+.main{display:none}
+.main.show{display:block}
+
+/* Live Clock */
+.live-clock{text-align:center;font-family:'SF Mono',Menlo,monospace;font-size:40px;font-weight:300;color:var(--text);padding:12px 0 2px;letter-spacing:2px}
+.live-clock .sec{font-size:22px;color:var(--text2)}
+.live-clock .ms{font-size:16px;color:var(--text3,#666)}
+
+/* Camera Switcher */
+.cam-switcher{display:flex;gap:6px;padding:6px 16px 2px;justify-content:center;align-items:center}
+.cam-switcher .cam-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-right:4px}
+.cam-chip{padding:6px 14px;border-radius:16px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text3);font-family:'SF Mono',Menlo,monospace;transition:.12s}
+.cam-chip.on{background:var(--blue2);border-color:var(--blue2);color:#fff}
+.cam-chip:active{transform:scale(.94)}
+
+/* Shot Type Chips */
+.shottype-row{display:flex;gap:5px;padding:4px 16px;justify-content:center;flex-wrap:wrap}
+.st-chip{padding:5px 12px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text3);transition:.12s}
+.st-chip.on{background:var(--purple);border-color:var(--purple);color:#fff}
+.st-chip:active{transform:scale(.94)}
+
+/* Stepper Row */
+.stepper-grid{display:flex;gap:8px;padding:8px 16px;align-items:stretch}
+.stepper-cell{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 6px;text-align:center}
+.stepper-cell .sc-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stepper-cell .sc-row{display:flex;align-items:center;justify-content:center;gap:4px}
+.stepper-cell .sc-btn{width:30px;height:30px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.1s}
+.stepper-cell .sc-btn:active{background:#222;transform:scale(.9)}
+.stepper-cell .sc-num{font-size:22px;font-weight:700;color:var(--blue);font-family:'SF Mono',Menlo,monospace;min-width:36px}
+.stepper-cell .sc-name{font-size:10px;color:var(--text3);margin-top:3px;cursor:pointer;min-height:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stepper-cell .sc-name:empty::after{content:'命名';color:#333}
+
+/* Take + Clip info row */
+.take-info{display:flex;align-items:center;justify-content:center;gap:12px;padding:4px 16px 6px;font-size:13px;color:var(--text2)}
+.take-info span{color:var(--text);font-weight:600;font-family:'SF Mono',Menlo,monospace}
+.clip-stepper{display:flex;align-items:center;gap:4px}
+.clip-stepper .clip-btn{width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.clip-stepper .clip-btn:active{background:#222;transform:scale(.9)}
+.clip-stepper .clip-val{font-family:'SF Mono',Menlo,monospace;font-size:14px;color:var(--blue);font-weight:600;min-width:48px;text-align:center}
+
+/* Settings fields */
+.settings-row{display:flex;gap:8px;margin-bottom:8px}
+.settings-row .sf{flex:1}
+.settings-row .sf label{display:block;font-size:11px;color:var(--text3);margin-bottom:3px}
+.settings-row .sf input,.settings-row .sf select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:14px;outline:none;text-align:center;font-family:'SF Mono',Menlo,monospace}
+.settings-row .sf input:focus,.settings-row .sf select:focus{border-color:var(--blue)}
+.settings-divider{font-size:11px;color:var(--text3);margin:10px 0 6px;padding-top:10px;border-top:1px solid var(--border)}
+
+/* Record */
+.rec-area{display:flex;flex-direction:column;align-items:center;padding:8px 0 10px}
+.rec-btn{width:96px;height:96px;border-radius:50%;border:4px solid var(--red);background:rgba(239,68,68,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;-webkit-user-select:none;user-select:none;transition:.12s}
+.rec-btn:active{transform:scale(.93);background:rgba(239,68,68,.25)}
+.rec-btn .ico{font-size:22px;margin-bottom:2px}
+.rec-btn .lbl{font-size:11px;color:var(--red);font-weight:700}
+.rec-btn.on{border-color:var(--green);background:rgba(34,197,94,.12);animation:pulse 1.4s infinite}
+.rec-btn.on .lbl{color:var(--green)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.25)}50%{box-shadow:0 0 0 14px rgba(34,197,94,0)}}
+.rec-hint{margin-top:6px;font-size:10px;color:var(--text3);text-align:center}
+
+/* Cut state */
+.rec-btn.cut{border-color:var(--yellow);background:rgba(251,191,36,.10);animation:pulse-cut 1.4s infinite}
+.rec-btn.cut:active{background:rgba(251,191,36,.25)}
+.rec-btn.cut .lbl{color:var(--yellow)}
+@keyframes pulse-cut{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.25)}50%{box-shadow:0 0 0 14px rgba(251,191,36,0)}}
+.rolling-indicator{font-size:11px;color:var(--green);font-weight:600;text-align:center;padding:2px 0;animation:blink 1s infinite}
+
+/* Timer (event) */
+.timer{text-align:center;font-family:'SF Mono',Menlo,monospace;font-size:36px;color:var(--red);padding:6px 0;letter-spacing:2px}
+.timer.on{color:var(--green)}
+.seg-input-wrap{padding:6px 16px 0}
+.seg-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;color:var(--text);font-size:15px;outline:none}
+.seg-input:focus{border-color:var(--blue)}
+.seg-input::placeholder{color:#444}
+
+/* Tags */
+.tags-row{display:flex;flex-wrap:wrap;gap:7px;padding:8px 0;justify-content:center}
+.tag{padding:8px 14px;border-radius:16px;font-size:12px;cursor:pointer;transition:.12s;font-weight:500;border:1px solid}
+.tag.g{background:#0f1f0f;border-color:#1a3a1a;color:#4ade80}
+.tag.y{background:#1f1a0f;border-color:#3a2e1a;color:var(--yellow)}
+.tag.sel.g{background:var(--green);color:#000;font-weight:700}
+.tag.sel.y{background:var(--orange);color:#000;font-weight:700}
+.tag:active{transform:scale(.94)}
+
+/* Rating stars */
+.rating-row{display:flex;align-items:center;gap:2px;padding:6px 0;justify-content:center}
+.rating-row .star{font-size:28px;cursor:pointer;color:#333;transition:.12s;-webkit-user-select:none;user-select:none}
+.rating-row .star.on{color:var(--yellow)}
+.rating-row .star:active{transform:scale(.85)}
+.rating-label{font-size:10px;color:var(--text3);margin-left:8px}
+
+/* Circle Take button */
+.circle-row{display:flex;align-items:center;justify-content:center;gap:8px;padding:4px 0}
+.circle-btn{display:flex;align-items:center;gap:6px;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid #333;background:var(--bg2);color:var(--text3);transition:.12s}
+.circle-btn.on{border-color:var(--yellow);background:rgba(251,191,36,.15);color:var(--yellow)}
+.circle-btn:active{transform:scale(.95)}
+
+/* Movement chips */
+.move-row{display:flex;flex-wrap:wrap;gap:5px;padding:4px 0;justify-content:center}
+.mv-chip{padding:5px 11px;border-radius:14px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text3);transition:.12s}
+.mv-chip.on{background:#2d1f5e;border-color:var(--purple);color:var(--purple);font-weight:700}
+.mv-chip:active{transform:scale(.94)}
+
+/* Log */
+.log-hdr{font-size:12px;color:var(--text3);padding:12px 16px 6px;border-top:1px solid var(--border);display:flex;justify-content:space-between}
+.log-hdr .cnt{color:var(--blue);font-weight:600}
+.log{padding:0 16px 120px}
+.log-empty{text-align:center;padding:24px 16px;color:#444;font-size:13px}
+.entry{background:var(--bg2);border:1px solid #1f1f1f;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:border-color .15s}
+.entry:active{border-color:#333}
+.entry.circled{border-color:rgba(251,191,36,.4)}
+.entry .t{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--blue);white-space:nowrap;min-width:62px;line-height:1.5}
+.entry .t .rng{display:block;font-size:10px;color:#4488cc}
+.entry .bd{flex:1;min-width:0}
+.entry .sc{font-size:12px;font-weight:600}
+.entry .meta{font-size:10px;color:var(--text3);font-family:'SF Mono',Menlo,monospace}
+.entry .tgs{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap}
+.entry .tg{font-size:10px;padding:2px 7px;border-radius:8px}
+.entry .tg.ok{background:var(--green);color:#000;font-weight:700}
+.entry .tg.w{background:#2e2a1a;color:var(--yellow)}
+.entry .tg.n{background:#1a2e1a;color:#4ade80}
+.entry .tg.p{background:#2d1f5e;color:var(--purple)}
+.entry .tg.circle{background:var(--yellow);color:#000;font-weight:700}
+.entry .nt{font-size:11px;color:var(--text2);margin-top:3px}
+.entry .edit-hint{font-size:10px;color:#444;margin-top:2px}
+.entry .cam-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:4px;background:var(--blue2);color:#fff;font-weight:700;margin-left:4px;vertical-align:middle;font-family:'SF Mono',Menlo,monospace}
+.entry .stars{color:var(--yellow);font-size:10px;margin-left:4px}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal.hide{display:none}
+.modal-c{background:var(--bg3);border-radius:16px 16px 0 0;padding:20px 20px;padding-bottom:calc(20px + var(--safe-b));width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
+.modal-c h3{font-size:15px;font-weight:600;margin-bottom:10px}
+.modal-c .edit-time{font-family:'SF Mono',Menlo,monospace;font-size:13px;color:var(--blue);margin-bottom:10px}
+.modal-c input,.modal-c select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:15px;outline:none;margin-bottom:8px}
+.modal-c input:focus,.modal-c select:focus{border-color:var(--blue)}
+.modal-c input::placeholder{color:#444}
+.modal-btns{display:flex;gap:8px;margin-top:6px}
+.modal-btns button{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none}
+.modal-btns .cancel{background:#333;color:#ccc}
+.modal-btns .danger{background:#7f1d1d;color:#fca5a5}
+.modal-btns .ok{background:var(--blue2);color:#fff}
+
+/* Edit modal rows */
+.edit-row{display:flex;gap:6px;margin-bottom:8px}
+.edit-row .er-label{flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 10px;color:var(--blue);font-weight:600;font-size:13px;font-family:'SF Mono',Menlo,monospace}
+.edit-row input,.edit-row select{flex:1;margin-bottom:0}
+.edit-section{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px;padding-top:8px;border-top:1px solid var(--border)}
+
+/* Toast */
+.toast{position:fixed;bottom:calc(30px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(100px);background:#333;color:#fff;padding:12px 24px;border-radius:24px;font-size:13px;font-weight:500;z-index:300;transition:transform .3s ease;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+.offline-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);display:none;margin-left:4px}
+.offline-dot.on{display:inline-block}
+.awake-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-left:6px;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.share-sheet{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:250;display:flex;align-items:flex-end;justify-content:center}
+.share-sheet.hide{display:none}
+.share-c{background:var(--bg3);border-radius:16px 16px 0 0;padding:22px 20px 0;padding-bottom:calc(16px + var(--safe-b));width:100%;max-width:500px}
+.share-c h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.share-c p{font-size:12px;color:var(--text2);margin-bottom:16px}
+.share-opt{display:flex;gap:12px;padding-bottom:16px;overflow-x:auto}
+.share-opt button{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:var(--text);cursor:pointer;padding:8px 12px;border-radius:12px}
+.share-opt button:active{background:var(--bg2)}
+.share-opt button .so-ico{width:50px;height:50px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:22px}
+.share-opt button .so-lbl{font-size:11px;color:var(--text2)}
+.share-opt button .so-ico.blue{background:var(--blue2)}
+.share-opt button .so-ico.green{background:#166534}
+.share-opt button .so-ico.purple{background:#4c1d95}
+.share-opt button .so-ico.orange{background:#9a3412}
+.share-cancel{width:100%;padding:14px;background:#333;color:#ccc;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+
+/* Cloud Backup */
+.cloud-status{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);cursor:pointer}
+.cloud-status .cloud-ico{font-size:13px}
+.cloud-status.connected{color:var(--green)}
+.cloud-status.syncing{color:var(--yellow)}
+.cloud-status.error{color:var(--red)}
+.cloud-signin{width:100%;padding:14px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px}
+.cloud-signin:active{background:#222}
+.cloud-signin.connected{border-color:var(--green);color:var(--green)}
+.cloud-restore-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:12px 20px;border-radius:var(--radius);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;margin-top:8px}
+.cloud-restore-btn:active{background:var(--bg2)}
+.backup-list{max-height:200px;overflow-y:auto;margin:8px 0}
+.backup-item{padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:13px}
+.backup-item:active{background:#222}
+.backup-item .bi-name{font-weight:600;color:var(--text)}
+.backup-item .bi-time{font-size:11px;color:var(--text3);margin-top:2px}
+
+.hide{display:none !important}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div class="setup" id="setupView">
+  <div class="logo"><img src="icons/icon-192.png" alt="Slate" /></div>
+  <h2>Slate</h2>
+  <p>拍攝現場場記記錄工具</p>
+  <div class="install-banner hide" id="installBanner">
+    <div class="ib-icon">📲</div>
+    <div class="ib-text"><strong>安裝到主畫面</strong><span>離線可用，像原生 App</span></div>
+    <button class="ib-btn" id="installBtn">安裝</button>
+    <button class="ib-dismiss" onclick="dismissInstall()">&times;</button>
+  </div>
+  <div class="field">
+    <label>專案名稱</label>
+    <input id="setupProject" placeholder="例：品牌形象影片" />
+  </div>
+  <div class="field">
+    <label>拍攝日期</label>
+    <input id="setupDate" type="date" />
+  </div>
+  <button class="go-btn" onclick="startProject()">開始場記</button>
+  <div style="text-align:center;margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <button class="hdr-btn" onclick="loadSaved()" id="loadBtn" style="display:none">載入上次紀錄</button>
+    <button class="cloud-restore-btn" id="cloudRestoreBtn" onclick="showCloudRestore()" style="display:none">☁️ 從 Google Drive 恢復</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="mainView">
+<div class="hdr">
+  <div>
+    <h1>Slate <span class="awake-dot" id="awakeDot" style="display:none"></span><span class="offline-dot" id="offlineDot"></span></h1>
+    <div class="proj" id="projLabel"></div>
+    <div class="cloud-status" id="cloudStatus" onclick="showCloudInfo()" style="display:none">
+      <span class="cloud-ico">☁</span><span id="cloudLabel">未連接</span>
+    </div>
+  </div>
+  <div class="hdr-actions">
+    <button class="hdr-btn" onclick="showSettings()">設定</button>
+    <button class="hdr-btn primary" onclick="showExport()">匯出</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" id="tabTake" onclick="setMode('take')">單鏡模式</div>
+  <div class="tab" id="tabEvt" onclick="setMode('event')">活動紀錄</div>
+</div>
+
+<!-- TAKE MODE -->
+<div id="takePanel">
+  <div class="live-clock" id="liveClock">--:--<span class="sec">:--</span></div>
+  <div class="cam-switcher" id="camSwitcherTake"></div>
+  <div class="stepper-grid">
+    <div class="stepper-cell">
+      <div class="sc-label">Scene</div>
+      <div class="sc-row">
+        <button class="sc-btn" onclick="step('scene',-1)">−</button>
+        <div class="sc-num" id="sceneNum">01</div>
+        <button class="sc-btn" onclick="step('scene',1)">+</button>
+      </div>
+      <div class="sc-name" id="sceneName" onclick="editName('scene')"></div>
+    </div>
+    <div class="stepper-cell">
+      <div class="sc-label">Shot</div>
+      <div class="sc-row">
+        <button class="sc-btn" onclick="step('shot',-1)">−</button>
+        <div class="sc-num" id="shotNum">01</div>
+        <button class="sc-btn" onclick="step('shot',1)">+</button>
+      </div>
+      <div class="sc-name" id="shotName" onclick="editName('shot')"></div>
+    </div>
+  </div>
+  <!-- Shot Type quick-select -->
+  <div class="shottype-row" id="shotTypeRow"></div>
+  <div class="take-info">
+    Take: <span id="nextTake">T01</span>
+    <div class="clip-stepper">
+      <button class="clip-btn" onclick="stepClip(-1)">−</button>
+      <div class="clip-val" id="clipVal">C001</div>
+      <button class="clip-btn" onclick="stepClip(1)">+</button>
+    </div>
+  </div>
+  <div class="rec-area">
+    <div class="rec-btn" id="takeBtn" onclick="takeAction()">
+      <div class="ico">&#9210;</div>
+      <div class="lbl" id="takeBtnLbl">記錄</div>
+    </div>
+    <div class="rec-hint" id="takeHint">按下 = 記錄此刻時間</div>
+    <div class="rolling-indicator hide" id="rollingInd">ROLLING...</div>
+  </div>
+</div>
+
+<!-- EVENT MODE -->
+<div id="evtPanel" class="hide">
+  <div class="live-clock" id="liveClockEvt">--:--<span class="sec">:--</span></div>
+  <div class="cam-switcher" id="camSwitcherEvt"></div>
+  <div class="stepper-grid">
+    <div class="stepper-cell">
+      <div class="sc-label">Scene</div>
+      <div class="sc-row">
+        <button class="sc-btn" onclick="step('scene',-1)">−</button>
+        <div class="sc-num" id="sceneNumEvt">01</div>
+        <button class="sc-btn" onclick="step('scene',1)">+</button>
+      </div>
+      <div class="sc-name" id="sceneNameEvt" onclick="editName('scene')"></div>
+    </div>
+    <div class="stepper-cell">
+      <div class="sc-label">Shot</div>
+      <div class="sc-row">
+        <button class="sc-btn" onclick="step('shot',-1)">−</button>
+        <div class="sc-num" id="shotNumEvt">01</div>
+        <button class="sc-btn" onclick="step('shot',1)">+</button>
+      </div>
+      <div class="sc-name" id="shotNameEvt" onclick="editName('shot')"></div>
+    </div>
+  </div>
+  <div class="seg-input-wrap">
+    <input class="seg-input" id="segName" placeholder="區段名稱（例：開幕致詞）" />
+  </div>
+  <div class="take-info">
+    <div class="clip-stepper">
+      <button class="clip-btn" onclick="stepClip(-1)">−</button>
+      <div class="clip-val" id="clipValEvt">C001</div>
+      <button class="clip-btn" onclick="stepClip(1)">+</button>
+    </div>
+  </div>
+  <div class="timer" id="timer">00:00:00</div>
+  <div class="rec-area">
+    <div class="rec-btn" id="evtBtn" onclick="togEvt()">
+      <div class="ico">&#9210;</div>
+      <div class="lbl">開始</div>
+    </div>
+    <div class="rec-hint">按一次開始，再按結束</div>
+  </div>
+</div>
+
+<div class="log-hdr">
+  <span>紀錄</span>
+  <span class="cnt" id="logCnt">0 筆</span>
+</div>
+<div class="log" id="logList">
+  <div class="log-empty">按上方按鈕開始記錄</div>
+</div>
+</div>
+
+<!-- NAME EDIT MODAL -->
+<div class="modal hide" id="nameModal">
+  <div class="modal-c">
+    <h3 id="nmTitle">名稱</h3>
+    <input id="nmInput" placeholder="名稱" />
+    <div class="modal-btns">
+      <button class="cancel" onclick="hideModal('nameModal')">取消</button>
+      <button class="ok" onclick="saveName()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal hide" id="settingsModal">
+  <div class="modal-c">
+    <h3>設定</h3>
+    <input id="sProject" placeholder="專案名稱" />
+    <input id="sDate" type="date" />
+    <div class="settings-divider">攝影機設定</div>
+    <div class="settings-row">
+      <div class="sf">
+        <label>攝影機數量</label>
+        <select id="sCamCount">
+          <option value="1">1 台 (A)</option>
+          <option value="2">2 台 (A/B)</option>
+          <option value="3">3 台 (A/B/C)</option>
+          <option value="4">4 台 (A/B/C/D)</option>
+        </select>
+      </div>
+      <div class="sf">
+        <label>Gamma Profile</label>
+        <select id="sGamma">
+          <option value="S-Log3">S-Log3</option>
+          <option value="S-Cinetone">S-Cinetone</option>
+          <option value="HLG">HLG</option>
+          <option value="Rec.709">Rec.709</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="sf">
+        <label>專案 FPS</label>
+        <select id="sFps">
+          <option value="23.976">23.976</option>
+          <option value="24">24</option>
+          <option value="25">25</option>
+          <option value="29.97">29.97</option>
+          <option value="30">30</option>
+          <option value="60">60</option>
+        </select>
+      </div>
+      <div class="sf">
+        <label>拍攝 FPS</label>
+        <select id="sCaptureFps">
+          <option value="">同專案</option>
+          <option value="23.976">23.976</option>
+          <option value="24">24</option>
+          <option value="25">25</option>
+          <option value="29.97">29.97</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
+          <option value="60">60</option>
+          <option value="100">100</option>
+          <option value="120">120</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-divider">攝影機錄製檔案命名</div>
+    <div class="settings-row">
+      <div class="sf" id="sfCamId">
+        <label>Camera ID (A)</label>
+        <input id="sCamId" placeholder="A" maxlength="1" style="text-transform:uppercase" />
+      </div>
+      <div class="sf">
+        <label>Reel #</label>
+        <input id="sReel" placeholder="001" maxlength="3" />
+      </div>
+      <div class="sf">
+        <label>起始 Clip (C)</label>
+        <input id="sClipStart" placeholder="1" type="number" min="1" max="999" />
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">檔名格式預覽：<span id="fnPreview" style="color:var(--blue);font-family:monospace">A001C001</span></div>
+    <div class="settings-divider">Timecode</div>
+    <div class="settings-row">
+      <div class="sf">
+        <label>TC 模式</label>
+        <select id="sTcMode">
+          <option value="free-run">Free Run</option>
+          <option value="rec-run">Rec Run</option>
+        </select>
+      </div>
+      <div class="sf">
+        <label>TC 起始 (HH:MM:SS:FF)</label>
+        <input id="sTcStart" placeholder="00:00:00:00" />
+      </div>
+    </div>
+    <div class="settings-divider">雲端備份 Google Drive</div>
+    <button class="cloud-signin" id="cloudSignInBtn" onclick="driveSignIn()">
+      <span>☁</span> <span id="cloudSignInLabel">連接 Google Drive</span>
+    </button>
+    <div id="cloudBackupInfo" style="font-size:11px;color:var(--text3);margin-bottom:8px"></div>
+    <div class="settings-divider">外部錄音</div>
+    <div class="settings-row">
+      <div class="sf">
+        <label>Sound Roll / 錄音機</label>
+        <input id="sSoundRoll" placeholder="例：Zoom F6 / SR01" />
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="cancel" onclick="hideModal('settingsModal')">取消</button>
+      <button class="cancel" onclick="if(confirm('確定清除所有紀錄？')){clearAll()}">清除</button>
+      <button class="ok" onclick="saveSettings()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT ENTRY MODAL -->
+<div class="modal hide" id="editModal">
+  <div class="modal-c">
+    <h3 id="editTitle">編輯紀錄</h3>
+    <div class="edit-time" id="editTime"></div>
+    <!-- Circle Take -->
+    <div class="circle-row">
+      <div class="circle-btn" id="circleBtn" onclick="togCircle()">&#9733; Circle Take</div>
+    </div>
+    <!-- Rating -->
+    <div class="rating-row" id="ratingRow"></div>
+    <div class="edit-row">
+      <div class="er-label" id="editSceneLabel">S01</div>
+      <input id="editSceneName" placeholder="場景名稱" />
+    </div>
+    <div class="edit-row" id="editShotRow">
+      <div class="er-label" id="editShotLabel">SH01</div>
+      <input id="editShotName" placeholder="鏡頭描述" />
+    </div>
+    <div class="edit-row" id="editClipRow">
+      <div class="er-label">Clip</div>
+      <input id="editClip" placeholder="FX3 Clip# 例：C003" />
+    </div>
+    <div class="edit-row" id="editCamRow">
+      <div class="er-label">CAM</div>
+      <input id="editCam" placeholder="A" maxlength="1" style="text-transform:uppercase" />
+    </div>
+    <!-- Shot Type -->
+    <div class="edit-section">鏡頭類型 Shot Type</div>
+    <div class="shottype-row" id="editShotType"></div>
+    <!-- Movement -->
+    <div class="edit-section">鏡頭運動 Movement</div>
+    <div class="move-row" id="editMovement"></div>
+    <!-- Audio -->
+    <div class="edit-section">音訊 Audio</div>
+    <div class="edit-row">
+      <div class="er-label">Audio</div>
+      <input id="editAudio" placeholder="Sound Roll / 音軌備註" />
+    </div>
+    <!-- Tags -->
+    <div class="edit-section">標籤 Tags</div>
+    <div class="tags-row" id="editTags"></div>
+    <!-- Description & Note -->
+    <input id="editDesc" placeholder="內容描述（給AI：例 主角走進咖啡廳）" />
+    <input id="editNote" placeholder="備註" />
+    <div class="modal-btns">
+      <button class="danger" onclick="delEditEntry()">刪除</button>
+      <button class="cancel" onclick="hideModal('editModal')">取消</button>
+      <button class="ok" onclick="saveEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div class="share-sheet hide" id="exportSheet">
+  <div class="share-c">
+    <h3>匯出場記表</h3>
+    <p id="exportInfo"></p>
+    <div class="share-opt">
+      <button onclick="doExport('csv')"><div class="so-ico blue">📄</div><div class="so-lbl">CSV</div></button>
+      <button onclick="doExport('json')"><div class="so-ico orange">{ }</div><div class="so-lbl">JSON</div></button>
+      <button onclick="doExport('xml')"><div class="so-ico purple">&lt;/&gt;</div><div class="so-lbl">XML</div></button>
+      <button onclick="doExport('share')" id="shareBtn"><div class="so-ico green">📤</div><div class="so-lbl">分享</div></button>
+      <button onclick="doExport('clipboard')"><div class="so-ico">📋</div><div class="so-lbl">複製</div></button>
+    </div>
+    <button class="share-cancel" onclick="hideExport()">取消</button>
+  </div>
+</div>
+
+<!-- CLOUD RESTORE MODAL -->
+<div class="modal hide" id="cloudModal">
+  <div class="modal-c">
+    <h3>☁️ 雲端備份</h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px" id="cloudModalInfo">選擇要恢復的備份：</p>
+    <div class="backup-list" id="backupList"></div>
+    <div class="modal-btns">
+      <button class="cancel" onclick="hideModal('cloudModal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CONSTANTS =====
+const SHOT_TYPES = [
+  {key:'W',label:'全景'},{key:'M',label:'中景'},{key:'CU',label:'特寫'},
+  {key:'ECU',label:'大特寫'},{key:'I',label:'插入'},{key:'B',label:'B-Roll'},
+  {key:'OTS',label:'過肩'},{key:'2S',label:'雙人'}
+];
+const MOVEMENTS = [
+  {key:'FIX',label:'固定'},{key:'PAN',label:'搖'},{key:'TILT',label:'俯仰'},
+  {key:'DOLLY',label:'推軌'},{key:'ZOOM',label:'變焦'},{key:'HH',label:'手持'},
+  {key:'TRACK',label:'跟拍'},{key:'CRANE',label:'搖臂'},{key:'GIMBAL',label:'穩定器'}
+];
+const ALL_TAGS = [
+  {key:'ok',label:'OK',cls:'g'},{key:'ng',label:'NG',cls:'y'},
+  {key:'backup',label:'備選',cls:'g'},{key:'audio-issue',label:'收音',cls:'y'},
+  {key:'focus-issue',label:'對焦',cls:'y'},{key:'important',label:'重要',cls:'g'},
+  {key:'highlight',label:'精華',cls:'g'}
+];
+
+// ===== STATE =====
+let S = {
+  project:'', date:'',
+  sceneNum:1, shotNum:1,
+  sceneNames:{}, shotNames:{},
+  entries:[], takeCounts:{},
+  mode:'take',
+  camId:'A', camCount:1,
+  reelNum:1, clipNum:1,
+  clipNums:{A:1,B:1,C:1,D:1},
+  fps:'23.976', captureFps:'',
+  gamma:'S-Log3',
+  tcMode:'free-run', tcStart:'00:00:00:00',
+  soundRoll:'',
+  rolling:false,
+  selectedShotType:'' // quick-select in take mode
+};
+let evtOn=false, evtStart=null, evtTimer=null;
+let wakeLock=null, deferredPrompt=null;
+let editIdx=-1, nameEditTarget='';
+let rollingIdx=-1;
+
+// ===== SW =====
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
+
+// ===== INSTALL =====
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;const b=document.getElementById('installBanner');if(b&&!localStorage.getItem('slate_nodismiss'))b.classList.remove('hide')});
+function dismissInstall(){document.getElementById('installBanner').classList.add('hide');localStorage.setItem('slate_nodismiss','1')}
+
+// ===== ONLINE =====
+function updateOnline(){const d=document.getElementById('offlineDot');if(d)d.classList.toggle('on',!navigator.onLine)}
+window.addEventListener('online',updateOnline);
+window.addEventListener('offline',()=>{updateOnline();toast('離線模式')});
+
+// ===== CLOCK =====
+function startClock(){function tick(){const now=new Date();const h=p2(now.getHours()),m=p2(now.getMinutes()),s=p2(now.getSeconds()),ms=String(now.getMilliseconds()).padStart(3,'0').slice(0,1);const html=`${h}:${m}<span class="sec">:${s}</span><span class="ms">.${ms}</span>`;const e1=document.getElementById('liveClock');const e2=document.getElementById('liveClockEvt');if(e1)e1.innerHTML=html;if(e2)e2.innerHTML=html}tick();setInterval(tick,100)}
+
+// ===== INIT =====
+window.onload=()=>{
+  document.getElementById('setupDate').value=new Date().toISOString().slice(0,10);
+  if(localStorage.getItem('slate_state'))document.getElementById('loadBtn').style.display='inline-block';
+  updateOnline();
+  if(!navigator.share){const sb=document.getElementById('shareBtn');if(sb)sb.style.display='none'}
+  renderShotTypeChips();
+};
+
+function migrateState(s){
+  if(!s.clipNums)s.clipNums={A:s.clipNum||1,B:1,C:1,D:1};
+  if(!s.camCount)s.camCount=1;
+  if(!s.fps)s.fps='23.976';
+  if(s.soundRoll===undefined)s.soundRoll='';
+  if(s.rolling===undefined)s.rolling=false;
+  if(!s.gamma)s.gamma='S-Log3';
+  if(!s.tcMode)s.tcMode='free-run';
+  if(!s.tcStart)s.tcStart='00:00:00:00';
+  if(s.captureFps===undefined)s.captureFps='';
+  if(s.selectedShotType===undefined)s.selectedShotType='';
+  // Migrate entries
+  (s.entries||[]).forEach(e=>{
+    if(e.rating===undefined)e.rating=0;
+    if(e.circle===undefined)e.circle=false;
+    if(e.shot_type===undefined)e.shot_type='';
+    if(e.movement===undefined)e.movement='';
+    if(e.description===undefined)e.description='';
+    if(e.camera===undefined)e.camera=s.camId||'A';
+    if(e.fps===undefined)e.fps=s.fps||'23.976';
+    if(e.capture_fps===undefined)e.capture_fps='';
+    if(e.gamma===undefined)e.gamma=s.gamma||'';
+    if(e.sound_roll===undefined)e.sound_roll='';
+  });
+  return s;
+}
+
+function loadSaved(){
+  try{
+    S=migrateState(JSON.parse(localStorage.getItem('slate_state')));
+    if(S.rolling){
+      rollingIdx=-1;
+      for(let i=S.entries.length-1;i>=0;i--){if(S.entries[i].type==='take'&&!S.entries[i].time_end){rollingIdx=i;break}}
+      if(rollingIdx<0)S.rolling=false;
+    }
+    showMain();
+  }catch(e){alert('載入失敗')}
+}
+
+function startProject(){
+  const proj=document.getElementById('setupProject').value.trim();
+  if(!proj){alert('請輸入專案名稱');return}
+  S.project=proj;
+  S.date=document.getElementById('setupDate').value||new Date().toISOString().slice(0,10);
+  S.sceneNum=1;S.shotNum=1;S.sceneNames={};S.shotNames={};
+  S.entries=[];S.takeCounts={};S.mode='take';
+  S.camId='A';S.camCount=1;S.clipNum=1;S.clipNums={A:1,B:1,C:1,D:1};
+  S.fps='23.976';S.captureFps='';S.gamma='S-Log3';
+  S.tcMode='free-run';S.tcStart='00:00:00:00';
+  S.soundRoll='';S.rolling=false;S.selectedShotType='';
+  showMain();
+}
+
+function showMain(){
+  document.getElementById('setupView').classList.add('hide');
+  document.getElementById('mainView').classList.add('show');
+  document.getElementById('projLabel').textContent=`${S.project} | ${S.date}`;
+  renderCamSwitcher();renderShotTypeChips();
+  updateDisplay();renderLog();persist();requestWake();startClock();
+}
+
+// ===== WAKE =====
+async function requestWake(){try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');document.getElementById('awakeDot').style.display='inline-block';wakeLock.addEventListener('release',()=>{document.getElementById('awakeDot').style.display='none';wakeLock=null})}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(!wakeLock)requestWake();updateOnline()}});
+
+// ===== MODE =====
+function setMode(m){
+  if(S.rolling&&m!=='take'){toast('請先按 CUT 結束目前 Take');return}
+  if(evtOn&&m!=='event'){toast('請先結束活動紀錄');return}
+  S.mode=m;
+  document.getElementById('tabTake').classList.toggle('on',m==='take');
+  document.getElementById('tabEvt').classList.toggle('on',m==='event');
+  document.getElementById('takePanel').classList.toggle('hide',m!=='take');
+  document.getElementById('evtPanel').classList.toggle('hide',m!=='event');
+  renderCamSwitcher();updateDisplay();
+}
+
+// ===== CAMERA SWITCHER =====
+function renderCamSwitcher(){
+  const cams='ABCD'.slice(0,S.camCount).split('');
+  ['camSwitcherTake','camSwitcherEvt'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    if(S.camCount<=1){el.innerHTML='';return}
+    el.innerHTML=`<span class="cam-label">CAM</span>`+cams.map(c=>`<div class="cam-chip${c===S.camId?' on':''}" onclick="switchCam('${c}')">${c}</div>`).join('');
+  });
+}
+function switchCam(id){
+  if(S.rolling){toast('請先按 CUT 再切換機位');return}
+  if(evtOn){toast('請先結束紀錄再切換機位');return}
+  S.clipNums[S.camId]=S.clipNum;
+  S.camId=id;S.clipNum=S.clipNums[id]||1;
+  renderCamSwitcher();updateClipDisplay();persist();vib(10);toast(`Camera ${id}`);
+}
+
+// ===== SHOT TYPE QUICK SELECT =====
+function renderShotTypeChips(){
+  const el=document.getElementById('shotTypeRow');if(!el)return;
+  el.innerHTML=SHOT_TYPES.map(t=>`<div class="st-chip${S.selectedShotType===t.key?' on':''}" onclick="selectShotType('${t.key}')">${t.key}</div>`).join('');
+}
+function selectShotType(key){
+  S.selectedShotType=(S.selectedShotType===key)?'':key;
+  renderShotTypeChips();vib(10);
+}
+
+// ===== STEPPER =====
+function step(which,dir){
+  if(which==='scene'){const n=S.sceneNum+dir;if(n<1||n>99)return;S.sceneNum=n}
+  else{const n=S.shotNum+dir;if(n<1||n>99)return;S.shotNum=n}
+  updateDisplay();persist();vib(10);
+}
+function updateDisplay(){
+  const sn=p2(S.sceneNum),sh=p2(S.shotNum);
+  const sName=S.sceneNames[S.sceneNum]||'';
+  const shKey=S.sceneNum+'_'+S.shotNum;
+  const shName=S.shotNames[shKey]||'';
+  setText('sceneNum',sn);setText('sceneName',sName);
+  setText('shotNum',sh);setText('shotName',shName);
+  setText('sceneNumEvt',sn);setText('sceneNameEvt',sName);
+  setText('shotNumEvt',sh);setText('shotNameEvt',shName);
+  const takeKey=`S${sn}_SH${sh}`;
+  const cnt=(S.takeCounts[takeKey]||0)+1;
+  setText('nextTake','T'+p2(cnt));
+  updateClipDisplay();updateRollingUI();
+}
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
+
+// ===== NAME EDIT =====
+function editName(target){
+  nameEditTarget=target;
+  if(target==='scene'){document.getElementById('nmTitle').textContent=`Scene ${p2(S.sceneNum)} 名稱`;document.getElementById('nmInput').value=S.sceneNames[S.sceneNum]||''}
+  else{const shKey=S.sceneNum+'_'+S.shotNum;document.getElementById('nmTitle').textContent=`Shot ${p2(S.shotNum)} 描述`;document.getElementById('nmInput').value=S.shotNames[shKey]||''}
+  document.getElementById('nameModal').classList.remove('hide');
+  setTimeout(()=>document.getElementById('nmInput').focus(),120);
+}
+function saveName(){
+  const val=document.getElementById('nmInput').value.trim();
+  if(nameEditTarget==='scene')S.sceneNames[S.sceneNum]=val;
+  else S.shotNames[S.sceneNum+'_'+S.shotNum]=val;
+  hideModal('nameModal');updateDisplay();persist();
+}
+
+// ===== CLIP STEPPER =====
+function stepClip(dir){const n=S.clipNum+dir;if(n<1||n>999)return;S.clipNum=n;S.clipNums[S.camId]=S.clipNum;updateClipDisplay();persist();vib(10)}
+function updateClipDisplay(){
+  const v='C'+String(S.clipNum).padStart(3,'0');
+  const e1=document.getElementById('clipVal'),e2=document.getElementById('clipValEvt');
+  if(e1)e1.textContent=v;if(e2)e2.textContent=v;
+}
+function clipName(){return S.camId+String(S.reelNum).padStart(3,'0')+'C'+String(S.clipNum).padStart(3,'0')}
+
+// ===== ROLLING UI =====
+function updateRollingUI(){
+  const rollingInd=document.getElementById('rollingInd');
+  const takeBtn=document.getElementById('takeBtn');
+  const lbl=document.getElementById('takeBtnLbl');
+  const hint=document.getElementById('takeHint');
+  if(S.rolling){takeBtn.classList.add('cut');takeBtn.classList.remove('on');lbl.textContent='CUT';rollingInd.classList.remove('hide');hint.textContent='按下結束此 Take'}
+  else{takeBtn.classList.remove('cut');lbl.textContent='記錄';rollingInd.classList.add('hide');hint.textContent='按下 = 記錄此刻時間'}
+}
+
+// ===== TAKE ACTION =====
+function takeAction(){if(S.rolling)cutTake();else recTake()}
+
+function recTake(){
+  vib();
+  const sn=p2(S.sceneNum),sh=p2(S.shotNum);
+  const sceneId='S'+sn,shotId='SH'+sh;
+  const takeKey=`${sceneId}_${shotId}`;
+  if(!S.takeCounts[takeKey])S.takeCounts[takeKey]=0;
+  S.takeCounts[takeKey]++;
+  const takeNum=S.takeCounts[takeKey];
+  const clip=clipName();
+  S.entries.push({
+    type:'take',scene:sceneId,scene_name:S.sceneNames[S.sceneNum]||'',
+    shot:shotId,shot_name:S.shotNames[S.sceneNum+'_'+S.shotNum]||'',
+    take:'T'+p2(takeNum),
+    time_start:new Date().toISOString(),time_end:null,
+    clip:clip,camera:S.camId,
+    fps:S.fps,capture_fps:S.captureFps,gamma:S.gamma,
+    sound_roll:S.soundRoll,
+    shot_type:S.selectedShotType,movement:'',
+    rating:0,circle:false,description:'',
+    tags:[],note:''
+  });
+  rollingIdx=S.entries.length-1;S.rolling=true;
+  S.clipNum++;S.clipNums[S.camId]=S.clipNum;
+  updateClipDisplay();renderLog();persist();updateDisplay();
+  toast(`${sceneId}/${shotId}/T${p2(takeNum)}`);
+}
+
+function cutTake(){
+  if(rollingIdx>=0&&S.entries[rollingIdx]&&!S.entries[rollingIdx].time_end){
+    S.entries[rollingIdx].time_end=new Date().toISOString();
+    const e=S.entries[rollingIdx];
+    const dur=Math.round((new Date(e.time_end)-new Date(e.time_start))/1000);
+    toast(`CUT - ${Math.floor(dur/60)}:${p2(dur%60)}`);
+    const idx=rollingIdx;rollingIdx=-1;S.rolling=false;
+    renderLog();persist();updateRollingUI();vib(50);
+    setTimeout(()=>openEdit(idx),300);return;
+  }
+  rollingIdx=-1;S.rolling=false;renderLog();persist();updateRollingUI();vib(50);
+}
+
+// ===== EVENT RECORD =====
+function togEvt(){
+  const btn=document.getElementById('evtBtn');vib();
+  if(!evtOn){
+    evtOn=true;evtStart=new Date();
+    btn.classList.add('on');btn.querySelector('.lbl').textContent='結束';
+    evtTimer=setInterval(()=>{const d=Date.now()-evtStart.getTime();document.getElementById('timer').textContent=`${p2(Math.floor(d/3600000))}:${p2(Math.floor((d%3600000)/60000))}:${p2(Math.floor((d%60000)/1000))}`;document.getElementById('timer').classList.add('on')},1000);
+  }else{
+    evtOn=false;clearInterval(evtTimer);
+    btn.classList.remove('on');btn.querySelector('.lbl').textContent='開始';
+    document.getElementById('timer').classList.remove('on');
+    const sn=p2(S.sceneNum),sh=p2(S.shotNum);
+    const segName=document.getElementById('segName').value.trim()||'未命名';
+    const clip=clipName();const end=new Date();
+    const dur=Math.round((end-evtStart)/1000);
+    S.entries.push({
+      type:'event',scene:'S'+sn,scene_name:S.sceneNames[S.sceneNum]||'',
+      shot:'SH'+sh,shot_name:segName,take:null,
+      time_start:evtStart.toISOString(),time_end:end.toISOString(),
+      clip:clip,camera:S.camId,
+      fps:S.fps,capture_fps:S.captureFps,gamma:S.gamma,
+      sound_roll:S.soundRoll,
+      shot_type:'',movement:'',
+      rating:0,circle:false,description:'',
+      tags:[],note:''
+    });
+    document.getElementById('segName').value='';
+    document.getElementById('timer').textContent='00:00:00';
+    S.clipNum++;S.clipNums[S.camId]=S.clipNum;updateClipDisplay();
+    renderLog();persist();
+    toast(`${segName}（${Math.floor(dur/60)}:${p2(dur%60)}）`);
+    setTimeout(()=>openEdit(S.entries.length-1),300);
+  }
+}
+
+// ===== EDIT MODAL =====
+function openEdit(idx){
+  editIdx=idx;const e=S.entries[idx];if(!e)return;
+  const ts=new Date(e.time_start);
+  const te=e.time_end?new Date(e.time_end):null;
+  const timeStr=te?`${hmsm(ts)} ~ ${hmsm(te)}`:hmsm(ts)+(e.type==='take'?' (rolling...)':'');
+  const title=e.take?`${e.scene}/${e.shot}/${e.take}`:`${e.scene} ${e.scene_name||''}`;
+  document.getElementById('editTitle').textContent=title;
+  document.getElementById('editTime').textContent=timeStr;
+  document.getElementById('editSceneLabel').textContent=e.scene;
+  document.getElementById('editSceneName').value=e.scene_name||'';
+  document.getElementById('editShotLabel').textContent=e.shot||'';
+  document.getElementById('editShotName').value=e.shot_name||'';
+  document.getElementById('editShotName').placeholder=e.type==='event'?'區段名稱':'鏡頭描述';
+  document.getElementById('editClip').value=e.clip||'';
+  document.getElementById('editCam').value=e.camera||S.camId;
+  document.getElementById('editAudio').value=e.sound_roll||'';
+  document.getElementById('editDesc').value=e.description||'';
+  document.getElementById('editNote').value=e.note||'';
+  document.getElementById('editShotRow').style.display=e.shot?'flex':'none';
+
+  // Circle
+  document.getElementById('circleBtn').classList.toggle('on',!!e.circle);
+
+  // Rating
+  const rr=document.getElementById('ratingRow');
+  rr.innerHTML=Array.from({length:5},(_, i)=>`<span class="star${i<(e.rating||0)?' on':''}" onclick="setEditRating(${i+1})">&#9733;</span>`).join('')+`<span class="rating-label">${e.rating||0}/5</span>`;
+
+  // Shot Type
+  const stc=document.getElementById('editShotType');
+  stc.innerHTML=SHOT_TYPES.map(t=>`<div class="st-chip${e.shot_type===t.key?' on':''}" data-st="${t.key}" onclick="togEditChip(this,'st')">${t.key} ${t.label}</div>`).join('');
+
+  // Movement
+  const mvc=document.getElementById('editMovement');
+  mvc.innerHTML=MOVEMENTS.map(m=>`<div class="mv-chip${e.movement===m.key?' on':''}" data-mv="${m.key}" onclick="togEditChip(this,'mv')">${m.label}</div>`).join('');
+
+  // Tags
+  const tc=document.getElementById('editTags');
+  tc.innerHTML=ALL_TAGS.map(t=>{const sel=e.tags.includes(t.key)?' sel':'';return`<div class="tag ${t.cls}${sel}" data-t="${t.key}" onclick="togEditTag(this)">${t.label}</div>`}).join('');
+
+  document.getElementById('editModal').classList.remove('hide');
+}
+
+function togCircle(){
+  const btn=document.getElementById('circleBtn');
+  btn.classList.toggle('on');vib(10);
+}
+function setEditRating(n){
+  const rr=document.getElementById('ratingRow');
+  const current=rr.querySelectorAll('.star.on').length;
+  const newRating=(current===n)?0:n; // tap same = clear
+  rr.innerHTML=Array.from({length:5},(_,i)=>`<span class="star${i<newRating?' on':''}" onclick="setEditRating(${i+1})">&#9733;</span>`).join('')+`<span class="rating-label">${newRating}/5</span>`;
+  vib(10);
+}
+function togEditChip(el,type){
+  const wasOn=el.classList.contains('on');
+  const parent=el.parentElement;
+  parent.querySelectorAll(type==='st'?'.st-chip':'.mv-chip').forEach(c=>c.classList.remove('on'));
+  if(!wasOn)el.classList.add('on');
+  vib(10);
+}
+function togEditTag(el){el.classList.toggle('sel');vib(10)}
+
+function saveEdit(){
+  if(editIdx<0)return;const e=S.entries[editIdx];
+  e.tags=[...document.querySelectorAll('#editTags .tag.sel')].map(el=>el.dataset.t);
+  e.scene_name=document.getElementById('editSceneName').value.trim();
+  e.shot_name=document.getElementById('editShotName').value.trim();
+  e.clip=document.getElementById('editClip').value.trim();
+  e.camera=(document.getElementById('editCam').value.trim().toUpperCase()||S.camId).charAt(0);
+  e.sound_roll=document.getElementById('editAudio').value.trim();
+  e.description=document.getElementById('editDesc').value.trim();
+  e.note=document.getElementById('editNote').value.trim();
+  e.circle=document.getElementById('circleBtn').classList.contains('on');
+  e.rating=document.querySelectorAll('#ratingRow .star.on').length;
+  const stSel=document.querySelector('#editShotType .st-chip.on');
+  e.shot_type=stSel?stSel.dataset.st:'';
+  const mvSel=document.querySelector('#editMovement .mv-chip.on');
+  e.movement=mvSel?mvSel.dataset.mv:'';
+
+  // If circle, un-circle other takes in same scene/shot
+  if(e.circle&&e.take){
+    S.entries.forEach((other,i)=>{
+      if(i!==editIdx&&other.scene===e.scene&&other.shot===e.shot&&other.take&&other.circle)other.circle=false;
+    });
+  }
+  hideModal('editModal');renderLog();persist();editIdx=-1;
+}
+
+function delEditEntry(){
+  if(editIdx<0)return;if(!confirm('刪除這筆紀錄？'))return;
+  if(editIdx===rollingIdx){rollingIdx=-1;S.rolling=false;updateRollingUI()}
+  S.entries.splice(editIdx,1);
+  if(rollingIdx>editIdx)rollingIdx--;
+  hideModal('editModal');renderLog();persist();editIdx=-1;toast('已刪除');
+}
+
+// ===== LOG =====
+function renderLog(){
+  const el=document.getElementById('logList');
+  document.getElementById('logCnt').textContent=S.entries.length+' 筆';
+  if(!S.entries.length){el.innerHTML='<div class="log-empty">按上方按鈕開始記錄</div>';return}
+  el.innerHTML=[...S.entries].reverse().map((e,ri)=>{
+    const idx=S.entries.length-1-ri;
+    const ts=new Date(e.time_start);const te=e.time_end?new Date(e.time_end):null;
+    const isRolling=(idx===rollingIdx&&!te);
+    const timeFmt=te?`${hms(ts)}<span class="rng">~${hms(te)}</span>`:(isRolling?`${hms(ts)}<span class="rng" style="color:var(--green)">rolling</span>`:hms(ts));
+    const mainLabel=e.scene_name?`${e.scene} ${e.scene_name}`:e.scene;
+    const shotLabel=e.shot?` / ${e.shot}`:'';
+    const tkLbl=e.take?` / ${e.take}`:'';
+    const camBadge=(S.camCount>1&&e.camera)?`<span class="cam-badge">${e.camera}</span>`:'';
+    const stBadge=e.shot_type?`<span class="tg p">${e.shot_type}</span>`:'';
+    const circleMark=e.circle?`<span class="tg circle">&#9733;</span>`:'';
+    const starsHtml=e.rating?`<span class="stars">${'★'.repeat(e.rating)}</span>`:'';
+    const clipLbl=e.clip?`clip:${e.clip}`:'';
+    const tgsHtml=e.tags.map(t=>{
+      const cls=t==='ok'?'ok':(t==='ng'||t.includes('issue'))?'w':'n';
+      const lb={ok:'OK',ng:'NG',backup:'備選','audio-issue':'收音','focus-issue':'對焦',important:'重要',highlight:'精華'}[t]||t;
+      return`<span class="tg ${cls}">${lb}</span>`;
+    }).join('');
+    const ntHtml=e.note?`<div class="nt">${esc(e.note)}</div>`:'';
+    const descHtml=e.description?`<div class="nt" style="color:var(--purple)">📝 ${esc(e.description)}</div>`:'';
+    const noInfo=!e.tags.length&&!e.note&&!e.rating&&!e.circle;
+    return`<div class="entry${e.circle?' circled':''}" onclick="openEdit(${idx})">
+      <div class="t">${timeFmt}</div>
+      <div class="bd">
+        <div class="sc">${esc(mainLabel)}${shotLabel}${tkLbl}${camBadge}${starsHtml}</div>
+        ${clipLbl?`<div class="meta">${clipLbl}</div>`:''}
+        <div class="tgs">${circleMark}${stBadge}${tgsHtml}</div>
+        ${descHtml}${ntHtml}
+        ${noInfo?'<div class="edit-hint">點擊編輯</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== EXPORT =====
+function showExport(){
+  if(!S.entries.length){toast('沒有紀錄');return}
+  if(S.rolling||evtOn){
+    if(!confirm('目前正在錄製中，匯出將自動結束錄製。繼續？'))return;
+  }
+  document.getElementById('exportInfo').textContent=`${S.project} | ${S.date} | ${S.entries.length} 筆`;
+  document.getElementById('exportSheet').classList.remove('hide');
+}
+function hideExport(){document.getElementById('exportSheet').classList.add('hide')}
+
+function finalizeEntries(){
+  S.entries.forEach(e=>{if(!e.time_end&&e.time_start)e.time_end=new Date().toISOString()});
+  if(S.rolling){rollingIdx=-1;S.rolling=false;updateRollingUI()}
+  persist();
+}
+
+function buildCSV(){
+  finalizeEntries();
+  let csv='date,scene,scene_name,shot,shot_name,take,time_start,time_end,clip,camera,fps,capture_fps,gamma,sound_roll,shot_type,movement,rating,circle,ok,tags,description,note\n';
+  S.entries.forEach(e=>{
+    const ok=e.tags.includes('ok')?'OK':'';
+    const otherTags=e.tags.filter(t=>t!=='ok').join(';');
+    const ts=e.time_start||'';
+    const te=e.time_end||'';
+    csv+=`${S.date},${e.scene},${csvVal(e.scene_name||'')},${e.shot||''},${csvVal(e.shot_name||'')},${e.take||''},${ts},${te},${e.clip||''},${e.camera||''},${e.fps||''},${e.capture_fps||''},${e.gamma||''},${csvVal(e.sound_roll||'')},${e.shot_type||''},${e.movement||''},${e.rating||0},${e.circle?'Y':''},${ok},${otherTags},${csvVal(e.description||'')},${csvVal(e.note||'')}\n`;
+  });
+  return csv;
+}
+
+function buildJSON(){
+  finalizeEntries();
+  return JSON.stringify({
+    project:S.project,date:S.date,
+    settings:{fps:S.fps,capture_fps:S.captureFps,gamma:S.gamma,tc_mode:S.tcMode,tc_start:S.tcStart,sound_roll:S.soundRoll,cam_count:S.camCount},
+    entries:S.entries.map(e=>({
+      type:e.type,scene:e.scene,scene_name:e.scene_name,shot:e.shot,shot_name:e.shot_name,take:e.take,
+      time_start:e.time_start,time_end:e.time_end,
+      clip:e.clip,camera:e.camera,
+      fps:e.fps,capture_fps:e.capture_fps||'',gamma:e.gamma||'',
+      sound_roll:e.sound_roll||'',
+      shot_type:e.shot_type||'',movement:e.movement||'',
+      rating:e.rating||0,circle:!!e.circle,
+      description:e.description||'',
+      ok:e.tags.includes('ok'),tags:e.tags.filter(t=>t!=='ok'),note:e.note||''
+    }))
+  },null,2);
+}
+
+function buildFCPXML(){
+  finalizeEntries();
+  const fps=parseFloat(S.fps)||24;
+  const ntsc=[23.976,29.97,59.94].includes(fps);
+  const timebase=ntsc?Math.round(fps):fps;
+
+  let xml=`<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="5">\n<bin>\n  <name>${esc(S.project)} - ${S.date}</name>\n  <children>\n`;
+
+  // Clips in bin
+  S.entries.forEach((e,i)=>{
+    const dur=e.time_end?Math.round((new Date(e.time_end)-new Date(e.time_start))/1000):0;
+    const frames=Math.round(dur*fps);
+    const clipId=`clip-${i+1}`;
+    const clipNameStr=e.clip||`clip_${i+1}`;
+    const reelName=e.clip?e.clip.substring(0,4):S.camId+'001';
+    const label=e.tags.includes('ok')?'Iris':(e.tags.includes('ng')?'Rose':(e.circle?'Mango':''));
+    xml+=`    <clip id="${clipId}">\n`;
+    xml+=`      <name>${esc(clipNameStr)}</name>\n`;
+    xml+=`      <duration>${frames}</duration>\n`;
+    xml+=`      <rate><timebase>${timebase}</timebase>${ntsc?'<ntsc>TRUE</ntsc>':''}</rate>\n`;
+    xml+=`      <logginginfo>\n`;
+    xml+=`        <scene>${esc(e.scene+(e.scene_name?' '+e.scene_name:''))}</scene>\n`;
+    xml+=`        <shottake>${esc((e.shot||'')+(e.take?' '+e.take:''))}</shottake>\n`;
+    xml+=`        <lognote>${esc(e.description||e.note||'')}</lognote>\n`;
+    xml+=`        <good>${e.circle||e.tags.includes('ok')?'TRUE':'FALSE'}</good>\n`;
+    xml+=`        <description>${esc([e.shot_type,e.movement,e.description].filter(Boolean).join(' | '))}</description>\n`;
+    xml+=`      </logginginfo>\n`;
+    if(label)xml+=`      <labels><label>${label}</label></labels>\n`;
+    xml+=`      <comments>\n`;
+    xml+=`        <mastercomment1>${esc('Rating:'+String(e.rating||0)+'/5')}</mastercomment1>\n`;
+    xml+=`        <mastercomment2>${esc('Camera:'+e.camera+' Gamma:'+e.gamma)}</mastercomment2>\n`;
+    xml+=`        <mastercomment3>${esc(e.tags.join(', '))}</mastercomment3>\n`;
+    xml+=`        <mastercomment4>${esc(e.sound_roll||'')}</mastercomment4>\n`;
+    xml+=`      </comments>\n`;
+    // Markers for tags
+    if(e.tags.length||e.circle){
+      const markerName=e.circle?'CIRCLE TAKE':(e.tags.includes('ok')?'OK':'');
+      const markerColor=e.circle?'Yellow':(e.tags.includes('ok')?'Green':(e.tags.includes('ng')?'Red':'Blue'));
+      xml+=`      <marker><name>${esc(markerName||e.tags[0]||'')}</name><comment>${esc(e.note||'')}</comment><in>0</in><out>-1</out><color>${markerColor}</color></marker>\n`;
+    }
+    xml+=`      <media><video><duration>${frames}</duration><rate><timebase>${timebase}</timebase>${ntsc?'<ntsc>TRUE</ntsc>':''}</rate></video></media>\n`;
+    xml+=`    </clip>\n`;
+  });
+
+  xml+=`  </children>\n</bin>\n</xmeml>`;
+  return xml;
+}
+
+async function doExport(method){
+  hideExport();
+  if(method==='json'){
+    const json=buildJSON();
+    const fn=`slate_${S.date}.json`;
+    const blob=new Blob([json],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();
+    toast('JSON 已下載');return;
+  }
+  if(method==='xml'){
+    const xml=buildFCPXML();
+    const fn=`slate_${S.date}.xml`;
+    const blob=new Blob([xml],{type:'application/xml'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();
+    toast('Premiere XML 已下載');return;
+  }
+  const csv=buildCSV();
+  const fn=`slate_${S.date}.csv`;
+  if(method==='csv'){
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();
+    toast('CSV 已下載');
+  }else if(method==='share'){
+    try{const file=new File([new Blob(['\uFEFF'+csv])],fn,{type:'text/csv'});await navigator.share({title:`場記表 - ${S.project}`,files:[file]});toast('已分享')}
+    catch(e){if(e.name!=='AbortError')toast('分享失敗')}
+  }else{
+    try{await navigator.clipboard.writeText(csv)}catch(e){const ta=document.createElement('textarea');ta.value=csv;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta)}
+    toast('已複製');
+  }
+}
+
+// ===== SETTINGS =====
+function showSettings(){
+  document.getElementById('sProject').value=S.project;
+  document.getElementById('sDate').value=S.date;
+  document.getElementById('sCamCount').value=S.camCount||1;
+  document.getElementById('sGamma').value=S.gamma||'S-Log3';
+  document.getElementById('sFps').value=S.fps||'23.976';
+  document.getElementById('sCaptureFps').value=S.captureFps||'';
+  document.getElementById('sCamId').value=S.camId||'A';
+  document.getElementById('sReel').value=String(S.reelNum||1).padStart(3,'0');
+  document.getElementById('sClipStart').value=S.clipNum||1;
+  document.getElementById('sTcMode').value=S.tcMode||'free-run';
+  document.getElementById('sTcStart').value=S.tcStart||'00:00:00:00';
+  document.getElementById('sSoundRoll').value=S.soundRoll||'';
+  const camIdSf=document.getElementById('sfCamId');
+  const camCount=parseInt(document.getElementById('sCamCount').value)||1;
+  camIdSf.style.display=camCount>1?'none':'';
+  document.getElementById('sCamCount').onchange=()=>{const c=parseInt(document.getElementById('sCamCount').value)||1;camIdSf.style.display=c>1?'none':''};
+  updateFnPreview();
+  ['sCamId','sReel','sClipStart'].forEach(id=>{document.getElementById(id).oninput=updateFnPreview});
+  // Cloud status in settings
+  const csBtn=document.getElementById('cloudSignInBtn');
+  const csLabel=document.getElementById('cloudSignInLabel');
+  if(gAccessToken){csBtn.classList.add('connected');csLabel.textContent='已連接 Google Drive ✓'}
+  else{csBtn.classList.remove('connected');csLabel.textContent='連接 Google Drive'}
+  document.getElementById('settingsModal').classList.remove('hide');
+}
+function updateFnPreview(){
+  const cam=(document.getElementById('sCamId').value||'A').toUpperCase().charAt(0)||'A';
+  const reel=String(parseInt(document.getElementById('sReel').value)||1).padStart(3,'0');
+  const clip=String(parseInt(document.getElementById('sClipStart').value)||1).padStart(3,'0');
+  document.getElementById('fnPreview').textContent=`${cam}${reel}C${clip}_yymmdd.MP4`;
+}
+function saveSettings(){
+  S.project=document.getElementById('sProject').value.trim()||S.project;
+  S.date=document.getElementById('sDate').value||S.date;
+  S.camCount=Math.max(1,Math.min(4,parseInt(document.getElementById('sCamCount').value)||1));
+  S.gamma=document.getElementById('sGamma').value||'S-Log3';
+  S.fps=document.getElementById('sFps').value||'23.976';
+  S.captureFps=document.getElementById('sCaptureFps').value||'';
+  const camId=(document.getElementById('sCamId').value||'A').toUpperCase().charAt(0);
+  if(S.camCount<=1)S.camId=/[A-Z]/.test(camId)?camId:'A';
+  S.reelNum=Math.max(1,Math.min(999,parseInt(document.getElementById('sReel').value)||1));
+  const newClip=parseInt(document.getElementById('sClipStart').value)||S.clipNum;
+  if(newClip!==S.clipNum){S.clipNum=Math.max(1,Math.min(999,newClip));S.clipNums[S.camId]=S.clipNum}
+  S.tcMode=document.getElementById('sTcMode').value||'free-run';
+  S.tcStart=document.getElementById('sTcStart').value||'00:00:00:00';
+  S.soundRoll=document.getElementById('sSoundRoll').value.trim();
+  document.getElementById('projLabel').textContent=`${S.project} | ${S.date}`;
+  renderCamSwitcher();updateClipDisplay();
+  hideModal('settingsModal');persist();toast('已儲存');
+}
+function clearAll(){S.entries=[];S.takeCounts={};rollingIdx=-1;S.rolling=false;renderLog();persist();hideModal('settingsModal');updateRollingUI();toast('已清除')}
+
+// ===== GOOGLE DRIVE BACKUP =====
+const GOOGLE_CLIENT_ID = localStorage.getItem('slate_google_client_id')||'';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FOLDER = 'Slate Backups';
+let gTokenClient=null, gAccessToken=null, gFolderId=null, gFileId=null, gBackupTimer=null;
+
+function initDrive(){
+  if(!GOOGLE_CLIENT_ID){
+    // Show restore btn if token cached (means they configured it before)
+    return;
+  }
+  try{
+    gTokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:GOOGLE_CLIENT_ID,
+      scope:DRIVE_SCOPE,
+      callback:onDriveToken
+    });
+    // Try silent restore of cached token
+    const cached=localStorage.getItem('slate_gtoken');
+    if(cached){gAccessToken=cached;validateToken()}
+    // Show cloud restore button on setup page
+    document.getElementById('cloudRestoreBtn').style.display='';
+  }catch(e){console.warn('GIS init failed:',e)}
+}
+
+function driveSignIn(){
+  if(!GOOGLE_CLIENT_ID){
+    const id=prompt('請輸入 Google OAuth Client ID：\n（在 Google Cloud Console 建立）');
+    if(!id)return;
+    localStorage.setItem('slate_google_client_id',id);
+    location.reload();
+    return;
+  }
+  if(!gTokenClient){toast('Google 服務載入中...');return}
+  gTokenClient.requestAccessToken({prompt:gAccessToken?'':'consent'});
+}
+
+function onDriveToken(resp){
+  if(resp.error){toast('登入失敗: '+resp.error);return}
+  gAccessToken=resp.access_token;
+  localStorage.setItem('slate_gtoken',gAccessToken);
+  updateCloudUI('connected','已連接');
+  const btn=document.getElementById('cloudSignInBtn');
+  btn.classList.add('connected');
+  document.getElementById('cloudSignInLabel').textContent='已連接 Google Drive ✓';
+  toast('☁️ Google Drive 已連接');
+  driveBackup();
+}
+
+async function validateToken(){
+  try{
+    const r=await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token='+gAccessToken);
+    if(!r.ok){gAccessToken=null;localStorage.removeItem('slate_gtoken');return}
+    updateCloudUI('connected','已連接');
+    document.getElementById('cloudRestoreBtn').style.display='';
+  }catch(e){gAccessToken=null}
+}
+
+async function driveFetch(url,opts={}){
+  if(!gAccessToken)return null;
+  const r=await fetch(url,{...opts,headers:{'Authorization':'Bearer '+gAccessToken,...(opts.headers||{})}});
+  if(r.status===401){
+    gAccessToken=null;localStorage.removeItem('slate_gtoken');
+    updateCloudUI('error','需重新登入');
+    return null;
+  }
+  return r;
+}
+
+async function getFolder(){
+  if(gFolderId)return gFolderId;
+  const q=encodeURIComponent(`name='${DRIVE_FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
+  if(!r)return null;
+  const d=await r.json();
+  if(d.files&&d.files.length>0){gFolderId=d.files[0].id;return gFolderId}
+  // Create folder
+  const cr=await driveFetch('https://www.googleapis.com/drive/v3/files',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:DRIVE_FOLDER,mimeType:'application/vnd.google-apps.folder'})
+  });
+  if(!cr)return null;
+  const f=await cr.json();gFolderId=f.id;return gFolderId;
+}
+
+async function driveBackup(){
+  if(!gAccessToken||!S.project)return;
+  updateCloudUI('syncing','備份中...');
+  try{
+    const fid=await getFolder();if(!fid)return;
+    const fileName=`slate_${S.project.replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g,'_')}_${S.date}.json`;
+    const backup=JSON.stringify({...S,_backup:new Date().toISOString()});
+
+    // Find existing file
+    if(!gFileId){
+      const q=encodeURIComponent(`name='${fileName}' and '${fid}' in parents and trashed=false`);
+      const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
+      if(r){const d=await r.json();if(d.files&&d.files.length>0)gFileId=d.files[0].id}
+    }
+
+    if(gFileId){
+      // Update existing
+      await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${gFileId}?uploadType=media`,{
+        method:'PATCH',headers:{'Content-Type':'application/json'},body:backup
+      });
+    }else{
+      // Create new (multipart)
+      const meta=JSON.stringify({name:fileName,parents:[fid]});
+      const boundary='slate'+Date.now();
+      const body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${backup}\r\n--${boundary}--`;
+      const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+        method:'POST',headers:{'Content-Type':`multipart/related; boundary=${boundary}`},body
+      });
+      if(r){const f=await r.json();gFileId=f.id}
+    }
+    const t=new Date().toTimeString().slice(0,8);
+    updateCloudUI('connected',`已備份 ${t}`);
+    document.getElementById('cloudBackupInfo').textContent=`上次備份：${t}`;
+  }catch(e){
+    console.error('Backup error:',e);
+    updateCloudUI('error','備份失敗');
+  }
+}
+
+function scheduleDriveBackup(){
+  if(!gAccessToken)return;
+  clearTimeout(gBackupTimer);
+  gBackupTimer=setTimeout(()=>driveBackup(),5000); // 5s debounce
+}
+
+async function showCloudRestore(){
+  if(!GOOGLE_CLIENT_ID){driveSignIn();return}
+  if(!gAccessToken){
+    if(!gTokenClient){toast('請先設定 Google Client ID');return}
+    gTokenClient.requestAccessToken({prompt:'consent'});
+    return;
+  }
+  toast('載入備份列表...');
+  try{
+    const fid=await getFolder();
+    if(!fid){toast('找不到備份');return}
+    const q=encodeURIComponent(`'${fid}' in parents and trashed=false`);
+    const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=20`);
+    if(!r)return;
+    const d=await r.json();
+    if(!d.files||!d.files.length){toast('雲端沒有備份');return}
+    const list=document.getElementById('backupList');
+    list.innerHTML=d.files.map(f=>{
+      const mt=new Date(f.modifiedTime);
+      const timeStr=`${mt.toLocaleDateString('zh-TW')} ${mt.toTimeString().slice(0,8)}`;
+      return`<div class="backup-item" onclick="restoreFromDrive('${f.id}','${esc(f.name)}')">
+        <div class="bi-name">${esc(f.name.replace('.json',''))}</div>
+        <div class="bi-time">最後更新：${timeStr}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('cloudModal').classList.remove('hide');
+  }catch(e){toast('載入失敗')}
+}
+
+async function restoreFromDrive(fileId,fileName){
+  try{
+    toast('恢復中...');
+    const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+    if(!r){toast('下載失敗');return}
+    const data=await r.json();
+    delete data._backup;
+    S=migrateState(data);
+    if(S.rolling){
+      rollingIdx=-1;
+      for(let i=S.entries.length-1;i>=0;i--){if(S.entries[i].type==='take'&&!S.entries[i].time_end){rollingIdx=i;break}}
+      if(rollingIdx<0)S.rolling=false;
+    }
+    hideModal('cloudModal');
+    showMain();
+    toast(`已恢復：${fileName}`);
+  }catch(e){toast('恢復失敗')}
+}
+
+function updateCloudUI(status,label){
+  const el=document.getElementById('cloudStatus');
+  if(!el)return;
+  el.style.display='flex';
+  el.className='cloud-status '+(status||'');
+  document.getElementById('cloudLabel').textContent=label||'';
+}
+
+function showCloudInfo(){
+  if(gAccessToken){
+    if(confirm('已連接 Google Drive。\n要立即備份嗎？'))driveBackup();
+  }else{
+    driveSignIn();
+  }
+}
+
+// Init GIS after library loads
+if(typeof google!=='undefined'&&google.accounts){initDrive()}
+else{window.addEventListener('load',()=>{setTimeout(initDrive,1000)})}
+
+// ===== UTILS =====
+function hideModal(id){document.getElementById(id).classList.add('hide')}
+function hm(d){return d.toTimeString().slice(0,5)}
+function hms(d){return d.toTimeString().slice(0,8)}
+function hmsm(d){return d.toTimeString().slice(0,8)+'.'+String(d.getMilliseconds()).padStart(3,'0')}
+function p2(n){return String(n).padStart(2,'0')}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function csvVal(s){return(s&&(s.includes(',')||s.includes('"')))?`"${s.replace(/"/g,'""')}"`:s||''}
+function vib(ms){try{navigator.vibrate?.(ms||30)}catch(e){}}
+function persist(){try{localStorage.setItem('slate_state',JSON.stringify(S));scheduleDriveBackup()}catch(e){}}
+function toast(msg,ms){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),ms||2000)}
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;
+  if(e.code==='Space'&&S.mode==='take'){e.preventDefault();takeAction()}
+});
+</script>
+</body>
+</html>
