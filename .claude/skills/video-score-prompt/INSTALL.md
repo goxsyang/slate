@@ -1,5 +1,12 @@
 # video-score-prompt 安裝說明（另一台電腦）
 
+## 0. 最快的方式：從 slate repo 直接用
+本 skill 已放在 `goxsyang/slate` 的 `.claude/skills/video-score-prompt/`。在該 repo 裡開 Claude Code 就會自動載入，不需另外安裝。
+要讓所有專案都能用，在 repo 根目錄跑一次：
+```bash
+bash .claude/skills/video-score-prompt/install.sh
+```
+
 ## 1. 放到 Claude Code 的 skills 目錄
 ```bash
 mkdir -p ~/.claude/skills

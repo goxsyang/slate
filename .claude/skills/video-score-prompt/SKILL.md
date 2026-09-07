@@ -32,18 +32,22 @@ description: |
 
 ## 步驟一：量測
 
+腳本在本 skill 資料夾的 `scripts/analyze_video.sh`。下面的 `$SKILL` 代表這個 SKILL.md 所在的目錄：裝在使用者層時是 `~/.claude/skills/video-score-prompt`，裝在專案層時是 `<repo>/.claude/skills/video-score-prompt`。先用 `ls` 確認哪一個存在再執行。
+
 ```bash
+SKILL=~/.claude/skills/video-score-prompt; [ -d "$SKILL" ] || SKILL=.claude/skills/video-score-prompt
+
 # 一般情況
-~/.claude/skills/video-score-prompt/scripts/analyze_video.sh "<影片路徑>" [輸出目錄] [抽幀間隔] [場景閾值]
+"$SKILL"/scripts/analyze_video.sh "<影片路徑>" [輸出目錄] [抽幀間隔] [場景閾值]
 
 # 使用者說「我重新剪了」：帶舊版的 cuts.txt 比對，並把舊 prompt 的錨點一併換算成新版秒數
-~/.claude/skills/video-score-prompt/scripts/analyze_video.sh "<新版影片>" <新輸出目錄> --prev <舊輸出目錄>/cuts.txt --anchors "4.9,43,63.5"
+"$SKILL"/scripts/analyze_video.sh "<新版影片>" <新輸出目錄> --prev <舊輸出目錄>/cuts.txt --anchors "4.9,43,63.5"
 
 # 前段是現成曲、後段要接 AI 新曲：先量那首現成曲（BPM 家族＋交接縫）
-~/.claude/skills/video-score-prompt/scripts/analyze_video.sh "<現成曲.mp3>" <輸出目錄> --music
+"$SKILL"/scripts/analyze_video.sh "<現成曲.mp3>" <輸出目錄> --music
 
 # 只要數據不要圖（重跑比對、調門檻、拆 cue 重量子區段時快很多）
-~/.claude/skills/video-score-prompt/scripts/analyze_video.sh "<影片路徑>" <輸出目錄> --no-frames
+"$SKILL"/scripts/analyze_video.sh "<影片路徑>" <輸出目錄> --no-frames
 ```
 
 一次產出：規格、音軌是否靜音、切點清單（`cuts.txt`）、每 5 秒密度長條圖、**每 2／4／5 秒的音軌能量長條圖與人聲空窗清單**（視窗依片長自動；`energy.txt`、`gaps.txt`）、contact sheet（每張 24 格）。`--prev` 另產「重剪比對」判定與對照表；`--music` 另產 BPM 估計與交接縫位置。其他選項（`--energy-win`、`--gap-db`、`--gap-min`）見 `analyze_video.sh --help`。
