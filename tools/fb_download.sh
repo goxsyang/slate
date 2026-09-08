@@ -213,7 +213,7 @@ classify() {
   if   grep -q 'is not a valid URL' "$TMP_OUT";                    then echo invalid
   elif grep -q 'Requested format is not available' "$TMP_OUT";    then echo format
   elif grep -q 'HTTP Error 404' "$TMP_OUT";                        then echo gone
-  elif grep -qiE 'Unable to download webpage|Got error: .*bytes read|Giving up after|Connection reset|timed out|Temporary failure|nodename nor servname|HTTP Error 5[0-9][0-9]' "$TMP_OUT"; then echo network
+  elif grep -qiE 'Connection (refused|reset)|timed out|Temporary failure|nodename nor servname|Network is unreachable|Unable to connect to proxy|CERTIFICATE_VERIFY|HTTP Error 5[0-9][0-9]|bytes read|Giving up after' "$TMP_OUT"; then echo network
   elif grep -q 'could not find .* cookies database' "$TMP_OUT";   then echo nocookies
   elif grep -q 'cannot decrypt v10 cookies' "$TMP_OUT";           then echo denied
   else echo login
@@ -224,12 +224,14 @@ last_error() { local e; e=$(grep '^ERROR' "$TMP_OUT" | tail -n 1); printf '%s' "
 
 # 數 done.txt 裡「真的存在」的檔案有幾個
 count_done() {
-  local c=0 f
   [ -f "$DONE_LIST" ] || { echo 0; return; }
-  while IFS= read -r f; do
-    [ -n "$f" ] && [ -f "$f" ] && c=$((c + 1))
-  done < "$DONE_LIST"
-  echo "$c"
+  awk '!seen[$0]++' "$DONE_LIST" | {
+    c=0
+    while IFS= read -r f; do
+      [ -n "$f" ] && [ -f "$f" ] && c=$((c + 1))
+    done
+    echo "$c"
+  }
 }
 
 SUCCESS=()
@@ -260,12 +262,13 @@ for raw in "$@"; do
     done_this=1
   else
     cls=$(classify)
+    first_err=$(last_error)
     case "$cls" in
       invalid) reason="不是有效的網址" ;;
-      gone)    reason="影片不存在或已被刪除（HTTP 404）" ;;
-      network) reason="網路問題（連不上 Facebook 或下載中斷）：$(last_error)" ;;
+      network) reason="網路問題（連不上 Facebook 或下載中斷）：$first_err" ;;
       format)  reason="format" ;;
       *)
+        # 其他情況（含 404：Facebook 對未登入的人有時也回 404）都值得用登入狀態再試
         for b in $BROWSERS; do
           case "$b" in
             safari)
@@ -302,8 +305,17 @@ for raw in "$@"; do
   # 只有分離的影像／聲音串流、又沒有 ffmpeg：改成分開下載，至少把內容拿到
   if [ "$reason" = "format" ]; then
     warn "這支影片只有「影像」「聲音」分開的串流，這台電腦沒有 ffmpeg 可以合併。先把兩個檔案都抓下來。"
-    run_ytdlp "$url" "$used_browser" "bv*+ba" || true
-    phantom=$(tail -n 1 "$DONE_LIST" 2>/dev/null)
+    lines_before=$(wc -l < "$DONE_LIST" | tr -d ' ')
+    reason=""
+    phantom=""
+    if run_ytdlp "$url" "$used_browser" "bv*+ba"; then
+      phantom=$(tail -n +$((lines_before + 1)) "$DONE_LIST" | tail -n 1)
+    else
+      case "$(classify)" in
+        gone)    reason="影片不存在或已被刪除（HTTP 404）" ;;
+        network) reason="網路問題（連不上 Facebook 或下載中斷）：$(last_error)" ;;
+      esac
+    fi
     parts=""
     if [ -n "$phantom" ] && [ ! -f "$phantom" ]; then
       for f in "${phantom%.*}".f*; do
@@ -312,10 +324,9 @@ for raw in "$@"; do
     fi
     if [ -n "$parts" ]; then
       PARTIAL+=("${parts%、}")
-      reason=""
       done_this=1
-    else
-      reason="這支影片只有分離的影像／聲音串流，需要 ffmpeg 才能下載合併"
+    elif [ -z "$reason" ]; then
+      reason="這支影片只有分離的影像／聲音串流，下載失敗：$(last_error)"
     fi
   fi
 
@@ -328,7 +339,7 @@ for raw in "$@"; do
   else
     FAILED+=("$url")
     if [ -z "$reason" ]; then
-      reason="需要登入才看得到，但沒有一個瀏覽器的登入可用（可能是私人／限好友影片）：$(last_error)"
+      reason="需要登入才看得到，但沒有一個瀏覽器的登入可用（可能是私人／限好友影片）：$first_err"
     fi
     REASONS+=("$reason")
   fi
@@ -342,8 +353,11 @@ summary() {
   echo
   rule
   files=$(count_done)
+  if [ "$files" -gt 0 ] || [ ${#PARTIAL[@]} -gt 0 ]; then
+    ok "檔案位置：$OUT_DIR"
+  fi
   if [ "$files" -gt 0 ]; then
-    ok "已下載 $files 個檔案，位置：$OUT_DIR"
+    ok "已下載 $files 個檔案："
     awk '!seen[$0]++' "$DONE_LIST" | while IFS= read -r f; do
       [ -n "$f" ] && [ -f "$f" ] && note "• $(basename "$f")"
     done
@@ -374,7 +388,7 @@ summary() {
 }
 summary
 
-if command -v open >/dev/null 2>&1 && [ "$(count_done)" -gt 0 ]; then
+if command -v open >/dev/null 2>&1 && { [ "$(count_done)" -gt 0 ] || [ ${#PARTIAL[@]} -gt 0 ]; }; then
   open "$OUT_DIR"
 fi
 
