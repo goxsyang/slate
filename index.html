@@ -11,7 +11,6 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <title>Slate</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -237,6 +236,7 @@ button,input,select{font-family:inherit;font-size:inherit}
 .cloud-status.connected{color:var(--green)}
 .cloud-status.syncing{color:var(--yellow)}
 .cloud-status.error{color:var(--red)}
+.cloud-status.offline{color:var(--orange)}
 .cloud-signin{width:100%;padding:14px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px}
 .cloud-signin:active{background:#222}
 .cloud-signin.connected{border-color:var(--green);color:var(--green)}
@@ -1222,25 +1222,63 @@ function clearAll(){S.entries=[];S.takeCounts={};rollingIdx=-1;S.rolling=false;r
 const GOOGLE_CLIENT_ID = localStorage.getItem('slate_google_client_id')||'';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER = 'Slate Backups';
+const GIS_SRC = 'https://accounts.google.com/gsi/client';
+const FETCH_TIMEOUT_MS = 20000;
 let gTokenClient=null, gAccessToken=null, gFolderId=null, gFileId=null, gBackupTimer=null;
+let gBackupBusy=false, gBackupPending=false, gBackupDirty=false, gRetryTimer=null, gRetryCount=0;
+let gisLoading=null;
+
+// Load the Google Identity Services script only when Drive backup is actually
+// configured or the user taps sign-in. Saves ~100KB on every launch otherwise.
+function loadGis(){
+  if(typeof google!=='undefined'&&google.accounts)return Promise.resolve();
+  if(gisLoading)return gisLoading;
+  gisLoading=new Promise((resolve,reject)=>{
+    ['https://accounts.google.com','https://www.googleapis.com'].forEach(h=>{
+      const l=document.createElement('link');l.rel='preconnect';l.href=h;l.crossOrigin='';document.head.appendChild(l);
+    });
+    const s=document.createElement('script');
+    s.src=GIS_SRC;s.async=true;
+    s.onload=()=>resolve();
+    s.onerror=()=>{gisLoading=null;reject(new Error('GIS load failed'))};
+    document.head.appendChild(s);
+  });
+  return gisLoading;
+}
+
+function slowNetwork(){
+  const c=navigator.connection;
+  if(!c)return false;
+  return !!c.saveData||/(^|-)2g$/.test(c.effectiveType||'');
+}
+
+function tokenExpired(){
+  const exp=parseInt(localStorage.getItem('slate_gtoken_exp')||'0');
+  return !exp||Date.now()>exp;
+}
 
 function initDrive(){
-  if(!GOOGLE_CLIENT_ID){
-    // Show restore btn if token cached (means they configured it before)
-    return;
-  }
-  try{
-    gTokenClient=google.accounts.oauth2.initTokenClient({
-      client_id:GOOGLE_CLIENT_ID,
-      scope:DRIVE_SCOPE,
-      callback:onDriveToken
-    });
-    // Try silent restore of cached token
-    const cached=localStorage.getItem('slate_gtoken');
-    if(cached){gAccessToken=cached;validateToken()}
-    // Show cloud restore button on setup page
-    document.getElementById('cloudRestoreBtn').style.display='';
-  }catch(e){console.warn('GIS init failed:',e)}
+  if(!GOOGLE_CLIENT_ID)return;
+  loadGis().then(()=>{
+    try{
+      gTokenClient=google.accounts.oauth2.initTokenClient({
+        client_id:GOOGLE_CLIENT_ID,
+        scope:DRIVE_SCOPE,
+        callback:onDriveToken
+      });
+      document.getElementById('cloudRestoreBtn').style.display='';
+      const cached=localStorage.getItem('slate_gtoken');
+      if(!cached)return;
+      gAccessToken=cached;
+      if(tokenExpired()){
+        // Only hit the network when the stored expiry says we must.
+        validateToken();
+      }else{
+        updateCloudUI('connected','已連接');
+        if(gBackupDirty)driveBackup();
+      }
+    }catch(e){console.warn('GIS init failed:',e)}
+  }).catch(()=>{updateCloudUI('error','Google 服務載入失敗')});
 }
 
 function driveSignIn(){
@@ -1251,7 +1289,14 @@ function driveSignIn(){
     location.reload();
     return;
   }
-  if(!gTokenClient){toast('Google 服務載入中...');return}
+  if(!gTokenClient){
+    toast('Google 服務載入中...');
+    loadGis().then(()=>{
+      if(!gTokenClient)initDrive();
+      setTimeout(()=>{if(gTokenClient)gTokenClient.requestAccessToken({prompt:gAccessToken?'':'consent'})},300);
+    }).catch(()=>toast('無法連線 Google，請檢查網路'));
+    return;
+  }
   gTokenClient.requestAccessToken({prompt:gAccessToken?'':'consent'});
 }
 
@@ -1259,28 +1304,52 @@ function onDriveToken(resp){
   if(resp.error){toast('登入失敗: '+resp.error);return}
   gAccessToken=resp.access_token;
   localStorage.setItem('slate_gtoken',gAccessToken);
+  // Remember expiry (minus a safety margin) so future launches skip the tokeninfo round trip.
+  const ttl=(parseInt(resp.expires_in)||3600)*1000;
+  localStorage.setItem('slate_gtoken_exp',String(Date.now()+ttl-60000));
   updateCloudUI('connected','已連接');
   const btn=document.getElementById('cloudSignInBtn');
   btn.classList.add('connected');
   document.getElementById('cloudSignInLabel').textContent='已連接 Google Drive ✓';
   toast('☁️ Google Drive 已連接');
+  gRetryCount=0;
   driveBackup();
 }
 
+function clearToken(){
+  gAccessToken=null;
+  localStorage.removeItem('slate_gtoken');
+  localStorage.removeItem('slate_gtoken_exp');
+}
+
 async function validateToken(){
+  if(!navigator.onLine){updateCloudUI('offline','離線');return}
   try{
-    const r=await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token='+gAccessToken);
-    if(!r.ok){gAccessToken=null;localStorage.removeItem('slate_gtoken');return}
+    const r=await fetchWithTimeout('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token='+gAccessToken,{cache:'no-store'});
+    if(!r.ok){clearToken();updateCloudUI('error','需重新登入');return}
+    const d=await r.json().catch(()=>({}));
+    if(d.expires_in)localStorage.setItem('slate_gtoken_exp',String(Date.now()+d.expires_in*1000-60000));
     updateCloudUI('connected','已連接');
     document.getElementById('cloudRestoreBtn').style.display='';
-  }catch(e){gAccessToken=null}
+    if(gBackupDirty)driveBackup();
+  }catch(e){
+    // Network problem, not an invalid token: keep the token and try again later.
+    updateCloudUI('offline','連線不穩');
+    scheduleRetry();
+  }
+}
+
+function fetchWithTimeout(url,opts={}){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),FETCH_TIMEOUT_MS);
+  return fetch(url,{...opts,signal:ctrl.signal}).finally(()=>clearTimeout(tid));
 }
 
 async function driveFetch(url,opts={}){
   if(!gAccessToken)return null;
-  const r=await fetch(url,{...opts,headers:{'Authorization':'Bearer '+gAccessToken,...(opts.headers||{})}});
+  const r=await fetchWithTimeout(url,{...opts,cache:'no-store',headers:{'Authorization':'Bearer '+gAccessToken,...(opts.headers||{})}});
   if(r.status===401){
-    gAccessToken=null;localStorage.removeItem('slate_gtoken');
+    clearToken();
     updateCloudUI('error','需重新登入');
     return null;
   }
@@ -1305,10 +1374,15 @@ async function getFolder(){
 
 async function driveBackup(){
   if(!gAccessToken||!S.project)return;
+  gBackupDirty=true;
+  if(gBackupBusy){gBackupPending=true;return}   // one upload at a time; re-run after
+  if(!navigator.onLine){updateCloudUI('offline','離線，連線後自動備份');return}
+  gBackupBusy=true;
+  clearTimeout(gRetryTimer);
   updateCloudUI('syncing','備份中...');
   try{
-    const fid=await getFolder();if(!fid)return;
-    const fileName=`slate_${S.project.replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g,'_')}_${S.date}.json`;
+    const fid=await getFolder();if(!fid)throw new Error('no folder');
+    const fileName=`slate_${S.project.replace(/[^a-zA-Z0-9一-鿿_-]/g,'_')}_${S.date}.json`;
     const backup=JSON.stringify({...S,_backup:new Date().toISOString()});
 
     // Find existing file
@@ -1318,11 +1392,13 @@ async function driveBackup(){
       if(r){const d=await r.json();if(d.files&&d.files.length>0)gFileId=d.files[0].id}
     }
 
+    let ok=false;
     if(gFileId){
       // Update existing
-      await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${gFileId}?uploadType=media`,{
+      const r=await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${gFileId}?uploadType=media`,{
         method:'PATCH',headers:{'Content-Type':'application/json'},body:backup
       });
+      ok=!!(r&&r.ok);
     }else{
       // Create new (multipart)
       const meta=JSON.stringify({name:fileName,parents:[fid]});
@@ -1331,27 +1407,50 @@ async function driveBackup(){
       const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
         method:'POST',headers:{'Content-Type':`multipart/related; boundary=${boundary}`},body
       });
-      if(r){const f=await r.json();gFileId=f.id}
+      if(r&&r.ok){const f=await r.json();gFileId=f.id;ok=true}
     }
+    if(!ok)throw new Error('upload failed');
+    gBackupDirty=false;gRetryCount=0;
     const t=new Date().toTimeString().slice(0,8);
     updateCloudUI('connected',`已備份 ${t}`);
     document.getElementById('cloudBackupInfo').textContent=`上次備份：${t}`;
   }catch(e){
     console.error('Backup error:',e);
-    updateCloudUI('error','備份失敗');
+    if(gAccessToken){
+      updateCloudUI('error',navigator.onLine?'備份失敗，稍後重試':'離線，連線後自動備份');
+      scheduleRetry();
+    }
+  }finally{
+    gBackupBusy=false;
+    if(gBackupPending){gBackupPending=false;scheduleDriveBackup()}
   }
+}
+
+// Exponential backoff: 10s, 20s, 40s ... capped at 2 minutes.
+function scheduleRetry(){
+  if(!gAccessToken)return;
+  clearTimeout(gRetryTimer);
+  const delay=Math.min(10000*Math.pow(2,gRetryCount++),120000);
+  gRetryTimer=setTimeout(()=>{if(gBackupDirty)driveBackup();else if(tokenExpired())validateToken()},delay);
 }
 
 function scheduleDriveBackup(){
   if(!gAccessToken)return;
+  gBackupDirty=true;
   clearTimeout(gBackupTimer);
-  gBackupTimer=setTimeout(()=>driveBackup(),5000); // 5s debounce
+  // Batch edits into fewer uploads; wait longer on 2G / data-saver connections.
+  gBackupTimer=setTimeout(()=>driveBackup(),slowNetwork()?15000:5000);
 }
+
+// Flush pending backups as soon as the network is back or the app is foregrounded.
+window.addEventListener('online',()=>{gRetryCount=0;if(gAccessToken&&gBackupDirty)driveBackup()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&gAccessToken&&gBackupDirty&&navigator.onLine)driveBackup()});
 
 async function showCloudRestore(){
   if(!GOOGLE_CLIENT_ID){driveSignIn();return}
+  if(!navigator.onLine){toast('目前離線，無法讀取雲端備份');return}
   if(!gAccessToken){
-    if(!gTokenClient){toast('請先設定 Google Client ID');return}
+    if(!gTokenClient){driveSignIn();return}
     gTokenClient.requestAccessToken({prompt:'consent'});
     return;
   }
@@ -1374,7 +1473,7 @@ async function showCloudRestore(){
       </div>`;
     }).join('');
     document.getElementById('cloudModal').classList.remove('hide');
-  }catch(e){toast('載入失敗')}
+  }catch(e){toast(e.name==='AbortError'?'連線逾時，請再試一次':'載入失敗')}
 }
 
 async function restoreFromDrive(fileId,fileName){
@@ -1390,10 +1489,11 @@ async function restoreFromDrive(fileId,fileName){
       for(let i=S.entries.length-1;i>=0;i--){if(S.entries[i].type==='take'&&!S.entries[i].time_end){rollingIdx=i;break}}
       if(rollingIdx<0)S.rolling=false;
     }
+    gFileId=fileId;
     hideModal('cloudModal');
     showMain();
     toast(`已恢復：${fileName}`);
-  }catch(e){toast('恢復失敗')}
+  }catch(e){toast(e.name==='AbortError'?'連線逾時，請再試一次':'恢復失敗')}
 }
 
 function updateCloudUI(status,label){
@@ -1412,9 +1512,12 @@ function showCloudInfo(){
   }
 }
 
-// Init GIS after library loads
-if(typeof google!=='undefined'&&google.accounts){initDrive()}
-else{window.addEventListener('load',()=>{setTimeout(initDrive,1000)})}
+// Init Drive after first paint so it never delays the UI; skipped entirely when unconfigured.
+if(GOOGLE_CLIENT_ID){
+  window.addEventListener('load',()=>{
+    (window.requestIdleCallback||(cb=>setTimeout(cb,500)))(initDrive);
+  });
+}
 
 // ===== UTILS =====
 function hideModal(id){document.getElementById(id).classList.add('hide')}
