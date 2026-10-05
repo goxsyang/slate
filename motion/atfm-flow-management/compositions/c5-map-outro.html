@@ -6,17 +6,296 @@
       <style>
         @font-face { font-family: "ATFM Sans"; src: url("assets/fonts/NotoSansTC.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
         @font-face { font-family: "ATFM Mono"; src: url("assets/fonts/IBMPlexMono-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: block; }
-        #c5-map-outro-root { position: absolute; inset: 0; }
-        #c5-map-outro-root .ph { position: absolute; left: 110px; top: 480px; font-family: "ATFM Sans", sans-serif; font-size: 40px; color: #1f6b62; }
+        #c5-root { position: absolute; inset: 0; overflow: hidden; }
+        #c5-root .c5-pin { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+        #c5-root div.c5-in { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+        #c5-root .c5-lead { position: absolute; overflow: visible; }
+        #c5-root .c5-chip { font-family: "ATFM Sans", sans-serif; font-size: 24px; font-weight: 700; color: #1F6B62; }
+        #c5-root .c5-num { font-family: "ATFM Mono", monospace; font-size: 24px; font-weight: 600; color: #3E8C80; letter-spacing: 0.02em; }
+        /* legend key in the FIR label: an outline swatch of the gold FIR (gold edge, teal-tinted fill) */
+        #c5-root .c5-key { display: block; flex: none; box-sizing: border-box; width: 18px; height: 12px; border: 2px solid #A8761A; border-radius: 3px; background: rgba(31, 107, 98, 0.16); }
       </style>
-      <div id="c5-map-outro-root" data-composition-id="c5-map-outro" data-width="1920" data-height="1080" data-duration="8.3">
-        <div class="ph">placeholder c5-map-outro</div>
-      </div>
+      <div id="c5-root" data-composition-id="c5-map-outro" data-width="1920" data-height="1080" data-duration="8.3"></div>
       <script>
         (function () {
+          // c5-map-outro — window 40.7–49.0 s (local = global − 40.7). STORYBOARD.md "Frame 5".
+          var K = window.ATFM_KIT, W = window.ATFM_WORLD, MAP = window.ATFM_MAP;
+          var PT = W.PT, CAM = W.CAM;
+          var root = document.getElementById("c5-root");
           var tl = gsap.timeline({ paused: true });
-          tl.fromTo("#c5-map-outro-root .ph", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.2);
-          tl.set({}, {}, 8.3);
+          var W0 = 40.7, END = 8.3, V = 110; // V in world units / s
+          function G(t) { return Math.round((t - W0) * 10000) / 10000; } // global → local
+
+          // Chained tweens on one property: only the first renders immediately, so any seek lands on the same state.
+          function ft(el, from, to, t, chained) {
+            if (chained) to.immediateRender = false;
+            return tl.fromTo(el, from, to, t);
+          }
+
+          // ---------- map (same constants as c1: ATFM_WORLD) ----------
+          var m = K.map(root, { id: "c5", band: [220, 860], feather: 36, cam: CAM.S });
+          var L = m.L;
+          L.taiwan.setAttribute("fill", "#E9D9B0"); L.taiwan.setAttribute("stroke", "#A8761A");
+          L.firFill.setAttribute("opacity", "0.10"); L.firLine.setAttribute("opacity", "1");
+
+          // Taiwan halo (as c1): two soft gold strokes slotted directly under the island
+          var NS = { fill: "none", stroke: "#E9D9B0", "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round", "stroke-linecap": "round" };
+          var halo = K.s("g", { class: "c5-halo", opacity: "0.25" }, [
+            K.s("path", Object.assign({ d: MAP.taiwan, "stroke-width": "30", opacity: "0.25" }, NS)),
+            K.s("path", Object.assign({ d: MAP.taiwan, "stroke-width": "16", opacity: "0.5" }, NS)),
+          ]);
+          m.cam.insertBefore(halo, L.taiwan);
+
+          // gold FIR (VO13): solid, laid exactly over the dashed teal outline
+          var gold = K.s("path", { class: "c5-gold", d: MAP.fir.RCAA.d, fill: "none", stroke: "#A8761A", "stroke-width": "2.4", "stroke-linejoin": "round", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" });
+          m.cam.insertBefore(gold, m.world);
+
+          // ---------- routes (fully drawn, unmasked; SS draws on at VO13) ----------
+          // Hero route (RH): R02's exact trunk up to BPW, so hero and R02 transits share one line and one spacing
+          // before the boundary point. At BPW the hero branches off inside the node (8-wu fillet, R02 heading 30° → 48°)
+          // and arcs up the strait into RCTP (arriving at 28°), 11 wu clear of Penghu. (The shared RH spline
+          // overshoots into a visible elbow just past BPW at c5's zoom.)
+          var bp = PT.BPW, tp = PT.RCTP;
+          var r02s = W.ROUTE.R02.split("C");
+          var r02Out = r02s[4].split(" ").map(Number); // R02 segment leaving BPW: c1x c1y c2x c2y x y
+          function unit(x, y) { var l = Math.hypot(x, y); return [x / l, y / l]; }
+          function hdg(deg) { var a = (deg * Math.PI) / 180; return [Math.cos(a), -Math.sin(a)]; }
+          function r1(v) { return Math.round(v * 10) / 10; }
+          var u0 = unit(r02Out[0] - bp[0], r02Out[1] - bp[1]), uh = hdg(48), ua = hdg(28), FIL = 8;
+          var Q = [bp[0] + (FIL * (u0[0] + uh[0])) / 2, bp[1] + (FIL * (u0[1] + uh[1])) / 2];
+          var ch = Math.hypot(tp[0] - Q[0], tp[1] - Q[1]) * 0.34;
+          var fillet = [bp[0] + FIL * 0.4 * u0[0], bp[1] + FIL * 0.4 * u0[1], Q[0] - FIL * 0.4 * uh[0], Q[1] - FIL * 0.4 * uh[1], Q[0], Q[1]];
+          var leg = [Q[0] + ch * uh[0], Q[1] + ch * uh[1], tp[0] - ch * ua[0], tp[1] - ch * ua[1], tp[0], tp[1]];
+          var HERO_D = r02s[0] + "C" + r02s[1] + "C" + r02s[2] + "C" + r02s[3] + "C" + fillet.map(r1).join(" ") + "C" + leg.map(r1).join(" ");
+
+          var R = {
+            SS: W.routePath("SS", "c5-ss"),
+            SN: W.routePath("SN", "c5-sn"),
+            RH: K.s("path", { id: "c5-rh", d: HERO_D, fill: "none", stroke: "#1F6B62", "stroke-width": "4", "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" }),
+            R02: W.routePath("R02", "c5-r02"),
+            R01: W.routePath("R01", "c5-r01"),
+          };
+          [R.SS, R.SN, R.RH, R.R02, R.R01].forEach(function (p) { m.world.appendChild(p); });
+          // hero highlight: wide pale stroke of the hero route, revealed behind the hero from BPW to RCTP
+          var hl = K.s("path", { class: "c5-hl", d: HERO_D, fill: "none", stroke: "#3E8C80", "stroke-width": "7", opacity: "0.5", "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" });
+          m.world.insertBefore(hl, R.RH); // under the hero: a pale halo either side of its dark core
+
+          var LEN = {};
+          Object.keys(R).forEach(function (k) { LEN[k] = R[k].getTotalLength(); });
+          var F_R02 = K.fracAt(R.R02, bp[0], bp[1]); // ≈ 0.3611
+          var F_RH = K.fracAt(R.RH, bp[0], bp[1]);   // ≈ 0.785
+          if (Math.abs(F_R02 - W.FRAC.R02_BPW) > 0.002) console.warn("c5: R02 BPW frac", F_R02);
+          if (Math.abs(F_RH - W.FRAC.RH_BPW) > 0.002) console.warn("c5: RH BPW frac", F_RH);
+
+          // ---------- nodes (top): outer = mapFixed, inner .c5-in = animated, pulse rings are siblings of inner ----------
+          function mkNode(pt, r, color, nPulse, cls) {
+            var outer = K.s("g", { class: "c5-node " + (cls || "") });
+            var pulses = [];
+            for (var i = 0; i < (nPulse == null ? 1 : nPulse); i++) {
+              var pc = K.s("circle", { class: "c5-pulse", r: String(r), fill: "none", stroke: color, "stroke-width": "2", opacity: "0" });
+              outer.appendChild(pc); pulses.push(pc);
+            }
+            var inner = K.s("g", { class: "c5-in", opacity: "0" });
+            var n = K.node(0, 0, { r: r, color: color });
+            n.removeChild(n.__pulse);
+            inner.appendChild(n); outer.appendChild(inner); m.top.appendChild(outer);
+            K.mapFixed(m, outer, pt[0], pt[1], 1);
+            return { g: outer, inner: inner, pulses: pulses };
+          }
+          var nSE = mkNode(PT.FIR_SE, 5, "#A8761A", 0); // gold: it anchors the gold FIR's label, not a crossing
+          var nX = {};
+          ["X_N", "X_E1", "X_E2", "X_S"].forEach(function (k) {
+            nX[k] = mkNode(PT[k], 6, "#3E8C80");
+            nX[k].pulses[0].setAttribute("stroke-width", "2.5"); // closing sweep must read over the 0.16 FIR fill
+          });
+          var nRCKH = mkNode(PT.RCKH, 5, "#3E8C80", 0);
+          var nBPW = mkNode(PT.BPW, 8, "#1F6B62", 2);
+          var nRCTP = mkNode(PT.RCTP, 9, "#1F6B62", 2);
+
+          // ---------- pinned labels (same construction as c1) ----------
+          // leader runs from the node ring edge to the chip edge; a small teal dot marks the joint
+          function mkLeader(lx, ly, s0) {
+            var len = Math.hypot(lx, ly) || 1, ux = lx / len, uy = ly / len;
+            var x0 = Math.min(0, lx) - 10, y0 = Math.min(0, ly) - 10, w = Math.abs(lx) + 20, h = Math.abs(ly) + 20;
+            var svg = K.s("svg", { class: "c5-lead", width: String(w), height: String(h), viewBox: x0 + " " + y0 + " " + w + " " + h, style: { left: x0 + "px", top: y0 + "px" } });
+            var line = K.s("path", { d: "M" + (ux * s0).toFixed(1) + " " + (uy * s0).toFixed(1) + "L" + lx + " " + ly, fill: "none", stroke: "#1F6B62", "stroke-width": "2", "stroke-linecap": "round" });
+            var dot = K.s("circle", { cx: String(lx), cy: String(ly), r: "4", fill: "#1F6B62" });
+            svg.appendChild(line); svg.appendChild(dot);
+            return { svg: svg, line: line, dot: dot };
+          }
+          function mkChip(pt, kids, lx, ly, cx, cy, ox, oy, s0) {
+            var wrap = K.el("div", { class: "c5-pin" });
+            var inner = K.el("div", { class: "c5-in" });
+            var chip = K.el("div", { class: "k-chip is-card c5-chip", style: { left: cx + "px", top: cy + "px" } }, kids);
+            var ld = mkLeader(lx, ly, s0 == null ? 15 : s0);
+            inner.appendChild(chip); inner.appendChild(ld.svg); wrap.appendChild(inner);
+            K.pin(m, wrap, pt[0], pt[1], 0, 0);
+            return { inner: inner, chip: chip, line: ld.line, dot: ld.dot, origin: ox + "px " + oy + "px" };
+          }
+          function num(n, text) { return [K.el("span", { class: "c5-num", text: n }), K.el("span", { text: text })]; }
+          // chip01 at RCTP: same top / joint geometry as c1 but 72 px further right, so the card stays outside the
+          // FIR's east edge (RCTP_x + 91.8·z) at every zoom it is shown at (15 px clear at the 42.15 pop, 85 px at B)
+          var chip01 = mkChip(PT.RCTP, num("01", "機場端流量管理"), 254, -108, 232, -160, 22, 52);
+          // chip02: a screen offset from BPW would slide onto the FIR's dashed south edge as the camera pulls back
+          // (49.8·z px below BPW: 142 px at the pop, 80 px at B). So the card hangs from a world anchor J just below
+          // that edge (≥ 10 px clear at every zoom) and its leader is a map line BPW → J, drawn with K.reveal.
+          var J02 = [-70, 105]; // leader opens ≈ 39° off the FIR west edge
+          var chip02 = mkChip(J02, num("02", "邊境點流量管理"), 0, 0, -20, 0, 20, 0);
+          chip02.line.setAttribute("display", "none"); // no screen leader: only its joint dot (above the card) is used
+          var lead02 = K.s("path", { class: "c5-lead02", d: "M" + bp[0] + " " + bp[1] + "L" + J02[0] + " " + J02[1], fill: "none", stroke: "#1F6B62", "stroke-width": "2", "vector-effect": "non-scaling-stroke" });
+          m.top.insertBefore(lead02, m.top.firstChild); // under every node: BPW's ring covers its start
+          // FIR label at the FIR's SE corner: 40 px leader → chip left edge (centre), gold key = the outline it names
+          var firLbl = mkChip(PT.FIR_SE, [K.el("span", { class: "c5-key" }), K.el("span", { text: "臺北飛航情報區" })], 40, 16, 40, -10, 0, 26, 10);
+
+          // ---------- helpers ----------
+          // seek-safe event pulse: ring grows r0→r1 while its opacity snaps up (0.06 s) and decays to 0.
+          // Pulses on one circle must be added in time order (only the first renders immediately).
+          // A pulse that would run past END is truncated (not compressed): the eases below replay exactly the first
+          // part of the full power2.out curve, so the last frames match the uncut pulse.
+          function p2o(p) { return 1 - (1 - p) * (1 - p); }
+          function cut(k) { var e = p2o(k); return function (p) { return p2o(p * k) / e; }; }
+          function pulse(c, t, r0, r1, dur, op) {
+            op = op == null ? 0.5 : op;
+            var first = !c.__c5p;
+            c.__c5p = true;
+            var k = Math.min(1, (END - t) / dur), k2 = Math.min(1, (END - t - 0.06) / (dur - 0.06));
+            ft(c, { attr: { r: r0 } }, { attr: { r: r0 + (r1 - r0) * p2o(k) }, duration: dur * k, ease: k < 1 ? cut(k) : "power2.out" }, t, !first);
+            ft(c, { opacity: 0 }, { opacity: op, duration: 0.06, ease: "none" }, t, !first);
+            ft(c, { opacity: op }, { opacity: op * (1 - p2o(k2)), duration: (dur - 0.06) * k2, ease: k2 < 1 ? cut(k2) : "power2.out" }, t + 0.06, true);
+          }
+          function popIn(el, t, from, dur, ease) {
+            ft(el, { opacity: 0, scale: from, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: dur, ease: ease }, t);
+          }
+
+          // ---------- camera: S (hold) → B (pull back to the whole FIR) → FB (VO13 push) → FBp, gapless ----------
+          K.camTo(tl, m, 0, 0.2, CAM.S, CAM.S, "none");
+          K.camTo(tl, m, 0.2, 2.95, CAM.S, CAM.B, "sine.inOut");
+          K.camTo(tl, m, 3.15, 2.75, CAM.B, CAM.FB, "sine.inOut");
+          K.camTo(tl, m, 5.9, 2.4, CAM.FB, CAM.FBp, "sine.inOut");
+
+          // crossfade in over c4's blooming Taipei node (Taiwan's centre sits on (963, 430) at CAM.S)
+          ft(m.wrap, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.inOut" }, 0);
+
+          // ---------- aircraft (V = 110 wu/s, ease none, alt 1) ----------
+          // Every plane: frac(t) = f_event − (T_event − t)·V/L. Arrivals descend (alt 1 → 0.35) over their last
+          // 0.6 s and fade over the last 0.3 s; spawns off-frame fade in over 0.3 s. Everything is clipped at END.
+          function mkPlane() { var p = K.plane({ len: 34 }); m.world.appendChild(p); return K.mapPlane(m, p); }
+          var DESC = 0.6, ALT_LAND = 0.35;
+          // fly `p` on route `key` from local time t0 (frac f0) to local t1 (or END), descending into RCTP if `land`
+          function flight(key, t0, f0, t1, land) {
+            var p = mkPlane(), Lk = LEN[key], path = R[key];
+            var tEnd = Math.min(t1, END), legs = [], tD = land ? t1 - DESC : tEnd;
+            if (tD > t0) {
+              var tc = Math.min(tD, tEnd);
+              legs.push({ from: f0, to: f0 + ((tc - t0) * V) / Lk, dur: tc - t0, ease: "none", alt0: 1, alt1: 1 });
+            }
+            if (land && tEnd > tD) {
+              var ta = Math.max(t0, tD), k = (tEnd - ta) / DESC, a0 = 1 - (1 - ALT_LAND) * ((ta - tD) / DESC);
+              legs.push({ from: f0 + ((ta - t0) * V) / Lk, to: f0 + ((tEnd - t0) * V) / Lk, dur: tEnd - ta, ease: "none", alt0: a0, alt1: a0 - (1 - ALT_LAND) * k });
+            }
+            K.legs(tl, p, path, t0, legs);
+            if (t0 > 0) ft(p, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, t0);
+            else gsap.set(p, { opacity: 1 });
+            if (land && t1 - 0.3 < END) {
+              var fd = Math.min(0.3, END - (t1 - 0.3));
+              ft(p, { opacity: 1 }, { opacity: 1 - fd / 0.3, duration: fd, ease: "none" }, t1 - 0.3, t0 > 0);
+            }
+            return p;
+          }
+          // arrival on `key` touching down at RCTP at global TE
+          function arrival(key, TE) {
+            var te = G(TE), Lk = LEN[key], t0 = Math.max(0, te - Lk / V);
+            return flight(key, t0, 1 - ((te - t0) * V) / Lk, te, true);
+          }
+          // arrival on the hero route crossing BPW at global TB (lands (1 − F_RH)·L/V later)
+          function heroArrival(TB) {
+            var tb = G(TB), Lk = LEN.RH, te = tb + ((1 - F_RH) * Lk) / V, t0 = Math.max(0, te - Lk / V);
+            return { p: flight("RH", t0, 1 - ((te - t0) * V) / Lk, te, true), tb: tb, te: te };
+          }
+          // R02 transit crossing BPW at global TB, carrying on east to the end of the scene
+          function transit(TB) {
+            var tb = G(TB), Lk = LEN.R02, t0 = Math.max(0, tb - (F_R02 * Lk) / V);
+            return flight("R02", t0, F_R02 - ((tb - t0) * V) / Lk, END, false);
+          }
+
+          // R02 transits (BPW 39.80 · 43.40 · 47.00 · 50.60) and hero-route arrivals (BPW 41.60 · 45.20 · 48.80)
+          [39.8, 43.4, 47.0, 50.6].forEach(transit);
+          var hero = heroArrival(41.6), rh2 = heroArrival(45.2), rh3 = heroArrival(48.8);
+          // R01 arrivals (44.25 · 47.85 · 51.45) and SN arrivals (41.85 · 45.45 · 49.05)
+          [44.25, 47.85, 51.45].forEach(function (T) { arrival("R01", T); });
+          [41.85, 45.45, 49.05].forEach(function (T) { arrival("SN", T); });
+          // SS departures from RCKH (46.10 · 48.50): accelerate over 0.4 s (power1.in reaches exactly V) while climbing alt 0 → 1
+          [46.1, 48.5].forEach(function (T) {
+            var p = mkPlane(), t0 = G(T), d0 = 0.4 * V * 0.5, f0 = d0 / LEN.SS;
+            var legs = [{ from: 0, to: f0, dur: 0.4, ease: "power1.in", alt0: 0, alt1: 1 }];
+            if (END - (t0 + 0.4) > 0.001) legs.push({ to: f0 + ((END - t0 - 0.4) * V) / LEN.SS, dur: END - t0 - 0.4, ease: "none", alt0: 1, alt1: 1 });
+            K.legs(tl, p, R.SS, t0, legs);
+            ft(p, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, t0);
+          });
+
+          // ---------- VO12 「這 2 項功能相互配合」 ----------
+          popIn(nRCTP.inner, G(41.1), 0.6, 0.55, "back.out(1.5)"); // VO12 beat
+          popIn(nBPW.inner, G(41.18), 0.6, 0.55, "back.out(1.5)");
+
+          // chips: leader draws, its joint dot pops, then the card pops off the leader end (02 first: the hero meets BPW first)
+          [[chip02, G(41.4), G(41.45)], [chip01, G(42.1), G(42.15)]].forEach(function (c) {
+            var o = c[0], tL = c[1], tC = c[2], world = o === chip02;
+            ft(o.inner, { opacity: 0, y: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, tL);
+            if (world) K.reveal(tl, lead02, tL, 0.35, { id: "c5-rv-lead02", width: 10, ease: "expo.out" }).setAttribute("stroke-linecap", "butt");
+            else K.draw(tl, o.line, tL, 0.35, "expo.out");
+            ft(o.dot, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.3, ease: "back.out(2)" }, tL + 0.12);
+            ft(o.chip, { opacity: 0, scale: 0.7, y: 10, transformOrigin: o.origin }, { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: "back.out(1.4)" }, tC);
+            // out: the group fades; chip01's card alone lifts 8 px (its leader stays anchored on RCTP);
+            // chip02's leader is a map line and its joint dot sits on the card edge, so it fades in place
+            ft(o.inner, { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.in" }, G(43.6), true);
+            if (!world) ft(o.chip, { y: 0 }, { y: -8, duration: 0.35, ease: "power2.in" }, G(43.6), true);
+            if (world) ft(lead02, { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.in" }, G(43.6));
+          });
+
+          // hero highlight: revealed from BPW to RCTP in lock-step with the hero (same window, both linear)
+          var hlCopy = K.reveal(tl, hl, hero.tb, hero.te - hero.tb, { id: "c5-rv-hero", width: 12, from: F_RH * 100, to: 100, ease: "none" });
+          hlCopy.setAttribute("stroke-linecap", "butt"); // butt ends: the glow starts exactly at BPW and ends under the hero
+          ft(hl, { opacity: 0.5 }, { opacity: 0, duration: 0.5, ease: "power2.inOut" }, G(43.3));
+
+          // ---------- VO13 「讓臺北飛航情報區的天空運作更加順暢」 ----------
+          // gold FIR draws over the dashed outline (butt-capped mask: nothing shows before the draw starts)
+          var goldCopy = K.reveal(tl, gold, G(43.9), 1.6, { id: "c5-rv-gold", width: 12, ease: "power2.inOut" });
+          goldCopy.setAttribute("stroke-linecap", "butt");
+          ft(L.firLine, { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, G(45.6)); // retire the dashes under the gold
+          ft(L.firFill, { opacity: 0.1 }, { opacity: 0.16, duration: 1.2, ease: "power2.out" }, G(44.0));
+          // halo: 0.25 → 0.8 → 0.4, then breathes 0.4 ↔ 0.6 to the end
+          ft(halo, { opacity: 0.25 }, { opacity: 0.8, duration: 0.6, ease: "power2.out" }, G(44.2));
+          ft(halo, { opacity: 0.8 }, { opacity: 0.4, duration: 0.9, ease: "sine.inOut" }, G(44.8), true);
+          ft(halo, { opacity: 0.4 }, { opacity: 0.6, duration: 0.8, ease: "sine.inOut", yoyo: true, repeat: 2 }, G(46.6), true);
+
+          // FIR label at the SE corner: dot pops, leader draws, label slides out along it
+          popIn(nSE.inner, G(44.9), 0.4, 0.45, "back.out(1.6)");
+          ft(firLbl.inner, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, G(44.9));
+          K.draw(tl, firLbl.line, G(44.95), 0.4, "expo.out");
+          ft(firLbl.dot, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.3, ease: "back.out(2)" }, G(45.07));
+          ft(firLbl.chip, { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, G(45.0));
+
+          // south spoke from RCKH completes the circle
+          K.reveal(tl, R.SS, G(45.5), 0.8, { id: "c5-rv-ss", width: 40, ease: "expo.out" });
+          popIn(nRCKH.inner, G(45.5), 0.5, 0.45, "back.out(1.6)");
+          // FIR-edge crossings light clockwise (BPW, already lit, is the W member)
+          [["X_N", 45.55], ["X_E1", 45.67], ["X_E2", 45.79], ["X_S", 45.91]].forEach(function (e) { popIn(nX[e[0]].inner, G(e[1]), 0.4, 0.45, "back.out(1.6)"); });
+
+          // ---------- event pulses (only on real events) ----------
+          // RCTP: arrivals every 1.2 s — SN 41.85 · hero ≈43.05 (01: bigger ring) · R01 44.25 · SN 45.45 · RH ≈46.65 · R01 47.85
+          [G(41.85), hero.te, G(44.25), G(45.45), rh2.te, G(47.85)].forEach(function (t, i) {
+            if (t === hero.te) pulse(nRCTP.pulses[i % 2], t, 9, 40, 1.0, 0.6);
+            else pulse(nRCTP.pulses[i % 2], t, 9, 32, 0.9);
+          });
+          // BPW: crossings every 1.8 s — hero 41.60 (02) · R02 43.40 · RH 45.20 · R02 47.00 · RH 48.80 (closes the sweep)
+          [hero.tb, G(43.4), rh2.tb, G(47.0), rh3.tb].forEach(function (t, i) { pulse(nBPW.pulses[i % 2], t, 8, 30, 0.9, i ? 0.5 : 0.6); });
+          // closing sweep around the FIR edge, N → E → E → S; the W step is BPW's real crossing at 48.80
+          [["X_N", 47.6], ["X_E1", 47.9], ["X_E2", 48.2], ["X_S", 48.5]].forEach(function (e) {
+            pulse(nX[e[0]].pulses[0], G(e[1]), 6, 22, 0.8, 0.85);
+          });
+
+          tl.set({}, {}, END); // pad to the window length; the film ends live (no fade)
+          window.__timelines = window.__timelines || {};
           window.__timelines["c5-map-outro"] = tl;
         })();
       </script>

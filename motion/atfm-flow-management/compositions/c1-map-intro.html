@@ -6,29 +6,293 @@
       <style>
         @font-face { font-family: "ATFM Sans"; src: url("assets/fonts/NotoSansTC.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
         @font-face { font-family: "ATFM Mono"; src: url("assets/fonts/IBMPlexMono-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: block; }
-        #c1-root { position: absolute; inset: 0; }
+        #c1-root { position: absolute; inset: 0; overflow: hidden; }
+        #c1-root #c1-band { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+        #c1-root .c1-pin { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+        #c1-root div.c1-in { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+        #c1-root .c1-lead { position: absolute; overflow: visible; }
+        #c1-root .c1-chip { font-family: "ATFM Sans", sans-serif; font-size: 24px; font-weight: 700; color: #1F6B62; }
+        #c1-root .c1-num { font-family: "ATFM Mono", monospace; font-size: 24px; font-weight: 600; color: #3E8C80; letter-spacing: 0.02em; }
       </style>
       <div id="c1-root" data-composition-id="c1-map-intro" data-width="1920" data-height="1080" data-duration="8.2"></div>
       <script>
         (function () {
-          var K = window.ATFM_KIT;
+          // c1-map-intro — window 0–8.2 s (local = global). STORYBOARD.md "Frame 1".
+          var K = window.ATFM_KIT, W = window.ATFM_WORLD, MAP = window.ATFM_MAP;
+          var PT = W.PT, CAM = W.CAM;
           var root = document.getElementById("c1-root");
-          var m = K.map(root, { id: "c1", band: [220, 860], sy: 540, cam: { cx: 60, cy: -40, z: 1 } });
-          var tpe = K.ll(121.233, 25.078), nrt = K.ll(140.39, 35.77), hkg = K.ll(113.918, 22.308);
-          var r1 = K.s("path", { id: "c1-r1", d: K.arc(nrt[0], nrt[1], tpe[0], tpe[1], 60), fill: "none", stroke: "#1F6B62", "stroke-width": "4", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" });
-          m.world.appendChild(r1);
-          var pl = K.plane({ len: 56 });
-          m.world.appendChild(pl);
-          K.mapPlane(m, pl);
           var tl = gsap.timeline({ paused: true });
-          K.reveal(tl, r1, 0.3, 1.6, { id: "c1-rv1", width: 30 });
-          K.fly(tl, pl, r1, 0.5, 4.5, { ease: "power1.inOut" });
-          tl.to(m.L.firLine, { opacity: 1, duration: 0.8 }, 1.0);
-          tl.to(m.L.firFill, { opacity: 0.08, duration: 0.8 }, 1.0);
-          tl.to(m.L.taiwan, { fill: "#E9D9B0", duration: 0.8 }, 1.2);
-          K.camTo(tl, m, 0, 5.5, { cx: 60, cy: -40, z: 1 }, { cx: 20, cy: -20, z: 1.25 }, "sine.inOut");
-          K.camTo(tl, m, 5.5, 2.7, { cx: 20, cy: -20, z: 1.25 }, { cx: tpe[0], cy: tpe[1], z: 7 }, "power2.inOut");
-          tl.set({}, {}, 8.2);
+          var V = 120, END = 8.2;
+
+          // Every chained tween on one property is a fromTo; only the first in a chain renders immediately,
+          // so any seek (forward or backward) lands on the same state.
+          function ft(el, from, to, t, chained) {
+            if (chained) to.immediateRender = false;
+            return tl.fromTo(el, from, to, t);
+          }
+
+          // ---------- band + map ----------
+          var band = K.el("div", { id: "c1-band" });
+          root.appendChild(band);
+          var m = K.map(band, { id: "c1", band: [220, 860], feather: 36, cam: CAM.F0 });
+          var L = m.L;
+
+          // Taiwan halo: two soft gold strokes of the Taiwan rings, slotted directly under the island so the
+          // crisp gold coastline stays on top and the glow only shows outside it.
+          // The glow uses only the main island + its islets + Penghu (ring centroid in the build-map allow-list
+          // boxes), so Kinmen / Matsu / Wuqiu keep their gold fill (Q1) but get no bloom against the mainland coast.
+          function llBox(lon0, lon1, lat0, lat1) { var a = MAP.project([lon0, lat1]), b = MAP.project([lon1, lat0]); return [a[0], a[1], b[0], b[1]]; }
+          var HALO_BOX = [llBox(119.95, 122.05, 21.85, 25.35), llBox(119.3, 119.75, 23.15, 23.85)];
+          var haloD = MAP.taiwan.split(/(?=M)/).filter(function (ring) {
+            var n = ring.match(/-?\d*\.?\d+/g).map(Number), sx = 0, sy = 0, k = n.length / 2;
+            for (var i = 0; i < n.length; i += 2) { sx += n[i]; sy += n[i + 1]; }
+            sx /= k; sy /= k;
+            return HALO_BOX.some(function (b) { return sx >= b[0] && sx <= b[2] && sy >= b[1] && sy <= b[3]; });
+          }).join("");
+          var NS = { fill: "none", stroke: "#E9D9B0", "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round", "stroke-linecap": "round" };
+          var halo = K.s("g", { class: "c1-halo", opacity: "0" }, [
+            K.s("path", Object.assign({ d: haloD, "stroke-width": "30", opacity: "0.25" }, NS)),
+            K.s("path", Object.assign({ d: haloD, "stroke-width": "16", opacity: "0.5" }, NS)),
+          ]);
+          m.cam.insertBefore(halo, L.taiwan);
+
+          // FIR clip for the guardian rings
+          m.defs.appendChild(K.s("clipPath", { id: "c1-firclip" }, [K.s("path", { d: MAP.fir.RCAA.d })]));
+
+          // routes (world)
+          // The trunks run 100 wu past the shared ATFM_WORLD ends, so their round caps sit ≥ 60 px off-frame at F0/F0d
+          // (§0.6 "routes enter from off-frame"; screen x = 960 + (wx + 14)·1.04 ≥ 1980 for wx 1000). The added points
+          // are collinear with the end legs, so the visible curve is the shared one (c5 never frames the ends).
+          function trunk(key, id, pts) { var p = W.routePath(key, id); p.setAttribute("d", K.smooth(pts)); return p; }
+          var R = {
+            R01: trunk("R01", "c1-r01", [[1000, -235]].concat(W.ROUTE_PTS.R01)),
+            R02: trunk("R02", "c1-r02", W.ROUTE_PTS.R02.concat([[1000, -105]])),
+            SN: W.routePath("SN", "c1-sn"),
+            SS: W.routePath("SS", "c1-ss"),
+          };
+          [R.SS, R.SN, R.R02, R.R01].forEach(function (p) { m.world.appendChild(p); });
+          var LEN = {};
+          Object.keys(R).forEach(function (k) { LEN[k] = R[k].getTotalLength(); }); // R01 ≈ 1009.8, R02 ≈ 1714.6
+          var F_BPW = K.fracAt(R.R02, PT.BPW[0], PT.BPW[1]); // ≈ 0.3399 on the extended R02 (0.3611 on the shared one)
+
+          // guardian rings (world, clipped to the FIR)
+          var rings = [0, 1, 2].map(function (i) {
+            var c = K.s("circle", { class: "c1-ring", cx: PT.TWC[0], cy: PT.TWC[1], r: "20", fill: "none", stroke: "#3E8C80", "stroke-width": "1.6", "vector-effect": "non-scaling-stroke", opacity: "0", "clip-path": "url(#c1-firclip)" });
+            m.world.appendChild(c);
+            return c;
+          });
+
+          // planes (world, constant screen size)
+          function mkPlane() {
+            var p = K.plane({ len: 40 });
+            p.setAttribute("opacity", "0");
+            m.world.appendChild(p);
+            K.mapPlane(m, p);
+            return p;
+          }
+
+          // nodes + edge dots: outer = mapFixed, inner .c1-in = animated, pulse rings are siblings of inner.
+          // Airports and BPW sit in m.top; the FIR edge dots sit in m.world above the routes but below the planes
+          // (created later), so traffic flies over a waypoint instead of sliding under it.
+          function mkNode(pt, r, color, nPulse, parent) {
+            var outer = K.s("g", { class: "c1-node" });
+            var pulses = [];
+            for (var i = 0; i < (nPulse || 1); i++) {
+              var pc = K.s("circle", { class: "c1-pulse", r: String(r), fill: "none", stroke: color, "stroke-width": "2", opacity: "0" });
+              outer.appendChild(pc);
+              pulses.push(pc);
+            }
+            var inner = K.s("g", { class: "c1-in", opacity: "0" });
+            var n = K.node(0, 0, { r: r, color: color });
+            n.removeChild(n.__pulse);
+            inner.appendChild(n);
+            outer.appendChild(inner);
+            (parent || m.top).appendChild(outer);
+            K.mapFixed(m, outer, pt[0], pt[1], 1);
+            return { g: outer, inner: inner, pulses: pulses };
+          }
+          var nX = {
+            X_N: mkNode(PT.X_N, 6, "#3E8C80", 1, m.world),
+            X_E1: mkNode(PT.X_E1, 6, "#3E8C80", 1, m.world),
+            X_E2: mkNode(PT.X_E2, 6, "#3E8C80", 1, m.world),
+            X_S: mkNode(PT.X_S, 6, "#3E8C80", 1, m.world),
+          };
+          var nRCKH = mkNode(PT.RCKH, 5, "#3E8C80");
+          var nBPW = mkNode(PT.BPW, 8, "#1F6B62");
+          var nRCTP = mkNode(PT.RCTP, 9, "#1F6B62", 2);
+
+          // ---------- pinned chips ----------
+          // leader runs from the node ring edge to the chip edge; a small teal dot marks the joint
+          function mkChip(pt, num, text, lx, ly, cx, cy, ox, oy) {
+            var wrap = K.el("div", { class: "c1-pin" });
+            var inner = K.el("div", { class: "c1-in" });
+            var chip = K.el("div", { class: "k-chip is-card c1-chip", style: { left: cx + "px", top: cy + "px" } }, [
+              K.el("span", { class: "c1-num", text: num }),
+              K.el("span", { text: text }),
+            ]);
+            var len = Math.hypot(lx, ly), ux = lx / len, uy = ly / len, s0 = 15;
+            var x0 = Math.min(0, lx) - 10, y0 = Math.min(0, ly) - 10, w = Math.abs(lx) + 20, h = Math.abs(ly) + 20;
+            var svg = K.s("svg", { class: "c1-lead", width: String(w), height: String(h), viewBox: x0 + " " + y0 + " " + w + " " + h, style: { left: x0 + "px", top: y0 + "px" } });
+            var line = K.s("path", { d: "M" + (ux * s0).toFixed(1) + " " + (uy * s0).toFixed(1) + "L" + lx + " " + ly, fill: "none", stroke: "#1F6B62", "stroke-width": "2", "stroke-linecap": "round" });
+            var dot = K.s("circle", { cx: String(lx), cy: String(ly), r: "4", fill: "#1F6B62" });
+            svg.appendChild(line);
+            svg.appendChild(dot);
+            inner.appendChild(chip);
+            inner.appendChild(svg);
+            wrap.appendChild(inner);
+            K.pin(m, wrap, pt[0], pt[1], 0, 0);
+            return { inner: inner, chip: chip, line: line, dot: dot, origin: ox + "px " + oy + "px" };
+          }
+          // leader joints sit 20+ px in from the chip corner (on the straight edge, clear of the 14 px radius).
+          // chip01's leader leaves RCTP at 45° (spec 33°) so a landing R01 plane's upper wingtip (18 px) passes under it;
+          // the box (≈ x 1111–1400, y 330–382 at F0d) stays inside the opaque band and right of the FIR east edge.
+          // chip02 hangs 64 px below BPW (spec 49) so its top clears the FIR south edge (≈ 50 px below BPW at F0–F0d).
+          var chip01 = mkChip(PT.RCTP, "01", "機場端流量管理", 150, -150, 128, -202, 22, 52);
+          var chip02 = mkChip(PT.BPW, "02", "邊境點流量管理", 30, 64, 10, 64, 20, 0);
+
+          // ---------- helpers ----------
+          // seek-safe event pulse: ring grows r0→r1 while its opacity snaps up (0.05 s) and decays to 0
+          function pulse(c, t, r0, r1, dur, op) {
+            op = op == null ? 0.5 : op;
+            ft(c, { attr: { r: r0 } }, { attr: { r: r1 }, duration: dur, ease: "power2.out" }, t);
+            ft(c, { opacity: 0 }, { opacity: op, duration: 0.05, ease: "none" }, t);
+            ft(c, { opacity: op }, { opacity: 0, duration: dur - 0.05, ease: "power2.out" }, t + 0.05, true);
+          }
+          function popIn(el, t, from, dur, ease) {
+            ft(el, { opacity: 0, scale: from, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: dur, ease: ease }, t);
+          }
+          // plane flying at V along `key` from time t0 (frac f0) to t1, with 0.3 s fades
+          function cruise(p, key, t0, f0, t1, fadeOut) {
+            var f1 = f0 + ((t1 - t0) * V) / LEN[key];
+            K.fly(tl, p, R[key], t0, t1 - t0, { from: f0, to: f1, ease: "none", alt0: 1, alt1: 1 });
+            ft(p, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, t0);
+            if (fadeOut) ft(p, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power1.in" }, t1 - 0.3, true);
+          }
+          // frac on a route at time t for a plane that reaches frac fE at time TE
+          function fAt(key, fE, TE, t) { return fE - ((TE - t) * V) / LEN[key]; }
+
+          // ---------- beats ----------
+          // band opens from its centre line
+          ft(band, { clipPath: "inset(50% 0% 50% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.85, ease: "expo.out" }, 0);
+          // camera, gapless: F0 → F0d → F1 → F2 (zoom-through) → F2z (settle)
+          K.camTo(tl, m, 0, 5.45, CAM.F0, CAM.F0d, "sine.inOut");
+          K.camTo(tl, m, 5.45, 1.5, CAM.F0d, CAM.F1, "sine.inOut");
+          K.camTo(tl, m, 6.95, 0.75, CAM.F1, CAM.F2, "power2.in");
+          K.camTo(tl, m, 7.7, 0.5, CAM.F2, CAM.F2z, "power3.out");
+
+          ft(L.grat, { opacity: 0 }, { opacity: 0.32, duration: 1.0, ease: "power2.out" }, 0.1);
+          // FIR outline: switched on inside its mask, then the mask draws it (clockwise from the SW corner)
+          ft(L.firLine, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, 0.2);
+          // mask width 10 wu (not 40): the closed outline starts and ends at the SW corner, so a 20-wu round cap
+          // exposed a dash of the south edge before the draw began. 10 wu still covers the 2.4 px line at every zoom.
+          K.reveal(tl, L.firLine, 0.2, 1.5, { id: "c1-rv-fir", width: 10, ease: "expo.inOut" });
+          ft(L.taiwan, { fill: "#EEE8DD", stroke: "#B9A57A" }, { fill: "#E9D9B0", stroke: "#A8761A", duration: 0.6, ease: "power2.out" }, 0.3);
+          // halo: 0 → 0.7 → 0.25 (identity) … 0.8 → 0.35 on 「臺灣」, then out with the overlays at 7.58
+          ft(halo, { opacity: 0 }, { opacity: 0.7, duration: 0.5, ease: "power2.out" }, 0.5);
+          ft(halo, { opacity: 0.7 }, { opacity: 0.25, duration: 0.9, ease: "sine.inOut" }, 1.0, true);
+          ft(halo, { opacity: 0.25 }, { opacity: 0.8, duration: 0.6, ease: "power2.out" }, 6.45, true);
+          ft(halo, { opacity: 0.8 }, { opacity: 0.35, duration: 0.53, ease: "sine.inOut" }, 7.05, true);
+
+          // routes
+          K.reveal(tl, R.R01, 1.2, 1.0, { id: "c1-rv-r01", width: 40, ease: "expo.inOut" });
+          K.reveal(tl, R.R02, 1.3, 1.0, { id: "c1-rv-r02", width: 40, ease: "expo.inOut" });
+          ft(L.firFill, { opacity: 0 }, { opacity: 0.1, duration: 0.8, ease: "power2.out" }, 1.3);
+
+          // nodes
+          popIn(nBPW.inner, 2.0, 0.6, 0.55, "back.out(1.5)");
+          popIn(nRCTP.inner, 2.15, 0.6, 0.55, "back.out(1.5)");
+
+          // chips 01 (RCTP) and 02 (BPW): leader draws, then the card pops off the leader end
+          [[chip01, 2.85, 2.9], [chip02, 3.0, 3.05]].forEach(function (c) {
+            var o = c[0], tL = c[1], tC = c[2];
+            ft(o.inner, { opacity: 0, y: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, tL);
+            K.draw(tl, o.line, tL, 0.35, "expo.out");
+            ft(o.dot, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.3, ease: "back.out(2)" }, tL + 0.12);
+            ft(o.chip, { opacity: 0, scale: 0.7, y: 10, transformOrigin: o.origin }, { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: "back.out(1.4)" }, tC);
+            ft(o.inner, { opacity: 1, y: 0 }, { opacity: 0, y: -8, duration: 0.35, ease: "power2.in" }, 5.3, true);
+          });
+
+          // VO2 「全方位守護臺灣的天空」
+          ft(L.firFill, { opacity: 0.1 }, { opacity: 0.18, duration: 1.0, ease: "power2.out" }, 5.55, true);
+          // SN starts at 5.45 (not 5.60) so its draw front reaches X_N as the dot lights and is ahead of PNa (frac 0.795) at 5.75
+          K.reveal(tl, R.SN, 5.45, 0.85, { id: "c1-rv-sn", width: 40, ease: "expo.out" });
+          // edge dots light clockwise N → E → E → S; the W step is BPW's real crossing pulse at 6.35
+          [["X_N", 5.58], ["X_E1", 5.77], ["X_E2", 5.96], ["X_S", 6.15]].forEach(function (e) {
+            var n = nX[e[0]];
+            popIn(n.inner, e[1], 0.4, 0.45, "back.out(1.6)");
+            pulse(n.pulses[0], e[1] + 0.1, 6, 22, 0.8, 0.55);
+          });
+          // south spoke from RCKH
+          K.reveal(tl, R.SS, 5.85, 0.7, { id: "c1-rv-ss", width: 40, ease: "expo.out" });
+          popIn(nRCKH.inner, 5.85, 0.5, 0.45, "back.out(1.6)");
+          // guardian rings (「守護」), clipped to the FIR
+          [6.0, 6.4, 6.8].forEach(function (t, i) {
+            var c = rings[i];
+            ft(c, { attr: { r: 20 } }, { attr: { r: 230 }, duration: 1.6, ease: "power1.out" }, t);
+            ft(c, { opacity: 0 }, { opacity: 0.55, duration: 0.12, ease: "power1.out" }, t);
+            ft(c, { opacity: 0.55 }, { opacity: 0, duration: 1.48, ease: "sine.in" }, t + 0.12, true);
+          });
+
+          // event pulses — RCTP: R01/SN landings; BPW: R02 crossings (two rings on RCTP so overlaps never fight)
+          pulse(nRCTP.pulses[0], 3.4, 9, 32, 0.9);
+          pulse(nRCTP.pulses[1], 4.8, 9, 32, 0.9);
+          pulse(nRCTP.pulses[0], 6.2, 9, 32, 0.9);
+          pulse(nRCTP.pulses[1], 6.9, 9, 32, 0.9);
+          pulse(nRCTP.pulses[0], 7.6, 16, 48, 0.6); // node is ×1.6 into the dive here, so the ring starts outside it
+          [2.15, 3.55, 4.95, 6.35].forEach(function (t) { pulse(nBPW.pulses[0], t, 8, 30, 0.9); });
+
+          // zoom-through: RCTP swells as the camera dives into it, the band fades under c2's rising airport
+          ft(nRCTP.inner, { scale: 1 }, { scale: 1.8, duration: 0.75, ease: "power2.in" }, 6.95, true);
+          // …then blooms and dissolves into c2's destination airport as it rises from the same point (7.70)
+          ft(nRCTP.inner, { scale: 1.8 }, { scale: 2.6, duration: 0.45, ease: "power2.out" }, 7.7, true);
+          ft(nRCTP.inner, { opacity: 1 }, { opacity: 0, duration: 0.2, ease: "power2.out" }, 7.7, true);
+          ft(band, { opacity: 1 }, { opacity: 0, duration: 0.65, ease: "power2.in" }, 7.5, true);
+          // The sea and land fade with the band, but the high-contrast overlays (routes, rings, planes, edge dots,
+          // FIR line and tint, BPW, RCKH) clear 7.58–7.80, before c2's DST passes ~35 %, so RCTP reads as becoming
+          // the airport rather than map lines drawn over it.
+          ft(m.world, { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58);
+          ft(L.firLine, { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58, true);
+          ft(L.firFill, { opacity: 0.18 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58, true);
+          [nBPW.g, nRCKH.g].forEach(function (g) { ft(g, { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58); });
+          // Taiwan keeps its gold fill (it fades with the band) but loses the crisp coastline and glow, so no gold
+          // line cuts across the rising terminal.
+          ft(L.taiwan, { stroke: "#A8761A" }, { stroke: "#E9D9B0", duration: 0.22, ease: "power1.in" }, 7.58, true);
+          ft(halo, { opacity: 0.35 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58, true);
+
+          // ---------- aircraft (V = 120 wu/s, ease none, alt 1) ----------
+          // R01 arrivals into RCTP every 1.4 s (P1e, P1f keep the east end populated; P1f spawns at the off-frame end, t0 ≈ 1.98)
+          [3.4, 4.8, 6.2, 7.6, 9.0, 10.4].forEach(function (TE) {
+            var p = mkPlane(), t0 = Math.max(1.9, TE - LEN.R01 / V);
+            var f0 = fAt("R01", 1, TE, t0);
+            if (TE <= END) cruise(p, "R01", t0, f0, TE, true);
+            else cruise(p, "R01", t0, f0, END, false);
+          });
+          // R02 transits: cross BPW at 2.15 / 3.55 / 4.95 / 6.35 / 7.75, then carry on east. Three more crossed it
+          // before the scene (−2.05 / −0.65 / 0.75), so the eastbound leg is as evenly populated as R01 from 1.90;
+          // a plane that reaches the off-frame end (wx 1000) simply stops there, out of shot.
+          [-2.05, -0.65, 0.75, 2.15, 3.55, 4.95, 6.35, 7.75].forEach(function (TE) {
+            var p = mkPlane(), t0 = Math.max(1.9, TE - (F_BPW * LEN.R02) / V);
+            var f0 = Math.max(0, fAt("R02", F_BPW, TE, t0));
+            cruise(p, "R02", t0, f0, Math.min(END, t0 + ((1 - f0) * LEN.R02) / V), false);
+          });
+          // SN: PNa lands 6.90; PNb follows
+          (function () {
+            var a = mkPlane(), b = mkPlane();
+            cruise(a, "SN", 5.75, fAt("SN", 1, 6.9, 5.75), 6.9, true);
+            cruise(b, "SN", 5.75, 0.4, END, false);
+          })();
+          // SS: PSa departs RCKH 6.30 — accelerates over 0.4 s (power1.in reaches exactly V) while climbing alt 0 → 1
+          (function () {
+            var p = mkPlane(), d0 = 0.4 * V * 0.5, f0 = d0 / LEN.SS;
+            K.legs(tl, p, R.SS, 6.3, [
+              { from: 0, to: f0, dur: 0.4, ease: "power1.in", alt0: 0, alt1: 1 },
+              { to: f0 + ((END - 6.7) * V) / LEN.SS, dur: END - 6.7, ease: "none", alt0: 1, alt1: 1 },
+            ]);
+            ft(p, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, 6.3);
+          })();
+
+          tl.set({}, {}, END);
+          window.__timelines = window.__timelines || {};
           window.__timelines["c1-map-intro"] = tl;
         })();
       </script>
