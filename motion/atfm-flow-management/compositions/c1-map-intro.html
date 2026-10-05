@@ -15,20 +15,21 @@
         #c1-root .c1-chip { font-family: "ATFM Sans", sans-serif; font-size: 36px; font-weight: 700; color: #1F6B62; }
         #c1-root .c1-num { font-family: "ATFM Mono", monospace; font-size: 36px; font-weight: 600; color: #3E8C80; letter-spacing: 0.02em; }
         /* boundary-point name tag: mono 30/600 on a cream pill with a 1 px teal-soft ring */
-        #c1-root .c1-bp { position: absolute; height: 40px; padding: 0 12px; border-radius: 11px; background: #FBF7F2; box-shadow: inset 0 0 0 1px #A9C7BD, 0 6px 14px -10px rgba(60, 48, 36, 0.35);
-          font-family: "ATFM Mono", monospace; font-size: 30px; font-weight: 600; line-height: 40px; color: #1F6B62; letter-spacing: 0.04em; white-space: nowrap; }
+        #c1-root .c1-bp { position: absolute; height: 44px; padding: 0 12px; border-radius: 12px; background: #FBF7F2; box-shadow: inset 0 0 0 1px #A9C7BD, 0 6px 14px -10px rgba(60, 48, 36, 0.35);
+          font-family: "ATFM Mono", monospace; font-size: 30px; font-weight: 600; line-height: 44px; color: #1F6B62; letter-spacing: 0.04em; white-space: nowrap; }
         /* airport tag (RCTP): the inverse pill — teal fill, cream text — so the airport never reads as a fifth 邊境點 */
         #c1-root .c1-bp.c1-ap { background: #1F6B62; color: #FBF7F2; box-shadow: 0 6px 14px -10px rgba(31, 107, 98, 0.55); }
         /* interior fix tag: mono 30/500 ink-soft, no box */
         #c1-root .c1-fx { position: absolute; height: 34px; font-family: "ATFM Mono", monospace; font-size: 30px; font-weight: 500; line-height: 34px; color: #6E6A64; letter-spacing: 0.04em; white-space: nowrap; }
-        /* Tag offsets keep ≥ 6 px between a passing plane's wingtip (half-span 18.5 px, swept back) and the tag box or
-           glyphs, and ≥ 4 px to its 12 % shadow (offset 5.8/10.6 px down-right) — the M750 side needs the larger
-           inset because the shadow falls toward the below-right tag. */
+        /* Tag offsets were set for the len-40 planes (half-span 18.5 px): ≥ 6 px between a passing wingtip and the tag box
+           or glyphs, ≥ 4 px to the 12 % shadow (offset down-right). The planes are now len 30 (half-span 13.9 px, shadow
+           offset 4.4/8 px), so every clearance grew by ≥ 4 px; the M750 side keeps the larger inset because the shadow
+           falls toward the below-right tag. */
         #c1-root .c1-al { right: 15px; bottom: 14px; }   /* above-left of the fix (A1 side) */
         #c1-root .c1-br { left: 20px; top: 16px; }        /* below-right of the fix (M750 side) */
         /* APU sits 10 wu NE of RCTP (19 px at z 1.9), so its tag goes straight above the tick: at F1 the box spans
-           y ≈ 448–482, 19 px above the RCTP pill (y 501–541), ≥ 16 px off the A1 BULAN leg that climbs at −41° on its
-           right (which carries no traffic in c1) and ≥ 19 px clear of the wingtips of M750 transits passing SANAS */
+           y ≈ 448–482, 15 px above the RCTP pill (y 496–540), ≥ 16 px off the A1 BULAN leg that climbs at −41° on its
+           right (which carries no traffic in c1) and ≥ 23 px clear of the wingtips of M750 transits passing SANAS */
         #c1-root .c1-ab { left: 6px; bottom: 52px; transform: translateX(-50%); }
         #c1-root .c1-lf { right: 18px; bottom: 0px; }     /* left of the node (RCTP), above the A1 leg that leaves it SW */
       </style>
@@ -97,7 +98,7 @@
           var R = {
             A1: awPath("c1-a1", AW.A1.dExt, fadeGrad("c1-grad-a1", AW.A1.dExt, TEAL), 4.5),
             M750: awPath("c1-m750", AW.M750.dExt, fadeGrad("c1-grad-m750", AW.M750.dExt, TEAL2), 4.5),
-            // the short final into Taoyuan (APU → RCTP) — hidden under the RCTP node at z ≤ 1.9, real at the dive
+            // the short final into Taoyuan (APU → RCTP) — 14–19 px long at z 1.35–1.9, shown from 6.25 with the APU tick, real at the dive
             SPUR: awPath("c1-a1-final", "M" + FIX.APU[0] + " " + FIX.APU[1] + "L" + PT.RCTP[0] + " " + PT.RCTP[1], TEAL, 4.5),
           };
           R.SPUR.setAttribute("opacity", "0");
@@ -173,7 +174,14 @@
           var nMOLKA = mkNode(FIX.MOLKA, BP_R, BP_RING, TEAL2, 2, m.world);
           var BP_NODES = [nELATO, nENVAR, nBULAN, nMOLKA];
           var tMKG = mkTick(FIX.MKG, TEAL), tAPU = mkTick(FIX.APU, TEAL), tANLOT = mkTick(FIX.ANLOT, TEAL2), tSANAS = mkTick(FIX.SANAS, TEAL2);
-          var nRCTP = mkNode(PT.RCTP, 9, 13, TEAL, 2);
+          // RCTP: dot r 9 + 4 px cream ring (outer 13). The real M750 ANLOT → SANAS leg passes only 15.15 wu SE of the airport
+          // (20.8–21.2 px at z 1.37–1.40), and every transit is abeam it 1.4 s after crossing ENVAR (2.65 · 4.05 · 5.45).
+          // With a len-30 plane (half-span 13.9 px) the swept wingtip comes within 6.9–7.3 px of the node centre, so the
+          // node is held at RC_WIDE = 0.7 while the camera is wide (dot 6.3, ring 9.1): the wingtip clears the teal dot by
+          // ≥ 0.6 px and tucks under the cream ring by ≤ 2.2 px, with the plane's shadow on the far (SE) side. The node
+          // grows to full size with the F0d_v2 → F1 push; at F1 the same pass clears the ring by 1.8 px.
+          var RC_R = 9, RC_RING = 13, RC_WIDE = 0.7;
+          var nRCTP = mkNode(PT.RCTP, RC_R, RC_RING, TEAL, 2);
 
           // ---------- name tags (HTML pins, constant screen size; animate .c1-in only) ----------
           // A1 tags above-left of the route, M750 tags below-right: the airways are only 12–16 wu apart (23–31 px at z 1.9).
@@ -221,13 +229,16 @@
           // chip01 hangs straight above RCTP (the only direction clear of A1, which runs through the node at −41°/139°,
           // and of M750 15 px to its SE): joint on the chip's bottom edge, box ≈ x 774–1154, y 244–320 at F0_v2 and
           // x 769–1149, y 247–323 at F0d_v2 — inside the opaque band (≥ 238), above the FIR north edge (336 / 331) and
-          // ≥ 70 px above the A1/M750 north-east extensions. The joint dot is drawn 15 px up from the node ring.
-          // chip02 hangs below-right of ENVAR, over the Bashi Channel outside the FIR's SW corner: box ≈ x 821–1201,
-          // y 748–824 at F0_v2 and x 810–1190, y 756–832 at F0d_v2 (band bottom 842); the SW extensions leave ENVAR
-          // down-left, so the box, its leader and the transit planes never meet. Its leader starts 20 px from ENVAR
-          // (13 px below the wide-view ring), so the stub sits clear of the ELATO/ENVAR pair.
-          var chip01 = mkChip(PT.RCTP, "01", "機場端流量管理", -20, -213, -210, -289, 190, 76, 15);
-          var chip02 = mkChip(FIX.ENVAR, "02", "邊境點流量管理", 26, 64, 4, 64, 22, 0, 20);
+          // ≥ 70 px above the A1/M750 north-east extensions. Its leader starts 12 px from the node centre — 3 px off the
+          // wide-view ring (9.1 px) and 15 px off the A1 line, which passes 5.4 px SE of the centre.
+          // chip02 hangs below-right of ENVAR, over the Bashi Channel outside the FIR's SW corner: box ≈ x 835–1215,
+          // y 748–824 at F0_v2 and x 824–1204, y 756–832 at F0d_v2 (band bottom 842); the SW extensions leave ENVAR
+          // down-left, so the box, its leader and the transit planes never meet. ELATO, ENVAR (with its pulse rings) and
+          // the FIR's SW corner (47–50 px below ENVAR) already crowd that spot, so the leader stays out of it: it starts
+          // 26 px from ENVAR (19 px below the wide-view ring, outside the r 26 pulse) and runs at 58° to a joint at
+          // (40, 64), crossing the dashed south edge 30–31 px east of the corner.
+          var chip01 = mkChip(PT.RCTP, "01", "機場端流量管理", -20, -213, -210, -289, 190, 76, 12);
+          var chip02 = mkChip(FIX.ENVAR, "02", "邊境點流量管理", 40, 64, 18, 64, 22, 0, 26);
 
           // ---------- helpers ----------
           // seek-safe event pulse: ring grows r0→r1 while its opacity snaps up (0.05 s) and decays to 0
@@ -254,8 +265,11 @@
             ft(p, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, t0);
             if (fadeOut) ft(p, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power1.in" }, t1 - 0.3, true);
           }
+          // len 30 (c5 flies 34): the twin airways are 12–16 wu apart and M750 passes 15 wu from RCTP, so the half-span
+          // (46.4 % of len) has to stay under 14 px for the wingtips to clear the node dots at the wide cameras
+          var PLANE_LEN = 30;
           function mkPlane() {
-            var p = K.plane({ len: 40 });
+            var p = K.plane({ len: PLANE_LEN });
             p.setAttribute("opacity", "0");
             m.world.appendChild(p);
             K.mapPlane(m, p);
@@ -277,16 +291,26 @@
           // The dive uses a soft-landing curve instead of the storyboard's power2.in. power2.in ended at peak speed
           // (RCTP ≈ 58 px/frame), so the map slammed to a stop at 7.70 and then recoiled into the settle.
           // c1-dive keeps both endpoints. Most of the travel happens 7.15–7.60 (peak ≈ 25 px/frame at 7.45), and RCTP
-          // moves ≤ 3 px/frame from 7.667 before it lands exactly on (1500, 648) at 7.70. The settle restarts from rest.
+          // moves ≤ 3 px/frame from 7.667 before it lands exactly on (1500, 648) at 7.70, where the dive ends at rest.
           var DIVE = CustomEase.create("c1-dive", "M0,0 C0.55,0 0.6,1 1,1");
           // Settle F2 → F2z in step with c2's destination airport, which grows 0.86 → 1 about the same point (1500, 648)
           // with power3.out over 0.8 s from 7.70. While the band is still 0.9–0.5 opaque (7.70–7.85) any other profile
-          // reads as the map sliding behind the terminal. c1 ends at 8.20, so the camera follows exactly the first 0.625
-          // of that curve: y = 1 − (1 − 0.625x)³ is a cubic, hence the exact Bézier below (normalised to end at 1), run
-          // toward the state the full F2 → F2z move reaches at 8.20 (SETTLE_K = 94.7 % of the way; RCTP stays on
-          // (1500, 648) because that state lies on the same cx/cy-linear, z-log interpolation).
+          // reads as the map sliding behind the terminal. c1 ends at 8.20, so the camera follows the first 0.625 of that
+          // curve, T(x) = (1 − (1 − 0.625x)³) / SETTLE_K, run toward the state the full F2 → F2z move reaches at 8.20
+          // (SETTLE_K = 94.7 % of the way; RCTP stays within 1.6 px of (1500, 648) because that state lies on the same
+          // cx/cy-linear, z-log interpolation, whatever the ease). T starts at its peak slope while the dive has just
+          // come to rest, which would be a one-frame velocity step (0 → 1.9 px/frame for content 200 px from RCTP), so
+          // the first 0.1 s is time-warped with a Hermite ramp w(x) = B·u²(2 − u), u = x/B (zero initial slope, slope 1
+          // and identical values from x = B on): the map eases out of rest at 0.6 → 1.5 → 2.0 → 2.2 → 1.7 px/frame and
+          // is exactly on T from 7.80. It lags the DST by ≤ 0.8 % of scale (≤ 1.6 px at 200 px) at 7.72–7.74, while the
+          // DST is still ≤ 15 % opaque. CustomEase takes the sampled curve as an SVG polyline (40 segments).
           var SETTLE_K = 1 - Math.pow(1 - 0.625, 3);                                    // 0.9473
-          var SETTLE = CustomEase.create("c1-settle", "M0,0 C0.33333," + (0.625 / SETTLE_K).toFixed(5) + " 0.66667," + (0.859375 / SETTLE_K).toFixed(5) + " 1,1");
+          function settleT(x) { return (1 - Math.pow(1 - 0.625 * x, 3)) / SETTLE_K; }
+          var SETTLE_BLEND = 0.2;                                                         // 0.1 s of the 0.5 s settle
+          function settleW(x) { if (x >= SETTLE_BLEND) return x; var u = x / SETTLE_BLEND; return SETTLE_BLEND * u * u * (2 - u); }
+          var settleD = "M0,0";
+          for (var si = 1; si <= 40; si++) settleD += " L" + (si / 40).toFixed(4) + "," + settleT(settleW(si / 40)).toFixed(5);
+          var SETTLE = CustomEase.create("c1-settle", settleD);
           var F2Z_820 = {
             cx: CAM.F2.cx + (CAM.F2z.cx - CAM.F2.cx) * SETTLE_K,
             cy: CAM.F2.cy + (CAM.F2z.cy - CAM.F2.cy) * SETTLE_K,
@@ -296,8 +320,10 @@
           K.camTo(tl, m, 5.45, 1.5, CAM.F0d_v2, CAM.F1, "sine.inOut");
           K.camTo(tl, m, 6.95, 0.75, CAM.F1, CAM.F2, DIVE);
           K.camTo(tl, m, 7.7, 0.5, CAM.F2, F2Z_820, SETTLE);
-          // boundary nodes grow 0.78 → 1 with the push (same window and ease as the camera, so they read as part of the zoom)
+          // boundary nodes grow 0.78 → 1 and RCTP 0.7 → 1 with the push (same window and ease as the camera, so they read
+          // as part of the zoom). RCTP's .c1-zs is separate from its .c1-in, which the dive scales 1 → 1.8 → 2.6 from 6.95.
           BP_NODES.forEach(function (n) { ft(n.zs, { scale: BP_WIDE, transformOrigin: "50% 50%" }, { scale: 1, duration: 1.5, ease: "sine.inOut" }, 5.45); });
+          ft(nRCTP.zs, { scale: RC_WIDE, transformOrigin: "50% 50%" }, { scale: 1, duration: 1.5, ease: "sine.inOut" }, 5.45);
 
           ft(L.grat, { opacity: 0 }, { opacity: 0.32, duration: 1.0, ease: "power2.out" }, 0.1);
           // FIR outline: switched on inside its mask, then the mask draws it (clockwise from the SW corner)
@@ -325,7 +351,6 @@
           popIn(nBULAN.inner, 2.06, 0.6, 0.55, "back.out(1.5)");
           popIn(nMOLKA.inner, 2.06, 0.6, 0.55, "back.out(1.5)");
           popIn(nRCTP.inner, 2.15, 0.6, 0.55, "back.out(1.5)");
-          ft(R.SPUR, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, 2.15);
 
           // chips 01 (RCTP) and 02 (ENVAR): leader draws, then the card pops off the leader end (「2 種」 at 2.90)
           [[chip01, 2.85, 2.9], [chip02, 3.0, 3.05]].forEach(function (c) {
@@ -352,13 +377,17 @@
             tagIn(e[1], e[2]);
           });
           tagIn(TAG.RCTP, 5.82);
-          // APU is 10.26 wu from RCTP: at z 1.46 (5.82) its tick would sit on the RCTP ring (centre 15 px out, ring edge 13,
-          // halo 5.5) and read as a bump on the node, and even at F1 (19.5 px) a full-size halo touches the ring. It pops with
-          // its tag at 6.60 (z ≥ 1.83) only to 0.7 (halo 3.9 → ≈ 3 px of sea to the ring, no overshoot), then grows to full
-          // size with the dive (6.95–7.35), by which time the zoom has moved it ≥ 7 px clear.
-          ft(tAPU.inner, { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 1, scale: 0.7, duration: 0.35, ease: "power2.out" }, 6.6);
+          // APU is 10.26 wu from RCTP: at z 1.46 (5.82) its tick would sit inside the RCTP ring's reach (centre 15 px out,
+          // ring 9.7, halo 5.5) and read as a bump on the node. It pops with its tag at 6.25 (z 1.66: centre 17 px out, ring
+          // 11.3) only to 0.7 (halo 3.9 → 1.9 px of sea to the ring, no overshoot), then grows to full size with the dive
+          // (6.95–7.35), by which time the zoom has moved it ≥ 7 px clear. 6.25 (not 6.60) lets the tag hold at full opacity
+          // 6.60–7.00 and stay on screen 1.05 s, in step with the other fix tags; the tag fade stays at 7.00 (ENVAR's pill
+          // leaves the band at ≈ 7.3). The APU → RCTP final (R.SPUR) fades in with the tick: at the wide cameras the
+          // smaller RCTP ring would no longer hide it (APU is 14–15 px out, the ring 9 px), and the tick now caps its end.
+          ft(tAPU.inner, { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 1, scale: 0.7, duration: 0.35, ease: "power2.out" }, 6.25);
           ft(tAPU.inner, { scale: 0.7 }, { scale: 1, duration: 0.4, ease: "sine.inOut" }, 6.95, true);
-          tagIn(TAG.APU, 6.6);
+          tagIn(TAG.APU, 6.25);
+          ft(R.SPUR, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, 6.25);
           // guardian rings (「守護」), clipped to the FIR. 1.4 s each (spec 1.6), so the third ring ends exactly at 8.20
           // and the timeline does not overrun its window. All three use the same speed so the motif stays even.
           [6.0, 6.4, 6.8].forEach(function (t, i) {
@@ -372,7 +401,8 @@
           var landings = T_LAND_SW.filter(function (t) { return t <= END; });
           landings.forEach(function (t, i) {
             // the node is ×1.6 into the dive after 7.3, so that ring starts outside it; 0.35 s so it is gone (< 0.05 by 7.85)
-            // before c2's terminal rises through the same point.
+            // before c2's terminal rises through the same point. The wide-camera landings (3.28 · 4.68) start at the
+            // 0.7-scale ring (9.1 px); the 6.08 landing (ring 10.6) emerges from under the ring within 0.03 s.
             if (t > 7.3) pulse(nRCTP.pulses[i % 2], t, 16, 48, 0.35);
             else pulse(nRCTP.pulses[i % 2], t, 9, 32, 0.9);
           });
