@@ -499,7 +499,7 @@
 
           // ================= HANDOFF → c3 =================
           // panel content (nav, columns, strip, pill) clears; the FRAME (dark box + title bar) stays for c3's identical frame
-          tl.to([P.nav, P.main, P.pill.el], { opacity: 0, duration: 0.25, ease: "power2.in" }, G(23.35));
+          tl.to([P.nav, P.main, P.pill.el], { opacity: 0, duration: 0.25, ease: "power2.in" }, G(23.55)); // content leaves just before c2 hides its frame (23.80)
           tl.to([dep, depLabel, chipWrap, gSig], { opacity: 0, x: -40, duration: 0.45, ease: "power2.in" }, G(23.5));
           // ROUTE2's tail retracts behind C (C is ≥ 55 % along the arc from 23.50), so no stub dangles at the DEP end
           tl.fromTo(route2, { drawSVG: "0% 100%" }, { drawSVG: "55% 100%", duration: 0.45, ease: "power2.in", immediateRender: false }, G(23.5));

@@ -379,9 +379,9 @@
           // left edge, independent of the width morph, so it fades in over the last third of the glide (24.55: the frame
           // is 89 % settled, 57 px from its rect) — the biggest element on screen is not left as a blank box through VO7.
           // The main column (AAR columns + strip) and the pill follow once the frame has settled (24.95, S0 監控中).
-          tl.fromTo(Pn.nav, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.55));
-          tl.fromTo([Pn.main, Pn.pill.el], { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.95));
-          tl.fromTo(Pn.main, { y: 10 }, { y: 0, duration: 0.5, ease: "power3.out" }, G(24.95));
+          tl.fromTo(Pn.nav, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.4));
+          tl.fromTo([Pn.main, Pn.pill.el], { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.55));
+          tl.fromTo(Pn.main, { y: 10 }, { y: 0, duration: 0.5, ease: "power3.out" }, G(24.55));
           tl.fromTo(led, { backgroundColor: LED_MINT, boxShadow: LED_GLOW }, { backgroundColor: LED_MINT, boxShadow: LED_GLOW, duration: 0.22, ease: "none" }, 0);
           // one clock tween to the window end: 09:30 → 11:01 at 7.143 min/s (10:20 @31.90, 10:30 @33.30, 10:40 @34.70)
           tl.to(Pn.clock, { count: { from: 570.36, to: 661.43, fmt: "time" }, duration: 12.75, ease: "none" }, G(24.95));
