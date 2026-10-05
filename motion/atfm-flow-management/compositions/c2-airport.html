@@ -36,11 +36,13 @@
         /* ATFM panel (STORYBOARD §0.3) */
         #c2-root .k-row-hl { position: absolute; }
         #c2-root .k-panel-bar .k-bar-right { margin-left: 0; }
-        #c2-root .c2-pills { position: relative; display: block; flex: none; width: 116px; height: 30px; margin-left: auto; }
+        #c2-root .c2-pills { display: flex; flex: none; margin-left: auto; }
         /* ONE opaque pill box (background tweens S0→S3); only its text spans swap, strictly in sequence */
-        #c2-root .c2-pillbox { position: absolute; left: 0; top: 0; width: 116px; background: #e1eee8; }
-        #c2-root .c2-pring { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: 9px; box-shadow: inset 0 0 0 1.5px #a9c7bd; }
-        /* stacked swap texts (pill, status tags, DEP chip) */
+        #c2-root .c2-pillbox { position: relative; background: #e1eee8; }
+        #c2-root .c2-pring { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: inherit; box-shadow: inset 0 0 0 1.5px #a9c7bd; }
+        /* swap boxes (pill, status tags, DEP chip) are sized by an invisible copy of their longest label, so they
+           follow the shared type scale; the visible labels are stacked, centred spans */
+        #c2-root .c2-sizer { visibility: hidden; white-space: nowrap; }
         #c2-root .c2-swap { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
         #c2-root .c2-flt { color: #2f3a37; font-size: 24px; font-weight: 600; white-space: nowrap; }
         #c2-root .c2-orig { position: relative; display: inline-block; justify-self: start; font-size: 22px; color: #6e6a64; }
@@ -50,11 +52,11 @@
           display: inline-flex; justify-self: start; opacity: 0.45;
           font-family: "ATFM Mono", "ATFM Sans", monospace; font-size: 24px; font-weight: 600; color: #1f6b62; letter-spacing: 0.02em;
         }
-        #c2-root .c2-tags { position: relative; display: block; width: 120px; height: 34px; }
-        /* status tag = one opaque 92 px box (background tweens); its two labels swap in sequence */
-        #c2-root .c2-tags .k-tag { position: absolute; left: 0; top: 0; box-sizing: border-box; min-width: 92px; justify-content: center; }
-        /* DEP chip = one opaque 240 px box (x 130–370) with the chip shadow; SIG2 ends 14 px inside it */
-        #c2-root .c2-chipwrap { left: 130px; top: 440px; width: 240px; height: 52px; padding: 0; }
+        /* status tag = one opaque box (background tweens); its two labels swap in sequence */
+        #c2-root .c2-tags { display: flex; justify-self: start; }
+        #c2-root .c2-tags .k-tag { position: relative; box-sizing: border-box; min-width: 92px; justify-content: center; white-space: nowrap; }
+        /* DEP chip = one opaque box (x 130–370 at the 24 px chip scale) with the chip shadow; SIG2 ends 14 px inside it */
+        #c2-root .c2-chipwrap { left: 130px; top: 440px; }
       </style>
       <div id="c2-root" data-composition-id="c2-airport" data-width="1920" data-height="1080" data-duration="16.9"></div>
       <script>
@@ -76,6 +78,9 @@
           var ui = K.el("div", { id: "c2-ui", class: "c2-layer" });
           root.appendChild(stage);
           root.appendChild(ui);
+
+          // invisible copy of a swap box's longest label: sizes the box at any type scale
+          function sizer(text) { var e = K.el("span", { class: "c2-sizer", text: text }); e.setAttribute("aria-hidden", "true"); return e; }
 
           // ===== WORLD LAYER (drifts) =====
           // 1 · terra glow behind the destination
@@ -265,6 +270,7 @@
             } else {
               // one opaque box; the labels are stacked text spans swapped in sequence
               box = K.tag("", r.tags[0][1]);
+              box.appendChild(sizer(r.tags[1][0]));
               holder.appendChild(box);
               tags = r.tags.map(function (x) {
                 var e = K.el("span", { class: "c2-swap", text: x[0], style: { color: x[1] ? TEAL : TERRA } });
@@ -280,7 +286,7 @@
           rows.forEach(function (row) { row.style.height = "48px"; gsap.set(row.__hl, { opacity: 0 }); });
           var bar = panel.__bar, led = bar.querySelector(".k-led");
           var pills = K.el("span", { class: "c2-pills" });
-          var pillBox = K.el("span", { class: "k-pill c2-pillbox" });
+          var pillBox = K.el("span", { class: "k-pill c2-pillbox" }, [sizer("✓ 已派發")]);
           var pRing = K.el("span", { class: "c2-pring" }); // S2's inset ring
           pillBox.appendChild(pRing);
           pills.appendChild(pillBox);
@@ -307,7 +313,7 @@
           ui.appendChild(chipRw);
           // 5 · DEP chip stack
           // one opaque chip box (terra-soft → mint) that keeps SIG2's end covered; only the text swaps, in sequence
-          var chipWrap = K.el("div", { class: "k-chip is-warn c2-chipwrap" });
+          var chipWrap = K.el("div", { class: "k-chip is-warn c2-chipwrap" }, [sizer("已接收新起飛時間")]);
           var chipHold = K.el("span", { class: "c2-swap", text: "地面等待", style: { color: TERRA } });
           var chipNew = K.el("span", { class: "c2-swap", text: "已接收新起飛時間", style: { color: TEAL } });
           chipWrap.appendChild(chipHold);
