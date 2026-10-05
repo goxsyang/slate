@@ -240,7 +240,7 @@
       const w = out.num.getBoundingClientRect().width / MG.stageScale;
       out.num.textContent = keep;
       out.unit.style.left = w + (o.unitGap || 18) + "px";
-      out.unit.style.top = y + size * 0.86 - (o.unitSize || 52) * 0.86 + "px";
+      out.unit.style.top = y + size * 0.935 - (o.unitSize || 52) * 0.935 + "px";
       return w;
     };
     return out;

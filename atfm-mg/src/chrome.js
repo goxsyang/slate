@@ -24,12 +24,23 @@
     { at: 24.75, out: null, text: "以 645 萬元為 1 格；約 4 億元 ≈ 62 格。" },
   ];
 
+  // SplitText collapses U+3000 into a plain space; restore the full-width gap
+  // of 「03　投入範圍」 (reference ≈ 1.1 em) on the character before it.
+  function keepIdeographicSpace(node, str) {
+    const idx = str.indexOf("\u3000");
+    if (idx < 0) return;
+    const before = str.slice(0, idx).replace(/\s/g, "").length;
+    const chars = K.charsOf(node);
+    if (before > 0) chars[before - 1].parentNode.style.marginRight = "0.74em";
+  }
+
   MG.chrome = function (tl) {
     const root = document.getElementById("chrome");
 
     HEADERS.forEach((h, i) => {
       const next = HEADERS[i + 1];
       const eb = K.text(root, h.eyebrow, { x: L.marginX, y: L.eyebrowY, size: 26, weight: 500, color: C.gray, ls: 0.02, cls: "eyebrow" });
+      keepIdeographicSpace(eb, h.eyebrow);
       const ti = K.text(root, h.title, { x: L.marginX, y: L.titleY, size: 57, weight: 700, color: C.teal, ls: 0, cls: "title" });
       K.textIn(tl, eb, h.at, { dur: 0.8, stagger: 0.018 });
       K.textIn(tl, ti, h.at + 0.12, { dur: 0.95, stagger: 0.032 });

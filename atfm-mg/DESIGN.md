@@ -1,5 +1,11 @@
 # ATFM 效益段落 — MG design spec
 
+> This is the brief the scenes were built from. During build/review/polish a
+> few beats were refined (e.g. the stopwatch became a 12-hour dial whose hour
+> ticks light up instead of an 8.8-turn minute hand; S1's right group shows as
+> a 30 % ghost from 0.55 s; the 645 is pressed into the unit square). The scene
+> files in `src/scenes/` are the source of truth for final timings.
+
 30.03 s motion-graphics insert for the ATFM film, voice-over 00;08;40 – 00;09;08.
 Rendered 1920×1080 @ 59.94 fps (drop-frame timeline). **Clip frame 0 = edit
 timeline 00;08;40;00.** All times below are seconds from that frame
