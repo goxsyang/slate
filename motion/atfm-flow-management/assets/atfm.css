@@ -1,0 +1,135 @@
+/* ATFM v5 — shared design tokens + primitives. See DESIGN.md. */
+@font-face {
+  font-family: "ATFM Sans";
+  src: url("fonts/NotoSansTC.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "ATFM Mono";
+  src: url("fonts/IBMPlexMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: block;
+}
+@font-face {
+  font-family: "ATFM Mono";
+  src: url("fonts/IBMPlexMono-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}
+
+:root {
+  --bg: #f3ece5;
+  --bg-deep: #eae2d8;
+  --card: #fbf7f2;
+  --card-line: #e6ddd2;
+  --ink: #2f3a37;
+  --ink-soft: #6e6a64;
+  --teal: #1f6b62;
+  --teal-2: #3e8c80;
+  --teal-soft: #a9c7bd;
+  --mint: #e1eee8;
+  --sea: #c9d4cd;
+  --sea-deep: #b9c8bf;
+  --land: #eee8dd;
+  --coast: #d2cabd;
+  --terra: #b25135;
+  --terra-soft: #f2ddd3;
+  --slot-off: #d8c4b9;
+  --gold: #a8761a;
+  --gold-soft: #e9d9b0;
+  --shadow-card: 0 18px 40px -22px rgba(60, 48, 36, 0.35), 0 2px 6px rgba(60, 48, 36, 0.06);
+  --font: "ATFM Sans", sans-serif;
+  --mono: "ATFM Mono", "ATFM Sans", monospace;
+}
+
+/* ---------- primitives (usable inside any sub-composition) ---------- */
+.k-abs { position: absolute; }
+.k-card {
+  position: absolute;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  padding: 26px 30px;
+  font-family: var(--font);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.k-card-title { font-size: 30px; font-weight: 700; color: var(--teal); line-height: 1.25; letter-spacing: 0.02em; }
+.k-card-body { font-size: 24px; font-weight: 500; color: var(--ink); line-height: 1.45; margin-top: 10px; }
+.k-card-note { font-size: 20px; font-weight: 500; color: var(--ink-soft); line-height: 1.4; margin-top: 6px; }
+.k-chip {
+  position: absolute;
+  display: flex; align-items: center; gap: 12px;
+  height: 52px; padding: 0 22px;
+  border-radius: 14px;
+  background: var(--mint);
+  color: var(--teal);
+  font-family: var(--font); font-size: 24px; font-weight: 700; letter-spacing: 0.02em;
+  white-space: nowrap; box-sizing: border-box;
+  box-shadow: 0 10px 24px -18px rgba(60, 48, 36, 0.35);
+}
+.k-chip.is-warn { background: var(--terra-soft); color: var(--terra); }
+.k-chip.is-card { background: var(--card); border: 1px solid var(--card-line); }
+.k-label {
+  position: absolute;
+  font-family: var(--font); font-size: 26px; font-weight: 700; color: var(--teal);
+  letter-spacing: 0.04em; white-space: nowrap;
+}
+.k-label.is-soft { font-size: 20px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.06em; }
+.k-num { font-family: var(--mono); font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+
+.k-slots { display: flex; gap: 12px; margin-top: 18px; }
+.k-slot {
+  display: block; position: relative; flex: none;
+  width: 64px; height: 22px; border-radius: 6px;
+  background: var(--teal);
+}
+.k-slot.is-off { background: var(--slot-off); }
+.k-slot.is-empty { background: transparent; box-shadow: inset 0 0 0 2px var(--teal-soft); }
+
+/* ATFM system panel (stylised software UI) */
+.k-panel {
+  position: absolute;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 22px;
+  box-shadow: 0 30px 60px -30px rgba(50, 40, 30, 0.45), 0 2px 8px rgba(60, 48, 36, 0.06);
+  font-family: var(--font); color: var(--ink);
+  overflow: hidden; box-sizing: border-box;
+}
+.k-panel-bar {
+  height: 54px; display: flex; align-items: center; gap: 14px; padding: 0 22px;
+  background: var(--teal); color: #f4f1ea;
+  font-size: 21px; font-weight: 700; letter-spacing: 0.08em;
+}
+.k-panel-bar .k-led { width: 10px; height: 10px; border-radius: 50%; background: #9fe0c9; box-shadow: 0 0 0 4px rgba(159, 224, 201, 0.18); }
+.k-panel-bar .k-bar-right { margin-left: auto; font-family: var(--mono); font-weight: 500; font-size: 18px; letter-spacing: 0.04em; opacity: 0.85; }
+.k-panel-head, .k-row {
+  display: grid; align-items: center; padding: 0 24px; column-gap: 12px;
+}
+.k-panel-head { height: 46px; font-size: 18px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.08em; border-bottom: 1px solid var(--card-line); }
+.k-row { height: 62px; font-size: 24px; font-weight: 600; border-bottom: 1px solid #efe7dd; position: relative; }
+.k-row:last-child { border-bottom: none; }
+.k-row-hl { position: absolute; inset: 6px 10px; border-radius: 12px; background: var(--mint); }
+.k-row > * { position: relative; }
+.k-tag { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 9px; font-size: 18px; font-weight: 700; letter-spacing: 0.04em; justify-self: start; }
+.k-tag.is-ok { background: var(--mint); color: var(--teal); }
+.k-tag.is-hold { background: var(--terra-soft); color: var(--terra); }
+
+/* rolling digits */
+.k-roll { display: inline-flex; overflow: hidden; vertical-align: top; }
+.k-roll-col { display: block; position: relative; overflow: hidden; }
+.k-roll-strip { display: flex; flex-direction: column; }
+.k-roll-strip > span { display: block; text-align: center; }
+
+/* isometric airport */
+.k-airport { position: absolute; }
+.k-airport img { display: block; width: 100%; height: auto; position: relative; }
+.k-airport .k-airport-shadow {
+  position: absolute; left: 6%; right: 4%; bottom: -2%; height: 34%;
+  background: radial-gradient(closest-side, rgba(70, 58, 44, 0.28), rgba(70, 58, 44, 0));
+  filter: blur(6px);
+}

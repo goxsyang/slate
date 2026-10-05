@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "ATFM Sans"; src: url("assets/fonts/NotoSansTC.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+        @font-face { font-family: "ATFM Mono"; src: url("assets/fonts/IBMPlexMono-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: block; }
+        #c5-map-outro-root { position: absolute; inset: 0; }
+        #c5-map-outro-root .ph { position: absolute; left: 110px; top: 480px; font-family: "ATFM Sans", sans-serif; font-size: 40px; color: #1f6b62; }
+      </style>
+      <div id="c5-map-outro-root" data-composition-id="c5-map-outro" data-width="1920" data-height="1080" data-duration="8.3">
+        <div class="ph">placeholder c5-map-outro</div>
+      </div>
+      <script>
+        (function () {
+          var tl = gsap.timeline({ paused: true });
+          tl.fromTo("#c5-map-outro-root .ph", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.2);
+          tl.set({}, {}, 8.3);
+          window.__timelines["c5-map-outro"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

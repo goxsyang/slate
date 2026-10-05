@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "ATFM Sans"; src: url("assets/fonts/NotoSansTC.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+        @font-face { font-family: "ATFM Mono"; src: url("assets/fonts/IBMPlexMono-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: block; }
+        #c1-root { position: absolute; inset: 0; }
+      </style>
+      <div id="c1-root" data-composition-id="c1-map-intro" data-width="1920" data-height="1080" data-duration="8.2"></div>
+      <script>
+        (function () {
+          var K = window.ATFM_KIT;
+          var root = document.getElementById("c1-root");
+          var m = K.map(root, { id: "c1", band: [220, 860], sy: 540, cam: { cx: 60, cy: -40, z: 1 } });
+          var tpe = K.ll(121.233, 25.078), nrt = K.ll(140.39, 35.77), hkg = K.ll(113.918, 22.308);
+          var r1 = K.s("path", { id: "c1-r1", d: K.arc(nrt[0], nrt[1], tpe[0], tpe[1], 60), fill: "none", stroke: "#1F6B62", "stroke-width": "4", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" });
+          m.world.appendChild(r1);
+          var pl = K.plane({ len: 56 });
+          m.world.appendChild(pl);
+          K.mapPlane(m, pl);
+          var tl = gsap.timeline({ paused: true });
+          K.draw(tl, r1, 0.3, 1.6);
+          K.fly(tl, pl, r1, 0.5, 4.5, { ease: "power1.inOut" });
+          tl.to(m.L.firLine, { opacity: 1, duration: 0.8 }, 1.0);
+          tl.to(m.L.firFill, { opacity: 0.08, duration: 0.8 }, 1.0);
+          tl.to(m.L.taiwan, { fill: "#E9D9B0", duration: 0.8 }, 1.2);
+          K.camTo(tl, m, 0, 5.5, { cx: 60, cy: -40, z: 1 }, { cx: 20, cy: -20, z: 1.25 }, "sine.inOut");
+          K.camTo(tl, m, 5.5, 2.7, { cx: 20, cy: -20, z: 1.25 }, { cx: tpe[0], cy: tpe[1], z: 7 }, "power2.inOut");
+          tl.set({}, {}, 8.2);
+          window.__timelines["c1-map-intro"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>
