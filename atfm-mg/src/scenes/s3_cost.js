@@ -77,7 +77,9 @@ MG.scene("s3_cost", function (tl) {
 
   // ------------------------------------------------------------- layer
   const layer = K.layer("s3", 3);
-  const GUARD = "linear-gradient(to bottom, transparent 200px, #000 226px, #000 928px, transparent 945px)";
+  // content band y 225–888: clear of the 74 px title above and the raised
+  // footnote (glyphs from y 912) below
+  const GUARD = "linear-gradient(to bottom, transparent 200px, #000 224px, #000 888px, transparent 902px)";
   layer.style.webkitMaskImage = GUARD;
   layer.style.maskImage = GUARD;
   K.onFrame((t) => setVis(layer, t >= T_IN));
@@ -371,19 +373,21 @@ MG.scene("s3_cost", function (tl) {
   // BEAT A — connector, 「硬體費用 645 萬元」, secondary, badge
   // =================================================================
   const TX = 952;
-  const CONN_Y = 350;
+  // the connector leaves the frame at the rack switch; the enlarged column
+  // (label → number → scope line → badge) stays centred on the frame
+  const CONN_Y = 322;
   const conSvg = K.svgCanvas(rackExit); // hangs from the frame, floats with it
   const conn = S("path", { d: `M${FR.x1} ${CONN_Y} L905 ${CONN_Y}`, fill: "none", stroke: C.terra, "stroke-width": 4, "stroke-linecap": "round" }, conSvg);
   K.drawIn(tl, conn, 19.56, 0.4, "power3.out");
 
   const right = div(aFloat);
 
-  const LBL = 40;
+  const LBL = 54;
   const LBL_Y = Math.round(CONN_Y - LBL * 0.6 - 2); // ink centred on the connector
   const hwLabel = K.text(right, "硬體費用", { x: TX, y: LBL_Y, size: LBL, weight: 500, color: C.teal, ls: 0.04 });
   K.textIn(tl, hwLabel, 19.66, { dur: 0.85, stagger: 0.04 });
 
-  const NUM = 220, UNIT = 64;
+  const NUM = 220, UNIT = 72;
   const NUM_TOP = LBL_Y + LBL * 1.2 + 16;
   const NUM_BASE = baseOff(NUM, 1.0);
   const NUM_X = TX - 10;
@@ -413,8 +417,8 @@ MG.scene("s3_cost", function (tl) {
   tl.fromTo(unitInner, { yPercent: 104, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.65, ease: "expo.out" }, 20.25);
   K.barIn(tl, bar645, T_645_LAND - 0.02, 0.7);
 
-  const SEC = 32;
-  const SEC_Y = Math.round(BASE_Y + 62);
+  const SEC = 43;
+  const SEC_Y = Math.round(BASE_Y + 60);
   const secText = K.text(right, "伺服器與網路設備", { x: TX + 1, y: SEC_Y, size: SEC, weight: 400, color: C.gray, ls: 0.04 });
   // 「硬體費用」 (20.85): the label answers with a soft pulse, the scope line follows
   const T_HW = W.hardware;
@@ -423,16 +427,19 @@ MG.scene("s3_cost", function (tl) {
   K.fadeIn(tl, secText, T_HW + 0.07, { y: 14, dur: 0.75 });
 
   // 「自主研發完成」 badge: check disc pops, pill unrolls, text rises, check draws
-  const BH = 66, BY = SEC_Y + SEC * 1.2 + 34, BX = TX;
+  // pill scaled with its text (34 → 46 px): BS keeps the disc, check and
+  // paddings in proportion
+  const BH = 86, BS = BH / 66, BY = SEC_Y + SEC * 1.2 + 38, BX = TX;
   const badge = div(right, { left: BX, top: BY });
   const badgeBg = div(badge, { left: 0, top: 0, width: BH, height: BH, background: C.teal, borderRadius: BH / 2 + "px" });
-  const BT = 34;
-  const badgeTxt = K.text(badge, "自主研發完成", { x: BH + 6, y: BH / 2 - (baseOff(BT, 1.2) - 0.38 * BT), size: BT, weight: 700, color: "#ffffff", ls: 0.08 });
-  const BW = BH + 6 + badgeTxt.offsetWidth - 0.08 * BT + 30;
+  const BT = 46;
+  const badgeTxt = K.text(badge, "自主研發完成", { x: BH + 8, y: BH / 2 - (baseOff(BT, 1.2) - 0.38 * BT), size: BT, weight: 700, color: "#ffffff", ls: 0.08 });
+  const BW = BH + 8 + badgeTxt.offsetWidth - 0.08 * BT + 38;
   const discSvg = S("svg", { width: BH, height: BH, viewBox: `${-BH / 2} ${-BH / 2} ${BH} ${BH}`, style: "position:absolute;left:0;top:0;overflow:visible" }, badge);
   const disc = S("g", {}, discSvg);
-  S("circle", { r: 21, fill: "#ffffff" }, disc);
-  const check = S("path", { d: "M-9.5 0.5 L-3 7 L9.5 -6.5", fill: "none", stroke: C.teal, "stroke-width": 4.6, "stroke-linecap": "round", "stroke-linejoin": "round" }, disc);
+  S("circle", { r: f2(21 * BS), fill: "#ffffff" }, disc);
+  const ck = (x, y) => f2(x * BS) + " " + f2(y * BS);
+  const check = S("path", { d: `M${ck(-9.5, 0.5)} L${ck(-3, 7)} L${ck(9.5, -6.5)}`, fill: "none", stroke: C.teal, "stroke-width": f2(4.6 * BS), "stroke-linecap": "round", "stroke-linejoin": "round" }, disc);
   const T_DEV = W.selfDev; // 22.4
   tl.fromTo(badgeBg, { autoAlpha: 0, scale: 0.6, transformOrigin: `${BH / 2}px ${BH / 2}px` }, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.4)" }, T_DEV - 0.04);
   tl.fromTo(badgeBg, { width: BH }, { width: BW, duration: 0.8, ease: "expo.out", immediateRender: false }, T_DEV + 0.1);
@@ -446,7 +453,7 @@ MG.scene("s3_cost", function (tl) {
     const on = p > 0 && p < 1;
     setVis(halo, on);
     if (!on) return;
-    const g = 16 * (1 - Math.pow(1 - p, 2.2));
+    const g = 18 * (1 - Math.pow(1 - p, 2.2));
     Object.assign(halo.style, { left: f2(-g) + "px", top: f2(-g) + "px", width: f2(BW + 2 * g) + "px", height: f2(BH + 2 * g) + "px", borderRadius: f2(BH / 2 + g) + "px", opacity: f2(0.45 * (1 - p)) });
   });
 
@@ -489,9 +496,11 @@ MG.scene("s3_cost", function (tl) {
   const usqPop = div(usqMove, { left: 0, top: 0, width: CELL, height: CELL });
   const usq = div(usqPop, { left: 0, top: 0, width: CELL, height: CELL, background: C.terra, borderRadius: "8px" });
   // its label travels with it and stays in the final composition
-  const TAG = 26;
-  const usqTag = K.text(usqMove, "645 萬", { x: 0, y: CELL + 12, size: TAG, weight: 500, color: C.terra, ls: 0.02 });
-  usqTag.style.left = f2((CELL - (usqTag.offsetWidth - 0.02 * TAG)) / 2) + "px";
+  const TAG = 35;
+  // tag sits to the LEFT of the square (ink centred on it): the copies only
+  // ever travel right / up-right / down-right, so none crosses the label
+  const usqTag = K.text(usqMove, "645 萬", { x: 0, y: f2(CELL / 2 - (baseOff(TAG, 1.2) - 0.36 * TAG)), size: TAG, weight: 500, color: C.terra, ls: 0.02 });
+  usqTag.style.left = f2(-18 - (usqTag.offsetWidth - 0.02 * TAG)) + "px";
 
   tl.fromTo(usqPop, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01, ease: "none" }, T_SQ);
   tl.fromTo(usqPop, { scale: 1.2 }, { scale: 1, duration: 0.4, ease: "power3.out" }, T_SQ);
@@ -562,15 +571,16 @@ MG.scene("s3_cost", function (tl) {
   const LX = K.L.marginX;
   const leftC = div(push);
   floatEnv(leftC, { ay: 3, ax: 1, period: 5.6, phase: 0.3 }, ramp(27.0, 1.2));
-  const LBL2_Y = Math.round(MIDY - 196);
-  const natLabel = K.text(leftC, "節省公帑", { x: LX + 4, y: LBL2_Y, size: 34, weight: 500, color: C.teal, ls: 0.04 });
+  const LBL2 = 46, CAP4 = 43;
+  const LBL2_Y = Math.round(MIDY - 212);
+  const natLabel = K.text(leftC, "節省公帑", { x: LX + 4, y: LBL2_Y, size: LBL2, weight: 500, color: C.teal, ls: 0.04 });
   // 「節省」 on 「為國家節省了」, 「公帑」 completes the label on 「的公帑」
   const natChars = K.charsOf(natLabel);
   tl.fromTo(natChars.slice(0, 2), { yPercent: 108 }, { yPercent: 0, duration: 0.9, ease: "expo.out", stagger: 0.045 }, W.nation + 0.06);
   tl.fromTo(natChars.slice(2), { yPercent: 108 }, { yPercent: 0, duration: 0.9, ease: "expo.out", stagger: 0.045 }, W.publicFund - 0.04);
 
   const N4 = 270, YUE = 64, YI = 84;
-  const N4_TOP = LBL2_Y + 30;
+  const N4_TOP = LBL2_Y + 48;
   const B4 = N4_TOP + baseOff(N4, 1.0); // baseline (stage y)
   const yue = K.text(leftC, "約", { x: LX + 2, y: B4 - CJK_LIFT * YUE - baseOff(YUE, 1.2), size: YUE, weight: 700, color: C.teal, lh: 1.2, ls: 0 });
   const yueW = yue.offsetWidth;
@@ -598,8 +608,8 @@ MG.scene("s3_cost", function (tl) {
   const YI_X = D_X + dW + 16;
   const yi = K.text(leftC, "億元", { x: YI_X, y: B4 - CJK_LIFT * YI - baseOff(YI, 1.2), size: YI, weight: 700, color: C.teal, lh: 1.2, ls: 0.02 });
   const bar4 = K.accentBar(leftC, LX + 4, Math.round(B4 + 32));
-  const capY = Math.round(B4 + 70);
-  const cap4 = K.text(leftC, "約為硬體投入的 62 倍", { x: LX + 3, y: capY, size: 32, weight: 400, color: C.gray, ls: 0.03 });
+  const capY = Math.round(B4 + 72);
+  const cap4 = K.text(leftC, "約為硬體投入的 62 倍", { x: LX + 3, y: capY, size: CAP4, weight: 400, color: C.gray, ls: 0.03 });
 
   const T_YI = W.yi4; // 26.35
   K.textIn(tl, yue, T_YI - 0.08, { dur: 0.7 });

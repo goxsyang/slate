@@ -58,8 +58,11 @@ MG.scene("s1_ground", function (tl) {
   function kpi(parent, o) {
     const wrap = box(parent, { left: 0, top: 0 });
     const g = box(wrap, { left: o.x, top: o.y });
-    const label = K.text(g, o.label, { x: 4, y: 0, size: 34, weight: 500, color: C.teal });
-    const numTop = 34 * 1.2 + 18;
+    // label 46 px (34 × 1.35, broadcast legibility); the label→number gap
+    // tightens from 18 to 12 so the number / bar B stay where they were
+    const LABEL = 46;
+    const label = K.text(g, o.label, { x: 4, y: 0, size: LABEL, weight: 500, color: C.teal });
+    const numTop = LABEL * 1.2 + 12;
     const numWrap = box(g, { left: 0, top: numTop });
     const num = K.text(numWrap, o.final, { x: 0, y: 0, size: 170, weight: 700, ls: -0.01, lh: 1.0, cls: "num" });
     const w = num.getBoundingClientRect().width / MG.stageScale;
@@ -84,7 +87,8 @@ MG.scene("s1_ground", function (tl) {
   // ticket board
   const TK = { w: 78, h: 31, gx: 10, gy: 7.5, x0: 442, y0: PT, cols: 5, n: 38 };
   // right group
-  const SW = { cx: 1700, cy: 355, r: 88, sw: 10 };
+  // dial centred over its (enlarged, right-margin-flush) caption
+  const SW = { cx: 1641, cy: 355, r: 88, sw: 10 };
   const PLANE = { x: 990, scale: 0.92, bottom: 842 };
   const GROUND_Y = 843;
   // colours specific to the calendar illustration (reference f_022)
@@ -108,13 +112,19 @@ MG.scene("s1_ground", function (tl) {
 
   // ------------------------------------------------------------ layers
   const root = K.layer("s1", 2);
+  // soft floor guard (same idea as S2/S3): the static scene ends by y ≈ 855;
+  // during the tilt-down exit nothing may reach the raised footnote band
+  // (glyphs from y 912) — content dissolves between y 870 and 886
+  const GUARD = "linear-gradient(to bottom, #000 0px, #000 870px, transparent 886px)";
+  root.style.webkitMaskImage = GUARD;
+  root.style.maskImage = GUARD;
   const leftExit = box(root, { left: 0, top: 0 });
   const leftDim = box(leftExit, { left: 0, top: 0 });
   const rightExit = box(root, { left: 0, top: 0 });
   const fxWrap = box(root, { left: 0, top: 0 });
 
   // ================================================================ LEFT
-  const kA = kpi(leftDim, { x: 96, y: 232, label: "時段安排", final: "38", unit: "個 CTOT" });
+  const kA = kpi(leftDim, { x: 96, y: 225, label: "時段安排", final: "38", unit: "個 CTOT" });
 
   // ---- calendar ------------------------------------------------------
   const calEnter = box(leftDim, { left: 0, top: 0 });
@@ -246,7 +256,7 @@ MG.scene("s1_ground", function (tl) {
   }
 
   // ================================================================ RIGHT
-  const kB = kpi(rightExit, { x: 1000, y: 232, label: "累計地面等待", final: "528", unit: "分鐘", lift: 2 });
+  const kB = kpi(rightExit, { x: 1000, y: 225, label: "累計地面等待", final: "528", unit: "分鐘", lift: 2 });
 
   // everything illustrative on the right lives in the ghost wrapper: it is on
   // screen at 30 % while 「38 個 CTOT」 is the focus, then swaps emphasis
@@ -314,7 +324,7 @@ MG.scene("s1_ground", function (tl) {
   S("circle", { cx: X, cy: Y, r: 10.5, fill: C.teal }, sw);
   S("circle", { cx: X, cy: Y, r: 3.6, fill: C.tealSoft }, sw);
 
-  const caption = K.text(rightExit, "相當於 8 小時 48 分", { x: 0, y: Y + R + 40, size: 30, weight: 400, color: C.gray, ls: 0.02 });
+  const caption = K.text(rightExit, "相當於 8 小時 48 分", { x: 0, y: Y + R + 36, size: 41, weight: 400, color: C.gray, ls: 0.02 });
   { // centred under the dial, but never past the right margin (x 1824)
     const cw = caption.getBoundingClientRect().width / MG.stageScale;
     caption.style.left = Math.min(X - cw / 2, 1822 - cw) + "px";
@@ -442,7 +452,7 @@ MG.scene("s1_ground", function (tl) {
   // shared channel: through the gap between bar B and the fin tip, sagging
   // over the fuselage, entering the dial from its lower left
   const G = [990, 494];
-  const LANE = [G, [1180, 497], [1586.5, 595.7], [1659, 442]];
+  const LANE = [G, [1180, 497], [X - 113.5, 595.7], [X - 41, 442]];
   const cub = (P, u) => {
     const v = 1 - u;
     return [

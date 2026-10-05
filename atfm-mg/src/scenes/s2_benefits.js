@@ -56,8 +56,9 @@ MG.scene("s2_benefits", function (tl) {
 
   // ------------------------------------------------------------- layer
   const layer = K.layer("s2", 2);
-  // soft guard: scenes never draw into header (<200) or footnote (>945)
-  const GUARD = "linear-gradient(to bottom, transparent 200px, #000 226px, #000 928px, transparent 945px)";
+  // soft guard: scenes never draw into header (<200) or footnote band
+  // (glyphs 912+; content ends by L.contentBottom = 885)
+  const GUARD = "linear-gradient(to bottom, transparent 200px, #000 226px, #000 872px, transparent 885px)";
   layer.style.webkitMaskImage = GUARD;
   layer.style.maskImage = GUARD;
   K.onFrame((t) => setVis(layer, t >= T_IN && t <= T_END));
@@ -317,7 +318,9 @@ MG.scene("s2_benefits", function (tl) {
   const planeEnter = div(planeExit);
   const plane = K.img(planeEnter, "assets/plane_fly.png", { x: PL.x, y: PL.y, scale: PLS });
   const T_PLANE = 5.98;
-  tl.fromTo(planeEnter, { x: -300, y: 160 }, { x: 0, y: 0, duration: 1.25, ease: "expo.out" }, T_PLANE);
+  // enters along its own climb heading; the shallow rise keeps the belly
+  // above the layer guard (872) from the first visible frame — no flat clip
+  tl.fromTo(planeEnter, { x: -300, y: 50 }, { x: 0, y: 0, duration: 1.25, ease: "expo.out" }, T_PLANE);
   tl.fromTo(planeEnter, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: "power1.out" }, T_PLANE);
   K.onFrame((t) => {
     const p = K.prog(t, T_PLANE, 3.2, "sine.inOut");
@@ -335,11 +338,12 @@ MG.scene("s2_benefits", function (tl) {
   // BEAT A — KPI C 「減少 CO₂ / 57.9 噸」
   // =================================================================
   const KX = 96, KY = 232;
+  const LBL = 46; // KPI label (34 × 1.35, broadcast legibility)
   const NUM_SIZE = 170, UNIT_SIZE = 52;
-  const NUM_Y = KY + 34 * 1.2 + 18;
+  const NUM_Y = KY + LBL * 1.2 + 18;
   const kpiEnter = div(layer);
   const kpiFloat = div(kpiEnter);
-  const label = K.text(kpiFloat, "", { x: KX + 4, y: KY, size: 34, weight: 500, color: C.teal });
+  const label = K.text(kpiFloat, "", { x: KX + 4, y: KY, size: LBL, weight: 500, color: C.teal });
   label.innerHTML = '減少 <span class="s2-co2">CO<span class="s2-sub">2</span></span>';
   const co2 = label.querySelector(".s2-co2"), sub = label.querySelector(".s2-sub");
   Object.assign(co2.style, { display: "inline-block", transformOrigin: "20% 75%" });
@@ -361,7 +365,10 @@ MG.scene("s2_benefits", function (tl) {
   const unitInner = K.text(unitMask, "噸", { x: PADM, y: PADM, size: UNIT_SIZE, weight: 700, color: C.teal, lh: 1.0 });
   const unitW = unitInner.offsetWidth;
   Object.assign(unitMask.style, { left: unitLeft - PADM + "px", top: unitTop - PADM + "px", width: unitW + PADM * 2 + "px", height: UNIT_SIZE + PADM * 2 + "px" });
-  const bar = K.accentBar(kpiFloat, KX + 4, NUM_Y + NUM_BASE + 22);
+  // accent bar rides inside numWrap (same resting spot: KX+4, NUM_Y+NUM_BASE+22)
+  // so the descending KPI→column morph carries it along while it retracts,
+  // instead of the number sliding over the stub left in place
+  const bar = K.accentBar(numWrap, 4, NUM_BASE + 22);
 
   // entrance (camera tilt continuation)
   tl.fromTo(kpiEnter, { y: -160 }, { y: 0, duration: 0.85, ease: "expo.out" }, 5.68);
@@ -378,8 +385,8 @@ MG.scene("s2_benefits", function (tl) {
   // 「CO2」 emphasis: thin terracotta underline draws, tiny pulse; the 「2」
   // swells from its bottom edge so it always reads as a subscript
   const co2Mark = K.el("div", { cls: "abs", style: {
-    left: co2.offsetLeft + 1, top: 47, width: co2.offsetWidth - 2, height: 3,
-    background: C.terra, borderRadius: "1.5px", transformOrigin: "0% 50%" } }, label);
+    left: co2.offsetLeft + 1, top: Math.round(LBL * 1.385), width: co2.offsetWidth - 2, height: 4,
+    background: C.terra, borderRadius: "2px", transformOrigin: "0% 50%" } }, label);
   tl.fromTo(co2Mark, { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "expo.out" }, W.co2);
   tl.fromTo(co2, { scale: 1 }, { scale: 1.12, duration: 0.22, ease: "power2.out" }, W.co2 - 0.02);
   tl.to(co2, { scale: 1, duration: 0.55, ease: "sine.inOut", immediateRender: false }, W.co2 + 0.2);
@@ -390,10 +397,10 @@ MG.scene("s2_benefits", function (tl) {
   // BEAT B — columns
   // =================================================================
   const COLX = [356, 960, 1564];
-  const ICON_Y = 402, DISC_R = 96, BOX = 330;
-  const BASE = 604; // ink bottom line of the column headline
-  const MAIN = 64, CAP = 30;
-  const CAP_Y = BASE + 30;
+  const ICON_Y = 368, DISC_R = 96, BOX = 330;
+  const BASE = ICON_Y + 212; // ink bottom line of the column headline (pulse ring clears 「57.9」 by ≥ 18 px)
+  const MAIN = 70, CAP = 41;  // caption 30 × 1.35; heads nudged up to keep the hierarchy
+  const CAP_Y = BASE + 27;
   const T_MORPH = 8.84;
 
   const cols = COLX.map((cx, i) => {
@@ -419,9 +426,9 @@ MG.scene("s2_benefits", function (tl) {
   const cap1 = textC(c1.lift, "CO₂ 減排", c1.cx, CAP_Y, { size: CAP, weight: 400, color: C.gray, ls: 0.02,
     html: 'CO<span style="display:inline-block;font-size:0.6em;position:relative;top:0.3em;margin-left:0.04em">2</span> 減排' });
 
-  // morph KPI number → column-1 headline (centred, 84 px number + 44 px
-  // unit, optically closer to the 64 px words of columns 2/3)
-  const MS = 84 / NUM_SIZE, US = 44 / (UNIT_SIZE * MS);
+  // morph KPI number → column-1 headline (centred, 92 px number + 48 px
+  // unit, optically matched to the 70 px words of columns 2/3)
+  const MS = 92 / NUM_SIZE, US = 48 / (UNIT_SIZE * MS);
   const totalW = unitLeft + unitW * US;
   const morphX = c1.cx - (totalW * MS) / 2 - KX;
   const morphY = BASE - NUM_BASE * MS - NUM_Y;
@@ -570,15 +577,15 @@ MG.scene("s2_benefits", function (tl) {
   // =================================================================
   // BEAT C — sum-line, ATFM pill, tree connectors, payoff
   // =================================================================
-  const SUM_Y = 758, RISER_TOP = 686;
-  const PILL_W = 232, PILL_H = 72, PILL_Y = 794;
+  const RISER_TOP = CAP_Y + 63, SUM_Y = RISER_TOP + 68;
+  const PILL_W = 252, PILL_H = 76, PILL_Y = SUM_Y + 36;
   const conWrap = div(layer);
   const con = K.svgCanvas(conWrap);
 
   // sum-line: spans the column content (not the full margin), drawn from the
   // centre outwards and finished with small upturned end ticks — a bracket
   // that "sums" the three columns before the ATFM pill names the cause.
-  const SUM_X0 = COLX[0] - 140, SUM_X1 = COLX[2] + 140, TICK = 14;
+  const SUM_X0 = COLX[0] - 190, SUM_X1 = COLX[2] + 190, TICK = 14; // ticks frame the widest caption
   const T_SUM = 12.45;
   const sumAttrs = { fill: "none", stroke: C.terra, "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" };
   const sumG = S("g", {}, con);
@@ -595,7 +602,7 @@ MG.scene("s2_benefits", function (tl) {
 
   const pillWrap = div(layer);
   const pillBg = div(pillWrap, { left: 960 - PILL_W / 2, top: PILL_Y, width: PILL_W, height: PILL_H, background: C.teal, borderRadius: PILL_H / 2 + "px" });
-  const PT = 44;
+  const PT = 48;
   const pillText = textC(pillWrap, "ATFM", 960, PILL_Y + PILL_H / 2 - (baseOff(PT, 1.2) - 0.37 * PT), { size: PT, weight: 700, color: "#fff", ls: 0.14 });
   tl.fromTo(pillBg, { autoAlpha: 0, scaleX: 0.25, scaleY: 0.7 }, { autoAlpha: 1, scaleX: 1, scaleY: 1, duration: 0.7, ease: "expo.out" }, W.atfm - 0.17);
   K.textIn(tl, pillText, W.atfm, { dur: 0.5, stagger: 0.12, ease: "expo.out" });
@@ -661,7 +668,7 @@ MG.scene("s2_benefits", function (tl) {
       const on = p >= 0 && p < 1;
       setVis(c.ring, on);
       if (!on) return;
-      c.ring.setAttribute("r", f2(DISC_R + 34 * ringOut(p)));
+      c.ring.setAttribute("r", f2(DISC_R + 28 * ringOut(p))); // stays ≥ 18 px clear of the heads
       c.ring.setAttribute("opacity", f2(0.55 * (1 - p)));
     });
   });
