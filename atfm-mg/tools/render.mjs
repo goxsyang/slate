@@ -120,7 +120,7 @@ async function video() {
     "-c:v", "libx264", "-preset", "slow", "-tune", "animation", "-crf", crf,
     "-profile:v", "high", "-level", "4.2",
     "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
-    "-timecode", "00;08;40;00",
+    "-timecode", "00:08:40;00",
     "-movflags", "+faststart",
     outFile,
   ]);
