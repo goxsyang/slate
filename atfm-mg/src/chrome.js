@@ -39,9 +39,9 @@
 
     HEADERS.forEach((h, i) => {
       const next = HEADERS[i + 1];
-      const eb = K.text(root, h.eyebrow, { x: L.marginX, y: L.eyebrowY, size: 26, weight: 500, color: C.gray, ls: 0.02, cls: "eyebrow" });
+      const eb = K.text(root, h.eyebrow, { x: L.marginX, y: L.eyebrowY, size: L.eyebrowSize, weight: 500, color: C.gray, ls: 0.02, cls: "eyebrow" });
       keepIdeographicSpace(eb, h.eyebrow);
-      const ti = K.text(root, h.title, { x: L.marginX, y: L.titleY, size: 57, weight: 700, color: C.teal, ls: 0, cls: "title" });
+      const ti = K.text(root, h.title, { x: L.marginX, y: L.titleY, size: L.titleSize, weight: 700, color: C.teal, ls: 0, cls: "title" });
       K.textIn(tl, eb, h.at, { dur: 0.8, stagger: 0.018 });
       K.textIn(tl, ti, h.at + 0.12, { dur: 0.95, stagger: 0.032 });
 
@@ -53,7 +53,7 @@
         const r0 = root.getBoundingClientRect(), s = MG.stageScale;
         const a = sel[0].getBoundingClientRect(), b = sel[sel.length - 1].getBoundingClientRect();
         mark = K.el("div", { cls: "abs title-mark", style: {
-          left: (a.left - r0.left) / s + 2, top: L.titleY + 74, width: (b.right - a.left) / s - 4, height: 6,
+          left: (a.left - r0.left) / s + 2, top: L.titleY + Math.round(L.titleSize * 1.3), width: (b.right - a.left) / s - 4, height: 6,
           background: C.terra, borderRadius: "3px", transformOrigin: "0% 50%" } }, root);
         tl.fromTo(mark, { scaleX: 0 }, { scaleX: 1, duration: 0.75, ease: "expo.out" }, h.mark.at);
       }
@@ -70,7 +70,7 @@
     });
 
     FOOTS.forEach((f) => {
-      const n = K.text(root, f.text, { x: L.marginX, y: L.footY, size: 26, weight: 400, color: C.gray, ls: 0, cls: "foot" });
+      const n = K.text(root, f.text, { x: L.marginX, y: L.footY, size: L.footSize, weight: 400, color: C.gray, ls: 0, cls: "foot" });
       tl.fromTo(n, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "power2.out" }, f.at);
       if (f.out != null) tl.to(n, { autoAlpha: 0, duration: 0.35, ease: "power1.in", immediateRender: false }, f.out);
     });

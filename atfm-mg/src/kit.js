@@ -32,11 +32,14 @@
   // Layout grid (1920x1080), matches the reference slides.
   const L = {
     marginX: 96,
-    eyebrowY: 50,
-    titleY: 99,
+    eyebrowY: 41,
+    eyebrowSize: 35,     // 26 * 1.35 (enlarged for broadcast legibility)
+    titleY: 92,
+    titleSize: 74,       // 57 * 1.3
     contentTop: 215,
-    contentBottom: 930,
-    footY: 963,
+    contentBottom: 885,  // scenes stay above the footnote
+    footY: 906,          // footnote sits above the edit's burned-in subtitles (~985+)
+    footSize: 35,        // 26 * 1.35
   };
 
   const stage = () => document.getElementById("stage");
