@@ -266,6 +266,28 @@
     return tl.to(plane, { along: v, duration: dur, ease: o.ease || "power1.inOut", immediateRender: o.immediateRender !== false }, t);
   };
 
+  /**
+   * Chain K.fly legs with no gaps. legs: [{to, dur, ease, alt0, alt1, squash0, squash1}], leg 0 may carry `from`.
+   * Leg 0 renders immediately (places the plane at build time); later legs don't. Returns end time.
+   */
+  K.legs = function (tl, plane, path, t0, legs) {
+    var t = t0, from = legs[0].from == null ? 0 : legs[0].from;
+    legs.forEach(function (lg, i) {
+      K.fly(tl, plane, path, t, lg.dur, { from: from, to: lg.to, ease: lg.ease || "none", alt0: lg.alt0, alt1: lg.alt1, squash0: lg.squash0, squash1: lg.squash1, angle: lg.angle, immediateRender: i === 0 });
+      t += lg.dur; from = lg.to;
+    });
+    return t;
+  };
+  /** Fraction (0..1, by arc length) of the point on `path` nearest to (x,y); 800 samples + local refine. */
+  K.fracAt = function (path, x, y) {
+    path = resolvePath(path);
+    var L = path.getTotalLength(), N = 800, best = 0, bd = Infinity, i, p, d;
+    for (i = 0; i <= N; i++) { p = path.getPointAtLength((L * i) / N); d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y); if (d < bd) { bd = d; best = i / N; } }
+    var lo = Math.max(0, best - 1 / N), hi = Math.min(1, best + 1 / N);
+    for (i = 0; i <= 40; i++) { var f = lo + ((hi - lo) * i) / 40; p = path.getPointAtLength(L * f); d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y); if (d < bd) { bd = d; best = f; } }
+    return best;
+  };
+
   // ---------- UI primitives ----------
   /** Card. o: {x,y,w,h,title,body,note,cls} → .k-card with children .k-card-title/.k-card-body/.k-card-note */
   K.card = function (o) {

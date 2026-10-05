@@ -49,10 +49,27 @@ for (const f of land.features) {
   const polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : [];
   for (const poly of polys) for (const r of poly) rings.push(r);
 }
+{ const seen = new Set(); for (let i = rings.length - 1; i >= 0; i--) { const k = JSON.stringify(rings[i]); if (seen.has(k)) rings.splice(i, 1); else seen.add(k); } }
 const landP = ringsToPath(rings, 0.09, 0.6);
-// Taiwan (main island + Penghu + Green/Orchid islands) as its own path for highlighting
-const inTW = (r) => r.every(([lo, la]) => lo > 119.2 && lo < 122.2 && la > 21.7 && la < 25.45);
-const twP = ringsToPath(rings.filter(inTW), 0.04, 0.02);
+// Taiwan gold layer: allow-list by ring centroid (lon/lat boxes). Nanri Island (PRC-administered,
+// 119.44–119.57E 25.17–25.25N) is explicitly excluded. Outlying islands (Kinmen/Matsu/Wuqiu) behind a toggle.
+const TW_OUTLYING = true;
+const TW_ALLOW = [
+  [119.95, 122.05, 21.85, 25.35], // main island + Green Island, Lanyu, Xiaoliuqiu, Guishan, Waisanding
+  [119.30, 119.75, 23.15, 23.85], // Penghu
+];
+const TW_OUTER = [
+  [119.43, 119.50, 24.95, 25.01], // Wuqiu
+  [118.18, 118.52, 24.36, 24.535], // Kinmen + Lieyu (excludes Dadeng/Xiaodeng at 24.54–24.57N, PRC)
+  [119.85, 120.55, 25.90, 26.40], // Matsu
+];
+const NANRI = [119.44, 119.57, 25.17, 25.25];
+const cen = (r) => { let a = 0, b = 0; for (const [lo, la] of r) { a += lo; b += la; } return [a / r.length, b / r.length]; };
+const inBox = ([lo, la], [x0, x1, y0, y1]) => lo >= x0 && lo <= x1 && la >= y0 && la <= y1;
+const inTW = (r) => { const c = cen(r); if (inBox(c, NANRI)) return false; return TW_ALLOW.some((b) => inBox(c, b)) || (TW_OUTLYING && TW_OUTER.some((b) => inBox(c, b))); };
+const twRings = rings.filter(inTW);
+console.log("taiwan rings", twRings.length, twRings.map((r) => cen(r).map((v) => v.toFixed(2)).join(",")).join(" | "));
+const twP = ringsToPath(twRings, 0.04, 0.02);
 
 const firs = JSON.parse(fs.readFileSync(firPath, "utf8"));
 const firIds = ["RCAA"];

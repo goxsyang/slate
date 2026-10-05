@@ -5,3 +5,4 @@ node_modules/
 tools/fonts-src/
 tools/*.geojson
 *.hf-transaction-*
+!tools/fir_rcaa.geojson

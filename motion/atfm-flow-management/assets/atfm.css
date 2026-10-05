@@ -106,18 +106,24 @@
   font-size: 21px; font-weight: 700; letter-spacing: 0.08em;
 }
 .k-panel-bar .k-led { width: 10px; height: 10px; border-radius: 50%; background: #9fe0c9; box-shadow: 0 0 0 4px rgba(159, 224, 201, 0.18); }
-.k-panel-bar .k-bar-right { margin-left: auto; font-family: var(--mono); font-weight: 500; font-size: 18px; letter-spacing: 0.04em; opacity: 0.85; }
+.k-panel-bar .k-bar-right { margin-left: auto; font-family: var(--mono); font-weight: 500; font-size: 20px; letter-spacing: 0.04em; opacity: 0.85; }
 .k-panel-head, .k-row {
   display: grid; align-items: center; padding: 0 24px; column-gap: 12px;
 }
-.k-panel-head { height: 46px; font-size: 18px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.08em; border-bottom: 1px solid var(--card-line); }
+.k-panel-head { height: 46px; font-size: 20px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.08em; border-bottom: 1px solid var(--card-line); }
 .k-row { height: 62px; font-size: 24px; font-weight: 600; border-bottom: 1px solid #efe7dd; position: relative; }
 .k-row:last-child { border-bottom: none; }
 .k-row-hl { position: absolute; inset: 6px 10px; border-radius: 12px; background: var(--mint); }
 .k-row > * { position: relative; }
-.k-tag { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 9px; font-size: 18px; font-weight: 700; letter-spacing: 0.04em; justify-self: start; }
+.k-tag { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 9px; font-size: 20px; font-weight: 700; letter-spacing: 0.04em; justify-self: start; }
 .k-tag.is-ok { background: var(--mint); color: var(--teal); }
 .k-tag.is-hold { background: var(--terra-soft); color: var(--terra); }
+
+.k-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 30px; padding: 0 12px; border-radius: 9px;
+  font-size: 20px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; box-sizing: border-box;
+}
 
 /* rolling digits */
 .k-roll { display: inline-flex; overflow: hidden; vertical-align: top; }
