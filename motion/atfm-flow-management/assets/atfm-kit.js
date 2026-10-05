@@ -113,14 +113,17 @@
   K.placePlane = function (g, x, y, angle, alt, squash) {
     var s = g.__scale || 1, a = alt == null ? g.__alt : alt, q = squash == null ? (g.__squash == null ? 1 : g.__squash) : squash;
     g.__x = x; g.__y = y; g.__ang = angle; g.__alt = a; g.__squash = q;
-    g.setAttribute("transform", "translate(" + r1(x) + " " + r1(y) + ")");
-    g.__body.setAttribute("transform", "rotate(" + r1(angle) + ") scale(" + s + " " + Math.round(s * q * 1000) / 1000 + ")");
+    g.setAttribute("transform", "translate(" + r2(x) + " " + r2(y) + ")");
+    g.__body.setAttribute("transform", "rotate(" + r2(angle) + ") scale(" + r5(s) + " " + r5(s * q) + ")");
     if (g.__shadow) {
-      var off = 3 + a * 14 * s * 1.6;
-      g.__shadow.setAttribute("transform", "translate(" + r1(off * 0.55) + " " + r1(off) + ") rotate(" + r1(angle) + ") scale(" + s * (1 - a * 0.08) + " " + Math.round(s * q * (1 - a * 0.08) * 1000) / 1000 + ")");
-      g.__shadow.setAttribute("opacity", String(0.2 - a * 0.08));
+      // offset is proportional to the plane scale, so it stays constant on screen under a map camera
+      var off = s * (4.5 + a * 22), k = 1 - a * 0.08;
+      g.__shadow.setAttribute("transform", "translate(" + r2(off * 0.55) + " " + r2(off) + ") rotate(" + r2(angle) + ") scale(" + r5(s * k) + " " + r5(s * q * k) + ")");
+      g.__shadow.setAttribute("opacity", String(Math.round((0.2 - a * 0.08) * 1000) / 1000));
     }
   };
+  function r2(v) { return Math.round(v * 100) / 100; }
+  function r5(v) { return Math.round(v * 100000) / 100000; }
 
   function resolvePath(p) { return typeof p === "string" ? document.querySelector(p) : p; }
 
@@ -216,6 +219,27 @@
   K.draw = function (tl, path, t, dur, ease, fromPct) {
     return tl.fromTo(path, { drawSVG: (fromPct || 0) + "% " + (fromPct || 0) + "%" }, { drawSVG: (fromPct || 0) + "% 100%", duration: dur || 1, ease: ease || "expo.inOut" }, t);
   };
+
+  /**
+   * Zoom-proof line reveal. DrawSVG measures dash lengths once, so it breaks on vector-effect=non-scaling-stroke
+   * paths while a camera zooms (and it cannot draw dashed lines). K.reveal hides `path` behind a userSpace mask
+   * whose white copy of the same geometry is drawn with DrawSVG — works for dashed, non-scaling, zooming lines.
+   * K.reveal(tl, path, t, dur, {id (unique!), width (mask stroke in the path's user units, default 40), ease, from:0, to:100})
+   * Call once per path; for a second animation (e.g. un-draw) use the returned mask copy: tl.to(copy, {drawSVG:"100% 100%"}, t)
+   */
+  K.reveal = function (tl, path, t, dur, o) {
+    o = o || {};
+    var svg = path.ownerSVGElement, id = o.id || ("k-rv-" + (++K._rv));
+    var defs = svg.querySelector("defs") || svg.insertBefore(K.s("defs"), svg.firstChild);
+    var mask = K.s("mask", { id: id, maskUnits: "userSpaceOnUse", maskContentUnits: "userSpaceOnUse", x: "-200000", y: "-200000", width: "400000", height: "400000" });
+    var copy = K.s("path", { d: path.getAttribute("d"), fill: "none", stroke: "#fff", "stroke-width": String(o.width || 40), "stroke-linecap": "round", "stroke-linejoin": "round" });
+    var tr = path.getAttribute("transform"); if (tr) copy.setAttribute("transform", tr);
+    mask.appendChild(copy); defs.appendChild(mask);
+    path.setAttribute("mask", "url(#" + id + ")");
+    tl.fromTo(copy, { drawSVG: (o.from || 0) + "% " + (o.from || 0) + "%" }, { drawSVG: (o.from || 0) + "% " + (o.to == null ? 100 : o.to) + "%", duration: dur || 1, ease: o.ease || "expo.inOut" }, t);
+    return copy;
+  };
+  K._rv = 0;
   /** Un-draw from the start (line retracts toward its end). */
   K.undraw = function (tl, path, t, dur, ease) {
     return tl.to(path, { drawSVG: "100% 100%", duration: dur || 0.6, ease: ease || "power2.in" }, t);
@@ -465,7 +489,7 @@
   function applyCam(m, cx, cy, z) {
     m.state = { cx: cx, cy: cy, z: z };
     m.cam.setAttribute("transform", "translate(" + (Math.round((m.sx - cx * z) * 100) / 100) + " " + (Math.round((m.sy - cy * z) * 100) / 100) + ") scale(" + Math.round(z * 10000) / 10000 + ")");
-    m.fixed.forEach(function (f) { f.el.setAttribute("transform", "translate(" + r1(f.x) + " " + r1(f.y) + ") scale(" + Math.round((f.k / z) * 10000) / 10000 + ")"); });
+    m.fixed.forEach(function (f) { f.el.setAttribute("transform", "translate(" + r2(f.x) + " " + r2(f.y) + ") scale(" + Math.round((f.k / z) * 10000) / 10000 + ")"); });
     m.planes.forEach(function (p) { p.__scale = p.__base / z; if (p.__x != null) K.placePlane(p, p.__x, p.__y, p.__ang, p.__alt, p.__squash); });
     m.pins.forEach(function (p) {
       var x = m.sx + (p.x - cx) * z + (p.dx || 0), y = m.sy + (p.y - cy) * z + (p.dy || 0);
@@ -480,11 +504,19 @@
     return tl.to(m.cam, { cam: { map: m, from: from, to: to }, duration: dur, ease: ease || "sine.inOut", immediateRender: false }, t);
   };
   /** Keep an SVG element (in m.world/m.top) at world (x,y) with a constant on-screen scale k. */
-  K.mapFixed = function (m, el, x, y, k) { m.fixed.push({ el: el, x: x, y: y, k: k == null ? 1 : k }); el.setAttribute("transform", "translate(" + r1(x) + " " + r1(y) + ") scale(" + (k == null ? 1 : k) / m.state.z + ")"); return el; };
+  K.mapFixed = function (m, el, x, y, k) { m.fixed.push({ el: el, x: x, y: y, k: k == null ? 1 : k }); el.setAttribute("transform", "translate(" + r2(x) + " " + r2(y) + ") scale(" + r5((k == null ? 1 : k) / m.state.z) + ")"); return el; };
   /** Register a K.plane living in m.world so it keeps a constant screen size while the camera zooms. */
   K.mapPlane = function (m, plane) { plane.__base = plane.__scale; m.planes.push(plane); plane.__scale = plane.__base / m.state.z; if (plane.__x != null) K.placePlane(plane, plane.__x, plane.__y, plane.__ang, plane.__alt, plane.__squash); return plane; };
-  /** Pin an HTML element (child of m.pinLayer, position:absolute; left:0; top:0) to world (x,y) + screen offset (dx,dy). */
-  K.pin = function (m, el, x, y, dx, dy) { var p = { el: el, x: x, y: y, dx: dx || 0, dy: dy || 0 }; m.pins.push(p); el.style.position = "absolute"; el.style.left = "0px"; el.style.top = "0px"; m.pinLayer.appendChild(el); applyCam(m, m.state.cx, m.state.cy, m.state.z); return el; };
+  /** Pin an HTML element to world (x,y) + screen offset (dx,dy): its top-left corner sits there (offset it yourself to centre). */
+  K.pin = function (m, el, x, y, dx, dy) {
+    // the camera positions an outer wrapper; tween `el` itself (opacity / y / scale) without conflicts
+    var w = K.el("div", { class: "k-pin", style: { position: "absolute", left: "0px", top: "0px" } });
+    if (!el.style.position) el.style.position = "relative";
+    w.appendChild(el); m.pinLayer.appendChild(w);
+    m.pins.push({ el: w, x: x, y: y, dx: dx || 0, dy: dy || 0 });
+    applyCam(m, m.state.cx, m.state.cy, m.state.z);
+    return el;
+  };
 
   window.ATFM_KIT = K;
   registerPlugins();

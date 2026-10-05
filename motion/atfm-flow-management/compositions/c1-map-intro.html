@@ -21,7 +21,7 @@
           m.world.appendChild(pl);
           K.mapPlane(m, pl);
           var tl = gsap.timeline({ paused: true });
-          K.draw(tl, r1, 0.3, 1.6);
+          K.reveal(tl, r1, 0.3, 1.6, { id: "c1-rv1", width: 30 });
           K.fly(tl, pl, r1, 0.5, 4.5, { ease: "power1.inOut" });
           tl.to(m.L.firLine, { opacity: 1, duration: 0.8 }, 1.0);
           tl.to(m.L.firFill, { opacity: 0.08, duration: 0.8 }, 1.0);

@@ -67,11 +67,14 @@ Visual rules live in DESIGN.md; the plan lives in STORYBOARD.md. This file is th
 - Geometry: `K.arc(x0,y0,x1,y1,bulge)`, `K.smooth(points)`, `K.AIRPORT` (runway/stands/squash), `K.airportPt(ax,ay,aw,px,py)`.
 - Aircraft: `K.plane({len, alt, squash, x, y, angle})` → SVG `<g>`; `K.fly(tl, plane, pathEl, t, dur, {from,to,alt0,alt1,squash0,squash1,trail,trailLen,ease})`;
   `K.placePlane(g,x,y,angle,alt,squash)` for static placement. Planes and their paths must live in the SAME svg coordinate space.
-- Motion: `K.inUp(tl, el, t, {y,dur,scale})`, `K.out(tl, el, t)`, `K.pop(tl, el, t)`, `K.draw(tl, path, t, dur)`, `K.undraw`,
+- Motion: `K.inUp(tl, el, t, {y,dur,scale})`, `K.out(tl, el, t)`, `K.pop(tl, el, t)`, `K.draw(tl, path, t, dur)` (plain, non-zooming
+  solid lines only), `K.reveal(tl, path, t, dur, {id, width})` (**required** for map lines, dashed lines and any
+  `vector-effect="non-scaling-stroke"` path — DrawSVG mis-measures those once the camera zooms), `K.undraw`,
   `K.flow(tl, dashedPath, t0, t1, speed)`, `K.pulse(tl, circle, t, {r0,r1,dur,repeat})`, `tl.to(el,{count:{from,to,fmt}},t)`.
 - Map: `var m = K.map(root, {id:"c1", band:[220,860], cam:{cx,cy,z}})`; `K.ll(lon,lat)` → world xy; add SVG to `m.world`
   (routes: use `vector-effect="non-scaling-stroke"`), keep markers screen-sized with `K.mapFixed(m, g, x, y, k)`, planes with
-  `K.mapPlane(m, plane)`, HTML labels with `K.pin(m, el, x, y, dx, dy)`; camera ONLY via `K.camTo(tl, m, t, dur, fromState, toState, ease)`
+  `K.mapPlane(m, plane)`, HTML labels with `K.pin(m, el, x, y, dx, dy)` (the pin positions a wrapper — you may tween `el`
+  freely; its top-left sits at the pinned point, so offset with dx/dy to centre); camera ONLY via `K.camTo(tl, m, t, dur, fromState, toState, ease)`
   with explicit, chained states. `m.L.taiwan`, `m.L.firFill`, `m.L.firLine` are pre-built layers (opacity 0 / plain by default).
 
 ## Layout guardrails
