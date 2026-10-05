@@ -1,0 +1,575 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "ATFM Sans"; src: url("assets/fonts/NotoSansTC.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+        @font-face { font-family: "ATFM Mono"; src: url("assets/fonts/IBMPlexMono-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: block; }
+        #c3-root { position: absolute; inset: 0; overflow: hidden; font-family: "ATFM Sans", sans-serif; }
+        #c3-root .c3-layer { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+        #c3-root #c3-zones { z-index: 0; }
+        #c3-root #c3-stage { z-index: 1; }
+        #c3-root #c3-ui { z-index: 3; }
+        #c3-root .c3-box { position: absolute; display: block; }
+        #c3-root svg.c3-svg { position: absolute; left: 0; top: 0; display: block; overflow: visible; }
+
+        /* world: zones, boundary, labels (type scale ×1.5 — nothing below 30 px) */
+        /* TintR box spans x 660–1810 so the c4 morph is a pure clip-path move (no layout tweens); visible part starts at x 980 */
+        #c3-root .c3-tint-r { left: 660px; top: 228px; width: 1150px; height: 624px; background: #e1eee8; }
+        #c3-root .c3-tint-l { left: 110px; top: 228px; width: 870px; height: 624px; background: #e1eee8; border-radius: 24px 0 0 24px; opacity: 0.55; }
+        #c3-root .c3-bnd { left: 970px; top: 228px; width: 20px; height: 624px; }
+        /* 香港飛航情報區: soft 30, right edge 956, top of the zone, hugging the boundary from the left.
+           臺北飛航情報區: 30/700 teal. §0C puts it under the panel at (1004, 586); BPLINK (BP → panel bottom) has to cross
+           exactly that spot, so the caption hugs the boundary at the zone's FOOT instead (left 1004, top 804) — the
+           point-symmetric twin of the Hong Kong caption. */
+        #c3-root .c3-lbl-l { left: 956px; top: 238px; line-height: 44px; }
+        #c3-root .c3-lbl-r {
+          position: absolute; left: 1004px; top: 804px; line-height: 36px;
+          font-size: 30px; font-weight: 700; color: #1f6b62; letter-spacing: 0.04em; white-space: nowrap;
+        }
+        /* 外區起飛機場 beside the airport (§0C x ≈ 520: 16 px clear of the apron's right edge 504, under ROUTE3) */
+        #c3-root .c3-deplbl { left: 520px; top: 790px; line-height: 46px; }
+        /* real designators (client): airway M750 above ROUTE3 left of the boundary; boundary point ENVAR under the 邊境點 chip */
+        #c3-root .c3-m750 {
+          position: absolute; left: 700px; top: 588px; width: 100px; height: 36px; line-height: 36px; text-align: left;
+          font-family: "ATFM Mono", "ATFM Sans", monospace; font-size: 30px; font-weight: 600; color: #1f6b62; letter-spacing: 0.04em; white-space: nowrap;
+        }
+        #c3-root .c3-envar {
+          position: absolute; left: 833px; top: 784px; width: 100px; height: 36px; line-height: 36px; text-align: center;
+          font-family: "ATFM Mono", "ATFM Sans", monospace; font-size: 30px; font-weight: 600; color: #6e6a64; letter-spacing: 0.04em; white-space: nowrap;
+        }
+        /* strip chips: [id][ext] — ext is a clipped box (width 0) holding the CTOT / ✓ texts stacked at its left, so a
+           relabel is a width + opacity tween (wipe) instead of a one-frame textContent set. Same 44 px line box for both
+           spans keeps the baselines level. */
+        #c3-root .c3-chip-id { display: block; flex: none; height: 44px; line-height: 44px; }
+        #c3-root .c3-chip-ext { position: relative; display: block; flex: none; min-width: 0; width: 0; height: 44px; overflow: hidden; }
+        #c3-root .c3-chip-txt { position: absolute; left: 0; top: 0; height: 44px; line-height: 44px; white-space: pre; opacity: 0; } /* pre: keeps the leading space (nowrap collapses it) */
+
+      </style>
+      <div id="c3-root" data-composition-id="c3-border" data-width="1920" data-height="1080" data-duration="14.1"></div>
+      <script>
+        (function () {
+          var K = window.ATFM_KIT;
+          var root = document.getElementById("c3-root");
+          var tl = gsap.timeline({ paused: true });
+
+          // ---------- constants ----------
+          var W0 = 23.6; // window start on the master timeline
+          function G(t) { return Math.round((t - W0) * 10000) / 10000; } // global → local
+          function n1(v) { return Math.round(v * 10) / 10; }
+          var TEAL = "#1F6B62", TEAL2 = "#3E8C80", TSOFT = "#A9C7BD", TERRA = "#B25135", INKS = "#6E6A64", CARD = "#FBF7F2";
+          var LED_MINT = "#9fe0c9", LED_GLOW = "0 0 0 5px rgba(159,224,201,0.18)";
+          var PANEL_SHADOW = "0 30px 60px -28px rgba(20,24,30,0.6), 0 2px 8px rgba(0,0,0,0.2)";
+          var PANEL_SHADOW0 = "0 30px 60px -28px rgba(20,24,30,0), 0 2px 8px rgba(0,0,0,0)";
+          var CHIP_GREY = "#6B7482"; // .ks-chip.is-grey
+          var Q = 0.55; // iso ground squash (K.AIRPORT.squash)
+          var SANS = '"ATFM Sans", sans-serif', MONO = '"ATFM Mono", "ATFM Sans", monospace';
+
+          // ---------- geometry (§0C re-fit) ----------
+          // ROUTE3 at y 660 (§0C): 92 px under the 340-px panel (y 228–568), wingtips at 642; the BP sits on it at (980, 660).
+          var RY = 660, BPX = 980;
+          // DEP airport w 380 (§0C). x 124 (not 110) so the ≤ 1.5 % stage breathe about the BP never pushes its left edge
+          // past the 110 margin; y chosen so the RUNWAY END lands exactly on ROUTE3 (y 660) — with the storyboard's y 600
+          // the route would sag 45 px right after the runway end while the plane is climbing. Box 124–504 × 644.8–850.
+          var AW = 380, AX = 124, AY = RY - K.AIRPORT.runway.y1 * (AW / 1600); // 644.8
+          function AP(px, py) { return K.airportPt(AX, AY, AW, px, py); }
+          var RW0 = AP(K.AIRPORT.runway.x0, K.AIRPORT.runway.y0), RW1 = AP(K.AIRPORT.runway.x1, K.AIRPORT.runway.y1); // (150.1, 724.4) → (439.9, 660)
+          function R3(u) { return [RW0[0] + (RW1[0] - RW0[0]) * u, RW0[1] + (RW1[1] - RW0[1]) * u]; }
+          var RWL = Math.hypot(RW1[0] - RW0[0], RW1[1] - RW0[1]);
+          var DIR = [(RW1[0] - RW0[0]) / RWL, (RW1[1] - RW0[1]) / RWL]; // runway heading (−12.5°)
+          var TOFF = AP(K.AIRPORT.runway.x0 + 17.35, K.AIRPORT.runway.y0 + 78.15); // parallel taxiway = runway + (4.1, 18.6)
+          TOFF = [TOFF[0] - RW0[0], TOFF[1] - RW0[1]];
+          function TX(u) { var p = R3(u); return [p[0] + TOFF[0], p[1] + TOFF[1]]; }
+          function txAtX(x) { return TX((x - RW0[0] - TOFF[0]) / (RW1[0] - RW0[0])); } // taxiway point at screen x
+          // Queue: three 112×44 time tags (at −60) must not touch, so the line-up is a diagonal staircase spanning the
+          // whole airport: LU = R3(0.935) (421.0, 664.2) at the runway end · Q1 = taxiway at x 300.5 (y 710.5) ·
+          // Q2 = taxiway at x 180 (y 737.3). Tags: D x 365–477 / E 244.5–356.5 / F 124–236 (8.5 px gaps, staggered in y).
+          var LU = R3(0.935), Q1 = txAtX(300.5), Q2 = txAtX(180);
+          function P(p) { return n1(p[0]) + " " + n1(p[1]); }
+
+          // ---------- layers ----------
+          // zones (tints, boundary, region labels) never drift: TintR stays flush with the fixed panel at 1810/228.
+          // The stage breathes about the BP (980 660), so the BP / planes stay registered on the fixed boundary.
+          var zones = K.el("div", { id: "c3-zones", class: "c3-layer" });
+          var stage = K.el("div", { id: "c3-stage", class: "c3-layer" });
+          var ui = K.el("div", { id: "c3-ui", class: "c3-layer" });
+          root.appendChild(zones);
+          root.appendChild(stage);
+          root.appendChild(ui);
+
+          // ===== ZONE LAYER (fixed) =====
+          // 1 · zone tints (TintL under TintR)
+          var tintL = K.el("div", { class: "c3-box c3-tint-l" });
+          var tintR = K.el("div", { class: "c3-box c3-tint-r" });
+          zones.appendChild(tintL);
+          zones.appendChild(tintR);
+
+          // 2 · boundary (+ seam light), in a wrapper that is clip-revealed top → bottom
+          var bndWrap = K.el("div", { class: "c3-box c3-bnd" });
+          var bndSvg = K.s("svg", { class: "c3-svg", width: "20", height: "624", viewBox: "970 228 20 624" });
+          var bnd = K.s("line", { x1: "980", y1: "228", x2: "980", y2: "852", stroke: TEAL2, "stroke-width": "3", "stroke-dasharray": "10 12", opacity: "0.85" });
+          var seam = K.s("line", { x1: "980", y1: "228", x2: "980", y2: "852", stroke: TEAL2, "stroke-width": "4", "stroke-dasharray": "60 900", "stroke-linecap": "round", opacity: "0" });
+          bndSvg.appendChild(bnd);
+          bndSvg.appendChild(seam);
+          bndWrap.appendChild(bndSvg);
+          zones.appendChild(bndWrap);
+
+          // 3 · region labels (real FIR names — client decision)
+          var lblL = K.el("div", { class: "k-label is-soft c3-lbl-l", text: "香港飛航情報區" });
+          var lblR = K.el("div", { class: "c3-lbl-r", text: "臺北飛航情報區" });
+          zones.appendChild(lblL);
+          zones.appendChild(lblR);
+          gsap.set(lblL, { xPercent: -100 });
+
+          // ===== WORLD LAYER (breathes about 980 660) =====
+          // 4 · departure airport (Hong Kong FIR)
+          var dep = K.el("div", { class: "c3-box", style: { left: AX + "px", top: AY + "px", width: AW + "px", height: Math.round(AW * K.AIRPORT.aspect) + "px" } }, [K.airport({ x: 0, y: 0, w: AW })]);
+          stage.appendChild(dep);
+          var depLabel = K.el("div", { class: "k-label c3-deplbl", text: "外區起飛機場" });
+          stage.appendChild(depLabel);
+          var m750 = K.el("div", { class: "c3-m750", text: "M750" });
+          stage.appendChild(m750);
+
+          // 5 · FX svg: route, links, BP, planes
+          var fx = K.s("svg", { class: "c3-svg", width: "1920", height: "1080", viewBox: "0 0 1920 1080" });
+          stage.appendChild(fx);
+          var defs = K.s("defs");
+          fx.appendChild(defs);
+          defs.innerHTML =
+            '<linearGradient id="c3-r3grad" gradientUnits="userSpaceOnUse" x1="1650" y1="0" x2="1810" y2="0">' +
+            '<stop offset="0" stop-color="#1F6B62" stop-opacity="1"/><stop offset="1" stop-color="#1F6B62" stop-opacity="0"/></linearGradient>';
+          function hidden(d) { var p = K.s("path", { d: d, fill: "none", stroke: "none" }); fx.appendChild(p); return p; }
+          // ROUTE3 leaves the runway end on the runway heading and levels onto y 660 by x 670 (a ≤ 2 px hump), then runs to 1810.
+          var C1 = [RW1[0] + DIR[0] * 20, RW1[1] + DIR[1] * 20];
+          var ROUTE_TAIL = "C" + P(C1) + " 590 " + RY + " 670 " + RY;
+          var FLT3 = hidden("M" + P(LU) + "L" + P(RW1) + ROUTE_TAIL + "L1990 " + RY);
+          // MERGE3 (Q1 → LU) is an S-curve tangent to the runway heading at both ends; TAXI3 (Q2 → Q1) runs along the taxiway.
+          var MC1 = [Q1[0] + DIR[0] * 40, Q1[1] + DIR[1] * 40], MC2 = [LU[0] - DIR[0] * 40, LU[1] - DIR[1] * 40];
+          var MERGE3 = hidden("M" + P(Q1) + "C" + P(MC1) + " " + P(MC2) + " " + P(LU));
+          var TAXI3 = hidden("M" + P(Q2) + "L" + P(Q1));
+          var L3 = FLT3.getTotalLength(); // ≈ 1569
+
+          // FLT3 breakpoints (asserted by geometry, not typed): BP / fade-out via K.fracAt.
+          var F = { BP: K.fracAt(FLT3, BPX, RY), FADE: K.fracAt(FLT3, 1810, RY) };
+          // Aircraft timing (STORYBOARD Frame 3): roll 0.777 s power2.in, climb 0.358 s, roll start → BP = 2.995 s.
+          // The ×1.5 queue puts LU at the runway end (LU → BP ≈ 560 px instead of 674), so the cruise speed is
+          // re-derived from the beat (V = d / (RB − ROLL/2) ≈ 215 px/s) and the roll keeps ending at cruise speed (d_roll = V·ROLL/2).
+          var ROLL = 0.777, CLIMB = 0.358, RB = 2.995;
+          var V = (F.BP * L3) / (RB - ROLL / 2);
+          F.LO = (ROLL * V) / 2 / L3;
+          F.CE = F.LO + (CLIMB * V) / L3;
+
+          var route3 = K.s("path", { d: "M" + P(RW1) + ROUTE_TAIL + "L1810 " + RY, fill: "none", stroke: "url(#c3-r3grad)", "stroke-width": "5", "stroke-linecap": "round" });
+          fx.appendChild(route3);
+
+          // signal links (dashed) + packets
+          function link(d) { return K.s("path", { d: d, fill: "none", stroke: TEAL2, "stroke-width": "3", "stroke-dasharray": "10 12", "stroke-linecap": "round" }); }
+          function packet(col) { return K.s("circle", { cx: "0", cy: "0", r: "6", fill: col, stroke: CARD, "stroke-width": "2", opacity: "0" }); }
+          var gLinks = K.s("g", { class: "c3-links" });
+          fx.appendChild(gLinks);
+          // BPLINK: BP → panel bottom edge (§0C). Leaves the node's ring at (994, 653), enters the panel's straight bottom
+          // edge at x ≈ 1120 (clear of the 22 px corner) and ends 30 px above it (y 538) / 170 px inside its left edge,
+          // so the ≤ 1.5 % stage breathe never exposes its end.
+          var bpLink = link(K.smooth([[994, 653], [1080, 600], [1160, 538]]));
+          // DISP3: panel left edge → across the boundary → the DEP chip (§0C). Starts 40 px inside the panel's left edge
+          // and 30 px above its bottom, leaves through its bottom-left corner, crosses the boundary at (980, 600) — 32 px
+          // under the panel, 38 px above the gate capsule — then arcs over M750 (y ≈ 553 at x 776, tag top 588) and lands
+          // 60 px inside the DEP chip's right edge (x 406, y 518 = chip mid-height): the chip pops about its centre
+          // (289, 518), so it covers the line's end as soon as its scale passes 0.66 — a few frames after the packet lands.
+          var XING = [980, 600];
+          var disp3 = link(K.smooth([[1030, 538], XING, [900, 596], [760, 548], [600, 516], [406, 518]]));
+          gLinks.appendChild(bpLink);
+          gLinks.appendChild(disp3);
+          var pkBp = packet(TERRA), pkDisp = packet(TEAL2);
+          gLinks.appendChild(pkBp);
+          gLinks.appendChild(pkDisp);
+          // crossing ring where the dispatch crosses the boundary (gated: invisible until it fires)
+          var xGate = K.s("g", { transform: "translate(" + XING[0] + " " + XING[1] + ")" });
+          var xRing = K.s("circle", { r: "6", fill: "none", stroke: TEAL2, "stroke-width": "2", opacity: "0" });
+          xGate.appendChild(xRing);
+          gLinks.appendChild(xGate);
+          var DISP_BX = K.fracAt(disp3, XING[0], XING[1]); // boundary frac on DISP3 (path passes exactly through XING)
+
+          // boundary point: node + terra pulse + gate capsule + check
+          var bpO = K.s("g", { transform: "translate(" + BPX + " " + RY + ")" });
+          var bp = K.node(0, 0, { r: 9 });
+          var bpWarn = K.s("circle", { r: "10", fill: "none", stroke: TERRA, "stroke-width": "2", opacity: "0" });
+          bp.insertBefore(bpWarn, bp.firstChild);
+          var gate = K.s("rect", { x: "-3", y: "-22", width: "6", height: "44", rx: "3", fill: TERRA });
+          bp.insertBefore(gate, bp.__dot); // over the cream ring, under the dot (keeps the check clean)
+          // resolved state: a teal gate + teal dot pop in over the terra ones (never fill-lerp terra → teal: muddy midpoint)
+          var gateOk = K.s("rect", { x: "-3", y: "-22", width: "6", height: "44", rx: "3", fill: TEAL });
+          bp.insertBefore(gateOk, bp.__dot);
+          var dotOk = K.s("circle", { r: "9", fill: TEAL });
+          bp.appendChild(dotOk);
+          var check = K.s("path", { d: "M-5 0L-1.5 3.5L5.5-3.5", fill: "none", stroke: CARD, "stroke-width": "2.2", "stroke-linecap": "round", "stroke-linejoin": "round" });
+          bp.appendChild(check);
+          bpO.appendChild(bp);
+          fx.appendChild(bpO);
+
+          // planes — each in a wrapper <g> (opacity / rise); the plane <g> itself is driven only by `along`
+          var gP = K.s("g", { class: "c3-planes" });
+          fx.appendChild(gP);
+          function mkPlane(letter, time, ground) {
+            var w = K.s("g", { class: "c3-pw" });
+            var pl = ground ? K.plane({ len: 38, alt: 0, squash: Q }) : K.plane({ len: 38, alt: 1, squash: 1 });
+            w.appendChild(pl);
+            gP.appendChild(w);
+            var o = { w: w, pl: pl };
+            if (!letter) return o;
+            o.ringGate = K.s("g", { transform: "rotate(-12.5) scale(1 " + Q + ")" }); // ring on the iso ground plane
+            o.ring = K.s("circle", { r: "20", fill: "none", stroke: TERRA, "stroke-width": "2.5" });
+            o.ringGate.appendChild(o.ring);
+            pl.insertBefore(o.ringGate, pl.__body);
+            // letter tag: r 23 circle, 30/700, hung 45 px under the plane (as in c2)
+            o.lt = K.s("g", { transform: "translate(0 45)" });
+            o.ltC = K.s("circle", { r: "23", fill: CARD, stroke: INKS, "stroke-width": "2.5" });
+            o.ltT = K.s("text", { x: "0", y: "1", "text-anchor": "middle", "dominant-baseline": "central", fill: INKS, style: { fontFamily: SANS, fontSize: "30px", fontWeight: "700" }, text: letter });
+            o.lt.appendChild(o.ltC);
+            o.lt.appendChild(o.ltT);
+            pl.appendChild(o.lt);
+            // time tag: 112×44 r 12, mono 30/600, 60 px above the plane (as in c2)
+            var tto = K.s("g", { transform: "translate(0 -60)" });
+            o.tt = K.s("g");
+            o.tt.appendChild(K.s("rect", { x: "-56", y: "-22", width: "112", height: "44", rx: "12", fill: CARD, stroke: TSOFT, "stroke-width": "2" }));
+            o.tt.appendChild(K.s("text", { x: "0", y: "1", "text-anchor": "middle", "dominant-baseline": "central", fill: TEAL, style: { fontFamily: MONO, fontSize: "30px", fontWeight: "600" }, text: time }));
+            tto.appendChild(o.tt);
+            pl.appendChild(tto);
+            return o;
+          }
+          var T1 = mkPlane(), T2 = mkPlane();
+          // queue order back → front so the plane in front draws on top
+          var Fp = mkPlane("F", "10:40", true), Ep = mkPlane("E", "10:30", true), Dp = mkPlane("D", "10:20", true);
+          gsap.set([Dp.ringGate, Ep.ringGate, Fp.ringGate], { opacity: 0 });
+
+          // ===== UI LAYER (never drifts) =====
+          // 1 · the real-system panel (K.sysPanel, §0C "c3 — FIXES view"): badge ENVAR, hours 0900–1300 at 12/h,
+          //     flights D 10:20 (blue, on time) · E 10:25 · F 10:30 (pink, regulated). Built at its final rect
+          //     (x 990, w 820 → ruler/chips measured for 820); the FRAME enters at c2's rect (x 460, w 1000, h 340) and
+          //     glides/morphs here 23.85–24.85. Content stays hidden meanwhile: the nav column fades in over the last
+          //     third of the glide (24.55), the main column + pill once the frame has settled (24.95).
+          //     Ruler: the 10:20–10:50 half hour at 5-min ticks (16.9 px/min, as c2 zooms its own ruler). A full hour at
+          //     w 820 runs 8.4 px/min, where a CTOT chip ("E 10:30" = 154 px ≈ 18 min) would sit on the next chip 10 min
+          //     later and "D ✓" would reach past E's 10:30 slot. In this window D ✓ 46–128 · E 10:30 215–369 · F 10:40 383–537.
+          //     The window has no :00 tick, so its end ticks are relabelled as clock times (10:20 … 10:50), the way c2's
+          //     ruler reads "10:00 05 10 …": "10:20" (90 px) centred at inset 46 stays inside the ruler and clears "25" by 21 px.
+          var PANEL = { x: 990, y: 228, w: 820, h: 340 };
+          var PANEL0 = { x: 460, w: 1000, h: 340 }; // c2's rect (identical frame 23.60–23.85)
+          var Pn = K.sysPanel({
+            x: PANEL.x, y: PANEL.y, w: PANEL.w, h: PANEL.h, active: "FIXES", badge: "ENVAR", clock: "09:30",
+            hours: [
+              { h: "0900", aar: 12, fill: 0.85 }, { h: "1000", aar: 12, fill: 0.9 }, { h: "1100", aar: 12, fill: 0.95 },
+              { h: "1200", aar: 12, fill: 0.8 }, { h: "1300", aar: 12, fill: 0.7 },
+            ],
+            ruler: { start: 20, minutes: 30, step: 5, label: "10" },
+            flights: [{ id: "D", min: 20, tone: "blue" }, { id: "E", min: 25, tone: "pink" }, { id: "F", min: 30, tone: "pink" }],
+          });
+          var panel = Pn.el, led = Pn.title.firstChild;
+          var chipE = Pn.chips[1].el, chipF = Pn.chips[2].el;
+          var content = [Pn.nav, Pn.main, Pn.pill.el];
+          gsap.set(content, { opacity: 0 });
+          gsap.set(panel, { boxShadow: PANEL_SHADOW0 }); // c2's identical frame casts the shadow until 23.80 (handoff below)
+          ui.appendChild(panel);
+          // C. the 90-px end labels are centred on the 46-px inset, so their outer glyphs sat 1 px from the ruler's rounded
+          //    ends; nudge both inward (6 / 8 px: the component's minToX scale ignores the panel's 2 px border, so the
+          //    ruler is 596 px wide, 2 px short of its scale at the right end). Chips mark time by their LEFT edge at
+          //    minToX(), so a label nudge changes nothing else — both end labels now sit 7 px inside the ruler's ends,
+          //    18 px clear of the "25" / "45" ticks.
+          [[0, "10:20", 6], [Pn.ticks.length - 1, "10:50", -8]].forEach(function (x) {
+            var tk = Pn.ticks[x[0]];
+            tk.textContent = x[1];
+            tk.classList.add("is-hour");
+            tk.style.left = (parseFloat(tk.style.left) + x[2]) + "px";
+          });
+          // chip relabels as motion: [id][ext] with the CTOT / ✓ texts stacked inside ext (see .c3-chip-ext). The mono
+          // font advances 18 px per glyph at 30 px — space and ✓ included — so " 10:30" = 108 px and " ✓" = 36 px, and the
+          // chip (padding 14 + 14) grows 46 → 154 / 46 → 82 without any layout measurement.
+          var CH = 18;
+          function chipExt(c, texts) {
+            c.el.textContent = "";
+            c.el.appendChild(K.el("span", { class: "c3-chip-id", text: c.id }));
+            c.ext = K.el("span", { class: "c3-chip-ext" });
+            c.txt = texts.map(function (s) {
+              var e = K.el("span", { class: "c3-chip-txt", text: s });
+              e.setAttribute("data-layout-allow-overlap", "");
+              c.ext.appendChild(e);
+              return e;
+            });
+            c.el.appendChild(c.ext);
+            c.lab = -1;
+          }
+          chipExt(Pn.chips[0], [" ✓"]);
+          chipExt(Pn.chips[1], [" 10:30", " ✓"]);
+          chipExt(Pn.chips[2], [" 10:40"]);
+          /** wipe text k into chip c's ext over dur: the box (ext width) opens / shrinks to the text's width while text k
+           *  fades in behind its edge and the previous text fades out ahead of it. The edge must not cut a glyph that is
+           *  still legible: the outgoing text is gone after 0.35·dur, before the box (delayed 0.06 s) has moved 3 px, and
+           *  the incoming text fades 0.45·dur → 1.15·dur, so it is ≤ 6 % opaque while the edge crosses the inner glyphs
+           *  and the box is ≥ 96 % open by the time it passes half opacity. */
+          function chipLabel(c, k, t, dur) {
+            var w = c.txt[k].textContent.length * CH;
+            if (c.lab < 0) tl.fromTo(c.ext, { width: 0 }, { width: w, duration: dur, ease: "power2.inOut" }, t);
+            else {
+              tl.to(c.txt[c.lab], { opacity: 0, duration: dur * 0.35, ease: "power2.in" }, t);
+              tl.to(c.ext, { width: w, duration: dur, ease: "power2.inOut" }, t + 0.06);
+            }
+            tl.fromTo(c.txt[k], { opacity: 0 }, { opacity: 1, duration: dur * 0.7, ease: "power2.inOut" }, t + dur * 0.45);
+            c.lab = k;
+          }
+
+          // 2 · chips flanking the boundary (x 980) at y 700 with equal 12 px gaps; ENVAR (real BP name) under the 邊境點 chip
+          var chipBP = K.chip("邊境點", { x: 0, y: 700, card: true });
+          chipBP.style.left = "auto";
+          chipBP.style.right = (1920 - 968) + "px";
+          var chipLim = K.chip("流管限制", { x: 992, y: 700, warn: true });
+          ui.appendChild(chipBP);
+          ui.appendChild(chipLim);
+          var envar = K.el("div", { class: "c3-envar", text: "ENVAR" });
+          ui.appendChild(envar);
+          // 3 · DEP chip 已接收新起飛時間 above the airport (x 112–466, y 480–556). §0C's y 520 would sit on D's 10:20
+          //     time tag (top 582 at LU); 480 keeps 26 px between them. x 112 (not the airport's 124): the chip heads the
+          //     stack chip / 10:20 / 10:30 / 10:40, and F's tag (stage x 124–236) sits at screen x ≈ 112–113 while the
+          //     tags are up (31.7–32.5, breathe ≈ 1.013), so the UI-layer chip lines up with the stack's left edge instead
+          //     of standing 12 px proud of it. 112 stays inside the 110 margin.
+          var chipNew = K.chip("已接收新起飛時間", { x: AX - 12, y: 480 });
+          ui.appendChild(chipNew);
+
+          // ================= TIMELINE (local times via G(global)) =================
+          // --- ambient: stage breathe in (to 30.50) and back out to exactly 1.0 by 37.20 ---
+          // capped at 1.015 so F's 10:40 tag (x 124) and the airport's left edge never cross the 110 margin
+          tl.fromTo(stage, { scale: 1, transformOrigin: BPX + "px " + RY + "px" }, { scale: 1.015, duration: 6.9, ease: "sine.inOut" }, 0);
+          tl.to(stage, { scale: 1, duration: 6.7, ease: "sine.inOut" }, 6.9);
+
+          // --- handoff in: c2's frame → glide/morph into the Taipei FIR zone ---
+          tl.fromTo(panel, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: "none" }, 0);
+          // c2's identical frame still casts its shadow until it hides (tl.set) at 23.80; take the shadow over with a
+          // zero-duration set on that exact instant, so it is on for every seek ≥ 23.80 (a 0.001-s fromTo was still at
+          // progress 0 at exactly 23.80 — one shadowless instant between the two scenes)
+          tl.set(panel, { boxShadow: PANEL_SHADOW }, G(23.8));
+          // (x as a transform offset from the final left 990; the width morph is a layout tween, content is hidden meanwhile)
+          tl.fromTo(panel, { x: PANEL0.x - PANEL.x, width: PANEL0.w }, { x: 0, width: PANEL.w, duration: 1.0, ease: "power3.inOut" }, G(23.85));
+
+          // --- VO7: the boundary diagram builds ---
+          // two-stage draw from the DEP runway end, starting as c2's DEP has left (23.95): the front parks left of
+          // x≈1150 (52 %) until c2's right group has cleared, then extends to 1810. T1/T2 fade in from 24.00, so the
+          // front is always ahead of T1 and T2 (both start left of x 850).
+          tl.fromTo(route3, { drawSVG: "0% 0%" }, { drawSVG: "0% 52%", duration: 0.35, ease: "expo.out" }, G(23.95));
+          tl.to(route3, { drawSVG: "0% 100%", duration: 0.6, ease: "power2.inOut" }, G(24.3));
+          [T1, T2].forEach(function (p) { tl.fromTo(p.w, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, G(24.0)); });
+          tl.fromTo(bndWrap, { clipPath: "inset(0% 0% 100% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.8, ease: "expo.out" }, G(24.05));
+          var ZONE_R = "inset(0px 0px 0px 320px round 0px 24px 24px 0px)";
+          tl.fromTo(tintR, { clipPath: "inset(0px 830px 0px 320px round 0px 24px 24px 0px)" }, { clipPath: ZONE_R, duration: 0.9, ease: "power3.out" }, G(24.15));
+          K.inUp(tl, dep, G(23.9), { y: 20, dur: 0.8 }); // rises with ROUTE3's start, as c2's DEP finishes leaving (23.95)
+          [Dp, Ep, Fp].forEach(function (p) {
+            tl.fromTo(p.w, { y: 20 }, { y: 0, duration: 0.8, ease: "power3.out" }, G(23.9)); // rides up with its airport
+            tl.fromTo(p.w, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, G(24.3));
+          });
+          // the gliding panel's left edge clears the 香港 label's right edge (x 956) at 24.60 → the label follows at 24.62
+          tl.fromTo(lblL, { opacity: 0, x: 14 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, G(24.62));
+          K.pop(tl, bp, G(24.25), { dur: 0.45, ease: "back.out(1.5)" }); // settled before T1's first pass pulse (24.56)
+          K.inUp(tl, depLabel, G(24.52), { y: 12, dur: 0.6 });
+          tl.fromTo(lblR, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, G(24.55));
+          K.inUp(tl, m750, G(24.6), { y: 10, dur: 0.6 });
+          // dense "before": T1 / T2 cross the BP 0.69 s apart (pulse times derived from the flight math below)
+          var T1BP = 24.56, T2BP = 25.26;
+          K.inUp(tl, chipBP, G(24.65), { y: 12, dur: 0.6 });
+          tl.fromTo(envar, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, G(24.75));
+          // panel content. The nav column (tabs · clock box · ENVAR badge) is a fixed 150-px column pinned to the panel's
+          // left edge, independent of the width morph, so it fades in over the last third of the glide (24.55: the frame
+          // is 89 % settled, 57 px from its rect) — the biggest element on screen is not left as a blank box through VO7.
+          // The main column (AAR columns + strip) and the pill follow once the frame has settled (24.95, S0 監控中).
+          tl.fromTo(Pn.nav, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.4));
+          tl.fromTo([Pn.main, Pn.pill.el], { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.55));
+          tl.fromTo(Pn.main, { y: 10 }, { y: 0, duration: 0.5, ease: "power3.out" }, G(24.55));
+          tl.fromTo(led, { backgroundColor: LED_MINT, boxShadow: LED_GLOW }, { backgroundColor: LED_MINT, boxShadow: LED_GLOW, duration: 0.22, ease: "none" }, 0);
+          // one clock tween to the window end: 09:30 → 11:01 at 7.143 min/s (10:20 @31.90, 10:30 @33.30, 10:40 @34.70)
+          tl.to(Pn.clock, { count: { from: 570.36, to: 661.43, fmt: "time" }, duration: 12.75, ease: "none" }, G(24.95));
+
+          // --- VO8: the boundary point is restricted ---
+          var dot = bp.__dot;
+          tl.fromTo(dot, { fill: TEAL }, { fill: TERRA, duration: 0.3, ease: "power2.inOut" }, G(27.1));
+          K.pulse(tl, bpWarn, G(27.1), { r0: 10, r1: 46, dur: 1.0, repeat: 2, gap: 0.2, opacity: 0.5 });
+          tl.fromTo(gate, { scaleY: 0, opacity: 1, transformOrigin: "50% 50%" }, { scaleY: 1, duration: 0.5, ease: "back.out(1.4)" }, G(27.15));
+          // passage capacity through ENVAR drops 12 → 9 for 1000 and 1100: pink hours + red ATFM tags
+          Pn.setAAR(tl, 1, 9, true, G(27.55), 0.45);
+          Pn.setAAR(tl, 2, 9, true, G(27.7), 0.45);
+          // the regulated flights: E / F letter tags + hold rings turn terra on the ground; their panel chips pulse pink
+          [Ep, Fp].forEach(function (p, k) {
+            var t = G(28.1) + 0.1 * k;
+            tl.to(p.ltC, { stroke: TERRA, duration: 0.3, ease: "power2.inOut" }, t);
+            tl.to(p.ltT, { fill: TERRA, duration: 0.3, ease: "power2.inOut" }, t);
+            tl.fromTo(p.ringGate, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, t);
+            tl.fromTo(p.ring, { attr: { r: 20 }, opacity: 0.5 }, { attr: { r: 34 }, opacity: 0, duration: 1.0, ease: "power2.out", repeat: 2, repeatDelay: 0.4 }, t);
+          });
+          [chipE, chipF].forEach(function (c, k) {
+            tl.fromTo(c, { boxShadow: "0 0 0 0px rgba(230,57,155,0.55)" }, { boxShadow: "0 0 0 10px rgba(230,57,155,0)", duration: 0.7, ease: "power2.out", immediateRender: false }, G(28.1) + 0.1 * k);
+          });
+          K.pop(tl, chipLim, G(28.4), { dur: 0.55, ease: "back.out(1.5)" });
+          // detect: BP → panel, terra packet = constraint info
+          K.reveal(tl, bpLink, G(28.55), 0.4, { id: "c3-rv-bp", width: 12, ease: "expo.out" });
+          tl.to(pkBp, { along: { path: bpLink, from: 0, to: 1, rotate: false }, duration: 0.4, ease: "power1.inOut", immediateRender: true }, G(28.65));
+          tl.fromTo(pkBp, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, G(28.65));
+          tl.to(pkBp, { opacity: 0, duration: 0.05, ease: "none" }, G(29.05));
+          K.flow(tl, bpLink, G(29.05), G(37.25), 40);
+          // S0 → S1 已偵測 (pill + LED terra via the component) with one soft ring on the LED
+          Pn.pill.set(tl, "S1", G(29.05));
+          tl.to(led, { boxShadow: "0 0 0 0px rgba(240,138,107,0.4)", duration: 0.01, ease: "none" }, G(29.05));
+          tl.to(led, { boxShadow: "0 0 0 8px rgba(240,138,107,0)", duration: 0.6, ease: "power2.out" }, G(29.06));
+
+          // --- VO9: recompute and dispatch across the boundary ---
+          Pn.pill.set(tl, "S2", G(30.2));
+          // the strip highlights the two regulated chips while the system recomputes (30.25 / 30.37)
+          [chipE, chipF].forEach(function (c, k) {
+            var t = G(30.25) + 0.12 * k;
+            tl.fromTo(c, { boxShadow: "0 0 0 0px rgba(255,255,255,0.0)" }, { boxShadow: "0 0 0 3px rgba(255,255,255,0.55)", duration: 0.2, ease: "power2.inOut", immediateRender: false }, t);
+            tl.to(c, { boxShadow: "0 0 0 3px rgba(255,255,255,0)", duration: 0.4, ease: "power2.inOut" }, t + 0.2);
+          });
+          // dispatch signal first: panel → across the boundary → DEP. The reveal's front reaches the DEP chip WITH the
+          // packet (31.50, power2.inOut over 0.55 s), not 0.3 s before it: an expo.out draw left the dashed line ending on
+          // bare cream at the chip's spot from ≈ 31.2 until the chip popped. The front stays ahead of the packet throughout
+          // (≈ 160 px mid-way, 3 px at 31.47, both 1.0 at 31.50).
+          K.reveal(tl, disp3, G(30.95), 0.55, { id: "c3-rv-disp", width: 12, ease: "power2.inOut" });
+          // the packet crosses the boundary exactly at 31.19 (VO9 beat) and lands on the DEP chip at 31.50: with the
+          // boundary early on DISP3 (frac ≈ 0.1) its start and duration are solved from DISP_BX (invert power1.inOut =
+          // quad inOut), so both beats survive any change to DISP3's geometry
+          var uX = DISP_BX < 0.5 ? Math.sqrt(DISP_BX / 2) : 1 - Math.sqrt((1 - DISP_BX) / 2);
+          var tX = G(31.19), tArr = G(31.5);
+          var PKD = Math.round(((tArr - tX) / (1 - uX)) * 1000) / 1000; // ≈ 0.40 s
+          var PK0 = Math.round((tArr - PKD) * 1000) / 1000; // ≈ G 31.10 (reveal starts 30.95; its front stays ahead)
+          tl.to(pkDisp, { along: { path: disp3, from: 0, to: 1, rotate: false }, duration: PKD, ease: "power1.inOut", immediateRender: true }, PK0);
+          tl.fromTo(pkDisp, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, PK0);
+          tl.to(pkDisp, { opacity: 0, duration: 0.05, ease: "none" }, PK0 + PKD);
+          // crossing ring fires exactly when the packet reaches the boundary
+          tl.fromTo(xGate, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, tX);
+          tl.fromTo(xRing, { attr: { r: 6 }, opacity: 0.6 }, { attr: { r: 22 }, opacity: 0, duration: 0.7, ease: "power2.out", immediateRender: false }, tX);
+          K.flow(tl, disp3, G(32.0), G(37.25), 40);
+          K.pop(tl, chipNew, G(31.5), { dur: 0.55, ease: "back.out(1.5)" });
+          K.pop(tl, Dp.tt, G(31.55), { dur: 0.45, ease: "back.out(1.5)" });
+          [[Ep, 31.62], [Fp, 31.69]].forEach(function (x) {
+            K.pop(tl, x[0].tt, G(x[1]), { dur: 0.45, ease: "back.out(1.5)" });
+            tl.to(x[0].ltC, { stroke: TEAL, duration: 0.25, ease: "power2.inOut" }, G(x[1]));
+            tl.to(x[0].ltT, { fill: TEAL, duration: 0.25, ease: "power2.inOut" }, G(x[1]));
+          });
+          // then the CTOTs land in the strip (after the packet has arrived): F 10:30 → 10:40, E 10:25 → 10:30; D keeps 10:20.
+          // F takes the first beat (31.55) and E the second (31.67): F has to vacate the :30 slot before E's chip, which
+          // grows to "E 10:30" while it moves, slides into it — the other order overlaps the two chips for ≈ 0.3 s.
+          // The CTOT text wipes in over the slide's middle (chipLabel), so each chip arrives fully formed at 32.15 / 32.27
+          // (E's right edge 369 vs F's left 383 at the end; ≥ 30 px apart at every frame of the move).
+          Pn.moveChip(tl, 2, 40, G(31.55), 0.6);
+          chipLabel(Pn.chips[2], 0, G(31.55) + 0.15, 0.35);
+          Pn.moveChip(tl, 1, 30, G(31.67), 0.6);
+          chipLabel(Pn.chips[1], 0, G(31.67) + 0.15, 0.35);
+          // S2 → S3 ✓ 已派發 (LED back to mint); D departs on the clock
+          Pn.pill.set(tl, "S3", G(31.95));
+          tl.to(led, { boxShadow: LED_GLOW, duration: 0.25, ease: "power2.inOut" }, G(31.95));
+
+          // --- VO10: D crosses in slot 1; cross-region integration ---
+          function gateOpen(g, t) { tl.to(g, { scaleY: 0.25, opacity: 0.4, duration: 0.15, ease: "power2.out" }, t); }
+          function gateClose(g, t) { tl.to(g, { scaleY: 1, opacity: 1, duration: 0.2, ease: "power2.inOut" }, t); }
+          var XD = G(31.9) + RB, XE = G(33.3) + RB; // D / E cross the BP (34.895 / 36.295)
+          gateOpen(gate, XD - 0.15);
+          gateClose(gate, XD + 0.25);
+          gateOpen(gateOk, XE - 0.15);
+          gateClose(gateOk, XE + 0.25);
+          // crossed flights go grey in the strip: D ✓ (34.90), E ✓ (36.30) — the ✓ wipes in as the chip greys (E's 10:30 out)
+          function chipDone(c, k, t) {
+            tl.to(c.el, { backgroundColor: CHIP_GREY, duration: 0.3, ease: "power2.inOut" }, t);
+            chipLabel(c, k, t + 0.05, 0.3);
+          }
+          chipDone(Pn.chips[0], 0, XD);
+          chipDone(Pn.chips[1], 1, XE);
+          tl.fromTo(tintL, { clipPath: "inset(0% 0% 0% 100%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, ease: "power3.inOut" }, G(35.0));
+          // TintL's edge sweeps the DEP chip (x 112–466) 35.64–36.10: the chip turns card (cream + 1 px line) as the mint arrives
+          tl.fromTo(chipNew, { backgroundColor: "#E1EEE8", boxShadow: "inset 0 0 0 1px rgba(230,221,210,0), 0 10px 24px -18px rgba(60,48,36,0.35)" },
+            { backgroundColor: CARD, boxShadow: "inset 0 0 0 1px rgba(230,221,210,1), 0 10px 24px -18px rgba(60,48,36,0.35)", duration: 0.35, ease: "power2.inOut", immediateRender: false }, G(35.65));
+          tl.to(bnd, { opacity: 0.4, duration: 1.0, ease: "power2.inOut" }, G(35.0));
+          // seam light runs down the boundary
+          tl.fromTo(seam, { strokeDashoffset: 60 }, { strokeDashoffset: -640, duration: 1.2, ease: "sine.inOut" }, G(35.1));
+          tl.fromTo(seam, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power1.out" }, G(35.1));
+          tl.to(seam, { opacity: 0, duration: 0.2, ease: "power1.in" }, G(36.1));
+          // BP handled: terra → teal + check
+          // radial pop at full opacity: a fading teal disc over terra would read muddy brown again
+          tl.fromTo(dotOk, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.35, ease: "back.out(1.5)" }, G(35.4));
+          tl.to(gate, { scaleY: 0, duration: 0.15, ease: "power2.in" }, G(35.4));
+          tl.fromTo(gateOk, { scaleY: 0, transformOrigin: "50% 50%" }, { scaleY: 1, duration: 0.25, ease: "back.out(1.4)" }, G(35.52)); // gate keeps metering, now teal
+          tl.fromTo(check, { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: 0.3, ease: "power2.out" }, G(35.45));
+          tl.fromTo(check, { scale: 0.6, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.4, ease: "back.out(1.5)" }, G(35.4));
+          // 「整合」: both region labels breathe together (away from the boundary)
+          tl.fromTo(lblL, { scale: 1, transformOrigin: "100% 50%" }, { scale: 1.06, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, G(36.22));
+          tl.fromTo(lblR, { scale: 1, transformOrigin: "0% 50%" }, { scale: 1.06, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, G(36.22));
+
+          // ================= AIRCRAFT (V ≈ 215 px/s on FLT3, see above) =================
+          function seg(pl, path, t, dur, o, first) {
+            K.fly(tl, pl, path, t, dur, { from: o.from, to: o.to, ease: o.ease || "none", alt0: o.alt0, alt1: o.alt1, squash0: o.squash0, squash1: o.squash1, immediateRender: !!first });
+            return t + dur;
+          }
+          var GROUND = { alt0: 0, alt1: 0, squash0: Q, squash1: Q };
+          var AIR = { alt0: 1, alt1: 1, squash0: 1, squash1: 1 };
+          function depart(p, t0, tEnd, first) { // roll + climb + cruise until tEnd (local)
+            var t = seg(p.pl, FLT3, t0, ROLL, Object.assign({ from: 0, to: F.LO, ease: "power2.in" }, GROUND), first);
+            t = seg(p.pl, FLT3, t, CLIMB, { from: F.LO, to: F.CE, alt0: 0, alt1: 1, squash0: Q, squash1: 1 }, false);
+            var fEnd = F.CE + ((tEnd - t) * V) / L3;
+            seg(p.pl, FLT3, t, tEnd - t, Object.assign({ from: F.CE, to: fEnd }, AIR), false);
+            return t; // climb end
+          }
+          // passing pulse at the BP for each crossing
+          function passPulse(t, dur) { K.pulse(tl, bp.__pulse, t, { r0: 9, r1: 30, dur: dur || 0.8, opacity: 0.5 }); }
+
+          // T1 / T2 — cruising transit traffic, fade over their last 0.3 s at x 1810
+          [[T1, T1BP], [T2, T2BP]].forEach(function (x) {
+            var t0 = G(23.95), tBP = G(x[1]);
+            var f0 = F.BP - ((tBP - t0) * V) / L3;
+            var dur = ((F.FADE - f0) * L3) / V;
+            seg(x[0].pl, FLT3, t0, dur, Object.assign({ from: f0, to: F.FADE }, AIR), true);
+            tl.to(x[0].w, { opacity: 0, duration: 0.3, ease: "power1.in" }, t0 + dur - 0.3);
+            passPulse(tBP, 0.65); // T1 ends 25.21, before T2's pulse (25.26) on the same circle
+          });
+          var END = 14.1;
+          // D — at LU, keeps 10:20: rolls 31.90, BP 34.895
+          depart(Dp, G(31.9), END, true);
+          tl.to([Dp.lt, Dp.tt], { opacity: 0, duration: 0.2, ease: "power2.in" }, G(31.9) + ROLL);
+          passPulse(G(31.9) + RB);
+          // E — Q1 → LU 32.40–33.10 (trails D's roll so the tags never touch), released 33.30 (10:30), BP 36.295
+          seg(Ep.pl, MERGE3, G(32.4), 0.7, Object.assign({ from: 0, to: 1, ease: "power1.inOut" }, GROUND), true);
+          depart(Ep, G(33.3), END, false);
+          tl.to([Ep.lt, Ep.tt], { opacity: 0, duration: 0.2, ease: "power2.in" }, G(33.3) + ROLL);
+          passPulse(G(33.3) + RB);
+          // F — Q2 → Q1 32.45–33.35 (behind E's merge), Q1 → LU 33.88–34.63 (after E's tags have faded at 34.28, so its
+          // 10:40 tag never meets E's 10:30 on the runway), released 34.70 (10:40); mid-climb-out when the world fades
+          seg(Fp.pl, TAXI3, G(32.45), 0.9, Object.assign({ from: 0, to: 1, ease: "sine.inOut" }, GROUND), true);
+          seg(Fp.pl, MERGE3, G(33.88), 0.75, Object.assign({ from: 0, to: 1, ease: "power1.inOut" }, GROUND), false);
+          depart(Fp, G(34.7), END, false);
+          tl.to([Fp.lt, Fp.tt], { opacity: 0, duration: 0.2, ease: "power2.in" }, G(34.7) + ROLL);
+
+          // ================= HANDOFF → c4 (zone morph) =================
+          var tOut = G(37.25);
+          // content clears BEFORE the morph (37.08 →), so nothing is left on stale geometry while the zone moves.
+          // UI goes right → left with the morph's leftward motion: the panel first (gone 37.33, the zone edge has moved
+          // ≤ 45 px), the DEP chip last (gone 37.36, before c4's relay plane shows at 37.40).
+          [panel, chipLim, chipBP, envar, chipNew].forEach(function (e, i) {
+            K.out(tl, e, G(37.08) + 0.015 * i, { dur: e === panel ? 0.25 : 0.22 });
+          });
+          tl.to([fx, tintL], { opacity: 0, duration: 0.3, ease: "power2.in" }, G(37.08));
+          // the BP (node, gate, check) and the signal links are gone by 37.30, while the boundary has moved ≤ 10 px
+          tl.to([bpO, gLinks], { opacity: 0, duration: 0.22, ease: "power2.in" }, G(37.08));
+          // ROUTE3 retracts behind F (route frac ≈ 0.27 at 37.05) as the DEP leaves, so no stub hangs over empty ground
+          tl.to(route3, { drawSVG: "25% 100%", duration: 0.3, ease: "power2.in" }, G(37.05));
+          // region labels + M750 clear before the boundary rides left through 香港飛航情報區 (37.33+)
+          tl.to([lblL, lblR, m750], { opacity: 0, duration: 0.25, ease: "power2.out" }, G(37.1));
+          // the DEP is idle after F lifts off (35.48): clear it before c4's relay plane crosses it
+          tl.to([dep, depLabel], { opacity: 0, x: -30, duration: 0.3, ease: "power2.inOut" }, G(37.05));
+          // zone morph → c4 centre column x 660–1260 (square corners)
+          tl.fromTo(tintR, { clipPath: ZONE_R }, { clipPath: "inset(0px 550px 0px 0px round 0px 0px 0px 0px)", duration: 0.4, ease: "power2.inOut", immediateRender: false }, tOut);
+          tl.fromTo(bndWrap, { x: 0 }, { x: -320, duration: 0.4, ease: "power2.inOut", immediateRender: false }, tOut);
+          // c4's identical divider (same dash phase, opacity 0.4) fades in 37.62–37.70 under this one: crossfade the
+          // semi-transparent line so the two never stack to ~0.64 (the opaque zone/column need no crossfade)
+          tl.to(bnd, { opacity: 0, duration: 0.08, ease: "none" }, G(37.62));
+
+          tl.set({}, {}, 14.1);
+          window.__timelines["c3-border"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

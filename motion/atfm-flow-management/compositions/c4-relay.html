@@ -1,0 +1,255 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "ATFM Sans"; src: url("assets/fonts/NotoSansTC.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+        @font-face { font-family: "ATFM Mono"; src: url("assets/fonts/IBMPlexMono-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: block; }
+        #c4-root { position: absolute; inset: 0; overflow: hidden; font-family: "ATFM Sans", sans-serif; }
+        #c4-root .c4-layer { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+        #c4-root .c4-box { position: absolute; display: block; }
+        #c4-root svg.c4-svg { position: absolute; left: 0; top: 0; display: block; overflow: visible; }
+
+        /* centre column = c3's morphed Taipei FIR zone (x 660–1260, y 228–852) */
+        #c4-root .c4-col { left: 660px; top: 228px; width: 600px; height: 624px; background: #e1eee8; }
+        /* dividers: 20 px boxes centred on x 660 / 1260, line at local x 10 */
+        #c4-root .c4-dv { top: 228px; width: 20px; height: 624px; }
+        #c4-root .c4-dv-l { left: 650px; }
+        #c4-root .c4-dv-r { left: 1250px; }
+
+        /* labels: fixed-width boxes centred on the node x (no measured centring) */
+        #c4-root .c4-lbl { left: 0; top: 456px; width: 500px; line-height: 52px; text-align: center; }
+        #c4-root .c4-mic { left: 0; top: 514px; width: 500px; line-height: 40px; text-align: center; }
+        /* CTOT partner line (client-supplied list), centred under the micro-labels, clear of the smile (y ≥ 640 here) */
+        #c4-root .c4-ctot { left: 360px; top: 566px; width: 1200px; line-height: 40px; text-align: center; letter-spacing: 0.04em; }
+
+        /* baton = an assigned slot (92×32, r 8, teal — type-scale ×1.5) carrying the slot-card tick; rests 48 px above the node row
+           (bottom edge y 393) so the Taipei / B ring pulses (tops ≥ 396) pass cleanly beneath it */
+        #c4-root .c4-baton {
+          left: 314px; top: 361px; width: 92px; height: 32px; border-radius: 8px; background: #1f6b62;
+          box-shadow: 0 10px 22px -12px rgba(31, 75, 68, 0.55), 0 2px 5px rgba(60, 48, 36, 0.1);
+        }
+        #c4-root .c4-baton svg { position: absolute; left: 0; top: 0; display: block; overflow: visible; }
+      </style>
+      <div id="c4-root" data-composition-id="c4-relay" data-width="1920" data-height="1080" data-duration="4.0"></div>
+      <script>
+        (function () {
+          var K = window.ATFM_KIT;
+          var root = document.getElementById("c4-root");
+          var tl = gsap.timeline({ paused: true });
+
+          // ---------- constants ----------
+          var W0 = 37.3; // window start on the master timeline
+          function G(t) { return Math.round((t - W0) * 10000) / 10000; } // global → local
+          var TEAL = "#1F6B62", TEAL2 = "#3E8C80", TSOFT = "#A9C7BD", GOLD = "#A8761A", CARD = "#FBF7F2";
+          var SMILE = "M140 600Q960 940 1780 600"; // arc length 1685.8, lowest point (960, 770)
+          // plane path = SMILE + an 88.7 px tangent run-out (0.2 s at the same 443.6 px/s), so the plane is still
+          // moving while it fades 40.95–41.25 instead of parking at (1780, 600). Crossings are unchanged.
+          var FLIGHT = SMILE + "L1862 566";
+          var XA = 360, XT = 960, XB = 1560, YN = 430; // node row
+          var XD1 = 660, XD2 = 1260, YD = 747.2; // crossing dots (on SMILE and on the dividers)
+
+          // ---------- stage (the one drifting layer; origin = Taipei node) ----------
+          var stage = K.el("div", { id: "c4-stage", class: "c4-layer" });
+          root.appendChild(stage);
+
+          // 1 · centre column (lands exactly on c3's morphed zone)
+          var col = K.el("div", { class: "c4-box c4-col" });
+          stage.appendChild(col);
+
+          // 2 · dividers (dash 10/12, offset 0 — the c3 boundary continues as the left one)
+          var dvWrap = K.el("div", { class: "c4-layer" });
+          function divider(cls, id) {
+            var box = K.el("div", { class: "c4-box c4-dv " + cls });
+            var svg = K.s("svg", { class: "c4-svg", width: "20", height: "624", viewBox: "0 0 20 624" });
+            var ln = K.s("path", { d: "M10 0L10 624", fill: "none", stroke: TEAL2, "stroke-width": "3", "stroke-dasharray": "10 12", opacity: "0.4" });
+            // hand-off seam: the border segment between baton (above) and aircraft (below) brightens as both cross
+            var g = K.s("linearGradient", { id: id, gradientUnits: "userSpaceOnUse", x1: "0", y1: "150", x2: "0", y2: "510" });
+            [["0", "0"], ["0.22", "1"], ["0.8", "1"], ["1", "0"]].forEach(function (s) { g.appendChild(K.s("stop", { offset: s[0], "stop-color": TEAL2, "stop-opacity": s[1] })); });
+            svg.appendChild(K.s("defs", null, [g]));
+            // same dashes, same phase (and the same flow) as the divider, so the segment simply brightens in place
+            var seam = K.s("path", { d: "M10 0L10 624", fill: "none", stroke: "url(#" + id + ")", "stroke-width": "3", "stroke-dasharray": "10 12", opacity: "0" });
+            svg.appendChild(ln); svg.appendChild(seam); box.appendChild(svg);
+            dvWrap.appendChild(box);
+            return { box: box, line: ln, seam: seam };
+          }
+          var dvL = divider("c4-dv-l", "c4-seam-l"), dvR = divider("c4-dv-r", "c4-seam-r");
+          stage.appendChild(dvWrap);
+
+          // 3 · main svg: track, nodes, trail, crossing dots, plane
+          var svg = K.s("svg", { class: "c4-svg", width: "1920", height: "1080", viewBox: "0 0 1920 1080" });
+          var defs = K.s("defs");
+          var grad = K.s("linearGradient", { id: "c4-trail-grad", gradientUnits: "userSpaceOnUse", x1: "140", y1: "0", x2: "1780", y2: "0" });
+          [["0", "0"], ["0.11", "1"], ["0.9", "1"], ["1", "0"]].forEach(function (s) {
+            grad.appendChild(K.s("stop", { offset: s[0], "stop-color": TEAL, "stop-opacity": s[1] }));
+          });
+          defs.appendChild(grad);
+          svg.appendChild(defs);
+          stage.appendChild(svg);
+
+          var TRACK_D = "M" + XA + " " + YN + "L" + XB + " " + YN;
+          var track = K.s("path", { d: TRACK_D, fill: "none", stroke: TSOFT, "stroke-width": "4", "stroke-linecap": "butt" });
+          svg.appendChild(track);
+          // on the mint column the soft track loses its weight; a #3E8C80 copy clipped to x 660–1260 (same geometry,
+          // same draw tween) restores it so A → 臺北 → B reads as one even line
+          defs.appendChild(K.s("clipPath", { id: "c4-col-clip", clipPathUnits: "userSpaceOnUse" }, [K.s("rect", { x: "660", y: "228", width: "600", height: "624" })]));
+          var trackIn = K.s("path", { d: TRACK_D, fill: "none", stroke: TEAL2, "stroke-width": "4", "stroke-linecap": "butt", "stroke-opacity": "0.2", "clip-path": "url(#c4-col-clip)" });
+          svg.appendChild(trackIn);
+
+          // nodes: outer (static translate) → pulse ring (sibling) + inner <g> (animated)
+          function node(x, y, r, color) {
+            var outer = K.s("g", { class: "c4-node", transform: "translate(" + x + " " + y + ")" });
+            var n = K.node(0, 0, { r: r, color: color });
+            var pulse = n.__pulse;
+            n.removeChild(pulse);
+            var inner = K.s("g", { class: "c4-in" });
+            inner.appendChild(n);
+            outer.appendChild(pulse);
+            outer.appendChild(inner);
+            svg.appendChild(outer);
+            return { g: outer, inner: inner, pulse: pulse };
+          }
+          var nA = node(XA, YN, 11, TEAL);
+          var nT = node(XT, YN, 13, GOLD);
+          var nB = node(XB, YN, 11, TEAL);
+
+          // self-drawn trail (same geometry as the flight; dashes driven by the along plugin)
+          var trail = K.s("path", { d: SMILE, fill: "none", stroke: "url(#c4-trail-grad)", "stroke-width": "4", "stroke-linecap": "round", style: { strokeDasharray: "0 99999" } });
+          svg.appendChild(trail);
+          var flight = K.s("path", { id: "c4-flight", d: FLIGHT, fill: "none", stroke: "none" });
+          svg.appendChild(flight);
+
+          // crossing dots: r 6 teal on a 3 px cream ring, own pulse ring
+          function dot(x, y) {
+            var outer = K.s("g", { class: "c4-xdot", transform: "translate(" + x + " " + y + ")" });
+            var pulse = K.s("circle", { r: "6", fill: "none", stroke: TEAL2, "stroke-width": "2", opacity: "0" });
+            var inner = K.s("g", { class: "c4-in" }, [K.s("circle", { r: "9", fill: CARD }), K.s("circle", { r: "6", fill: TEAL2 })]);
+            outer.appendChild(pulse); outer.appendChild(inner);
+            svg.appendChild(outer);
+            return { g: outer, inner: inner, pulse: pulse };
+          }
+          var d1 = dot(XD1, YD), d2 = dot(XD2, YD);
+
+          var plane = K.plane({ len: 64, alt: 1, x: 140, y: 600, angle: 22.5 });
+          svg.appendChild(plane);
+
+          // 4 · labels + micro-labels (HTML)
+          function label(text, cx, cls) {
+            var el = K.el("div", { class: cls, style: { left: cx - 250 + "px" } }, [text]);
+            stage.appendChild(el);
+            return el;
+          }
+          var lA = label("香港飛航情報區", XA, "k-label c4-lbl");
+          var lT = label("臺北飛航情報區", XT, "k-label c4-lbl");
+          var lB = label("福岡飛航情報區", XB, "k-label c4-lbl");
+          var mA = label("收到資訊", XA, "k-label is-soft c4-mic");
+          var mT = label("協調時序", XT, "k-label is-soft c4-mic");
+          var mB = label("回應確認", XB, "k-label is-soft c4-mic");
+          // CTOT partners (ATFM_WORLD.CTOT_PARTNERS): regions taking part in Taipei FIR CTOT operations
+          var ctot = K.el("div", { class: "k-label is-soft c4-ctot" }, ["CTOT 跨區協作　" + window.ATFM_WORLD.CTOT_PARTNERS.join("・")]);
+          stage.appendChild(ctot);
+
+          // 5 · baton (top)
+          var baton = K.el("div", { class: "c4-box c4-baton" });
+          var tick = K.s("path", { d: "M-10 0L-3 7L11-7", fill: "none", stroke: CARD, "stroke-width": "3.5", "stroke-linecap": "round", "stroke-linejoin": "round" });
+          var bsvg = K.s("svg", { width: "92", height: "32", viewBox: "-46 -16 92 32" }, [tick]);
+          baton.appendChild(bsvg);
+          stage.appendChild(baton);
+
+          // Ring pulse that is invisible before and after it fires (K.pulse renders its opacity-0.5 start state at
+          // build time, which would show every ring from t=0). r expands power2.out; opacity rises in the first 6 %
+          // and decays like power2.out, ending exactly at 0 (pure function ease → seek-safe).
+          function blip(p) { return Math.min(1, p / 0.06) * (1 - p) * (1 - p); }
+          function pulse(c, t, r0, r1, dur, op) {
+            tl.fromTo(c, { attr: { r: r0 } }, { attr: { r: r1 }, duration: dur, ease: "power2.out" }, t);
+            tl.fromTo(c, { opacity: 0 }, { opacity: op, duration: dur, ease: blip }, t);
+          }
+          function seam(s, tCross) {
+            tl.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power2.out" }, tCross - 0.12);
+            tl.to(s, { opacity: 0, duration: 0.6, ease: "power2.inOut" }, tCross + 0.04);
+          }
+
+          // ================= TIMELINE (local seconds; G() converts master time) =================
+          // ambient: one continuous drift, origin = the Taipei node (exactly at 960,430 for the c5 handoff)
+          tl.fromTo(stage, { scale: 1, transformOrigin: "960px 430px" }, { scale: 1.02, duration: 4.0, ease: "sine.inOut" }, 0);
+
+          // plane: the race (≈443.6 px/s). Crosses x 660 at 38.521 and x 1260 at 39.879; trail draws itself.
+          K.fly(tl, plane, flight, 0, 4.0, { from: 0, to: 1, ease: "none", alt0: 1, alt1: 1, trail: trail, trailLen: 3000 });
+          // (fade starts once c3's 外區起飛機場 raster is ≤ 15 %, so the airliner never sits on the outgoing airport;
+          // the trail fades in with it, so no headless stroke grows over c3's runway before the aircraft is there)
+          tl.fromTo([plane, trail], { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, G(37.55));
+
+          // handoff from c3: column + left divider become opaque on c3's morphed zone
+          tl.fromTo([col, dvWrap], { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, G(37.62));
+          tl.fromTo(dvR.box, { clipPath: "inset(0% 0% 100% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.5, ease: "expo.out" }, G(37.65));
+          K.flow(tl, [dvL.line, dvR.line, dvL.seam, dvR.seam], G(37.62), G(40.7), 20);
+
+          // crossing dots, nodes, track, labels
+          K.pop(tl, d1.inner, G(37.75), { dur: 0.45, ease: "back.out(1.6)" });
+          K.pop(tl, d2.inner, G(37.85), { dur: 0.45, ease: "back.out(1.6)" });
+          K.pop(tl, nA.inner, G(37.88), { dur: 0.5, ease: "back.out(1.5)" }); // VO11 beat
+          K.draw(tl, [track, trackIn], G(37.9), 0.9, "expo.inOut");
+          K.pop(tl, nT.inner, G(37.98), { dur: 0.5, ease: "back.out(1.5)" });
+          K.pop(tl, nB.inner, G(38.08), { dur: 0.5, ease: "back.out(1.5)" });
+          K.inUp(tl, lA, G(37.98), { y: 12, dur: 0.6 });
+          K.inUp(tl, lT, G(38.06), { y: 12, dur: 0.6 });
+          K.inUp(tl, lB, G(38.14), { y: 12, dur: 0.6 });
+
+          // relay leg 1: 香港飛航情報區 → 臺北飛航情報區 (crosses x 660 at 38.525, as the plane crosses below)
+          K.pop(tl, baton, G(38.1), { dur: 0.4, ease: "back.out(1.5)" });
+          K.inUp(tl, mA, G(38.15), { y: 10, dur: 0.5 });
+          tl.fromTo(baton, { x: 0 }, { x: 600, duration: 0.85, ease: "power2.inOut" }, G(38.1));
+          tl.fromTo(baton, { y: 0 }, { y: -22, duration: 0.425, ease: "sine.inOut" }, G(38.1));
+          tl.to(baton, { y: 0, duration: 0.425, ease: "sine.inOut" }, G(38.525));
+          pulse(d1.pulse, G(38.52), 6, 22, 0.7, 0.7);
+          seam(dvL.seam, G(38.52));
+
+          // Taipei re-times the baton
+          pulse(nT.pulse, G(38.95), 13, 34, 0.9, 0.7); // r1 34: ring top 396 stays clear of the parked baton (393)
+          tl.to(baton, { scale: 1.12, duration: 0.2, ease: "power2.out" }, G(38.95));
+          tl.to(baton, { scale: 1, duration: 0.3, ease: "power2.inOut" }, G(39.15));
+          // …and re-stamps its tick: it ducks into the swelling baton, then stamps back with a small overshoot
+          // (scale about the baton centre, svgOrigin 0 0 in the -46 -16 viewBox; first tween fromTo per contract rule 5)
+          tl.fromTo(tick, { scale: 1, opacity: 1, svgOrigin: "0 0" }, { scale: 0.4, opacity: 0, svgOrigin: "0 0", duration: 0.1, ease: "power2.in", immediateRender: false }, G(38.95));
+          tl.to(tick, { scale: 1, opacity: 1, svgOrigin: "0 0", duration: 0.3, ease: "back.out(2)" }, G(39.07));
+          K.inUp(tl, mT, G(39.0), { y: 10, dur: 0.5 });
+          K.inUp(tl, ctot, G(39.12), { y: 10, dur: 0.6 });
+
+          // relay leg 2: 臺北飛航情報區 → 福岡飛航情報區 (crosses x 1260 at 39.875, as the plane crosses below)
+          tl.to(baton, { x: 1200, duration: 0.85, ease: "power2.inOut" }, G(39.45));
+          tl.to(baton, { y: -22, duration: 0.425, ease: "sine.inOut" }, G(39.45));
+          tl.to(baton, { y: 0, duration: 0.425, ease: "sine.inOut" }, G(39.875));
+          pulse(d2.pulse, G(39.88), 6, 22, 0.7, 0.7);
+          seam(dvR.seam, G(39.88));
+
+          // arrival at 福岡飛航情報區
+          pulse(nB.pulse, G(40.3), 11, 30, 0.9, 0.7); // r1 30: ring top 400 clears the baton (393)
+          K.inUp(tl, mB, G(40.32), { y: 10, dur: 0.5 });
+          tl.fromTo(trail, { attr: { "stroke-width": 4 } }, { attr: { "stroke-width": 6 }, duration: 0.25, ease: "sine.inOut" }, G(40.3));
+          tl.to(trail, { attr: { "stroke-width": 4 }, duration: 0.25, ease: "sine.inOut" }, G(40.55));
+
+          // ---------- exit (handoff to c5, whose map sits above c4 and fades in 40.70–41.20) ----------
+          // Text, nodes, baton and line geometry clear first and fast (power2.out, left → right), so nothing of c4
+          // reads over c5's coastline or doubles its routes / FIR edge: track ≈ 0.04 and trail ≈ 0.16 at 40.90,
+          // everything ≤ 0.05 by 40.95. Only the mint column keeps the slow power2.in (it matches c5's sea).
+          tl.to(col, { opacity: 0, duration: 0.4, ease: "power2.in" }, G(40.7));
+          tl.to(dvWrap, { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.7));
+          tl.to([track, trackIn], { opacity: 0, duration: 0.25, ease: "power2.out" }, G(40.7));
+          tl.to([nA.g, lA, mA], { opacity: 0, duration: 0.2, ease: "power2.out" }, G(40.68));
+          tl.to([lT, mT, ctot], { opacity: 0, duration: 0.2, ease: "power2.out" }, G(40.68));
+          tl.to([nB.g, lB, mB, baton], { opacity: 0, duration: 0.2, ease: "power2.out" }, G(40.7));
+          tl.to([d1.g, d2.g, trail], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.72));
+          // the gold Taipei node blooms into c5's Taiwan (963, 430)
+          tl.to(nT.inner, { scale: 2.4, opacity: 0, duration: 0.45, ease: "power2.in" }, G(40.7));
+          // the plane outlives its trail only briefly (≈ 0.25 effective at 40.95, gone by 41.10), so it never
+          // crosses c5's sea on its own
+          tl.to(plane, { opacity: 0, duration: 0.3, ease: "sine.inOut" }, G(40.8));
+
+          tl.set({}, {}, 4.0); // pad to the window length
+          window.__timelines["c4-relay"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

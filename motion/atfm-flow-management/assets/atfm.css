@@ -1,0 +1,180 @@
+/* ATFM v5 — shared design tokens + primitives. See DESIGN.md. Type scale ×1.5 per client (all text ≥ 30 px). */
+@font-face {
+  font-family: "ATFM Sans";
+  src: url("fonts/NotoSansTC.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "ATFM Mono";
+  src: url("fonts/IBMPlexMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: block;
+}
+@font-face {
+  font-family: "ATFM Mono";
+  src: url("fonts/IBMPlexMono-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}
+
+:root {
+  --bg: #f3ece5;
+  --bg-deep: #eae2d8;
+  --card: #fbf7f2;
+  --card-line: #e6ddd2;
+  --ink: #2f3a37;
+  --ink-soft: #6e6a64;
+  --teal: #1f6b62;
+  --teal-2: #3e8c80;
+  --teal-soft: #a9c7bd;
+  --mint: #e1eee8;
+  --sea: #c9d4cd;
+  --sea-deep: #b9c8bf;
+  --land: #eee8dd;
+  --coast: #d2cabd;
+  --terra: #b25135;
+  --terra-soft: #f2ddd3;
+  --slot-off: #d8c4b9;
+  --gold: #a8761a;
+  --gold-soft: #e9d9b0;
+  --shadow-card: 0 18px 40px -22px rgba(60, 48, 36, 0.35), 0 2px 6px rgba(60, 48, 36, 0.06);
+  --font: "ATFM Sans", sans-serif;
+  --mono: "ATFM Mono", "ATFM Sans", monospace;
+}
+
+/* ---------- primitives (usable inside any sub-composition) ---------- */
+.k-abs { position: absolute; }
+.k-card {
+  position: absolute;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+  padding: 34px 40px;
+  font-family: var(--font);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.k-card-title { font-size: 44px; font-weight: 700; color: var(--teal); line-height: 1.25; letter-spacing: 0.02em; }
+.k-card-body { font-size: 36px; font-weight: 500; color: var(--ink); line-height: 1.4; margin-top: 12px; }
+.k-card-note { font-size: 30px; font-weight: 500; color: var(--ink-soft); line-height: 1.4; margin-top: 8px; }
+.k-chip {
+  position: absolute;
+  display: flex; align-items: center; gap: 16px;
+  height: 76px; padding: 0 30px;
+  border-radius: 18px;
+  background: var(--mint);
+  color: var(--teal);
+  font-family: var(--font); font-size: 36px; font-weight: 700; letter-spacing: 0.02em;
+  white-space: nowrap; box-sizing: border-box;
+  box-shadow: 0 10px 24px -18px rgba(60, 48, 36, 0.35);
+}
+.k-chip.is-warn { background: var(--terra-soft); color: var(--terra); }
+.k-chip.is-card { background: var(--card); border: 1px solid var(--card-line); }
+.k-label {
+  position: absolute;
+  font-family: var(--font); font-size: 38px; font-weight: 700; color: var(--teal);
+  letter-spacing: 0.04em; white-space: nowrap;
+}
+.k-label.is-soft { font-size: 30px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.06em; }
+.k-num { font-family: var(--mono); font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+
+.k-slots { display: flex; gap: 16px; margin-top: 24px; }
+.k-slot {
+  display: block; position: relative; flex: none;
+  width: 92px; height: 32px; border-radius: 8px;
+  background: var(--teal);
+}
+.k-slot.is-off { background: var(--slot-off); }
+.k-slot.is-empty { background: transparent; box-shadow: inset 0 0 0 2px var(--teal-soft); }
+
+/* ATFM system panel (stylised software UI) */
+.k-panel {
+  position: absolute;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 22px;
+  box-shadow: 0 30px 60px -30px rgba(50, 40, 30, 0.45), 0 2px 8px rgba(60, 48, 36, 0.06);
+  font-family: var(--font); color: var(--ink);
+  overflow: hidden; box-sizing: border-box;
+}
+.k-panel-bar {
+  height: 78px; display: flex; align-items: center; gap: 18px; padding: 0 30px;
+  background: var(--teal); color: #f4f1ea;
+  font-size: 30px; font-weight: 700; letter-spacing: 0.08em;
+}
+.k-panel-bar .k-led { width: 14px; height: 14px; border-radius: 50%; background: #9fe0c9; box-shadow: 0 0 0 6px rgba(159, 224, 201, 0.18); }
+.k-panel-bar .k-bar-right { margin-left: auto; font-family: var(--mono); font-weight: 500; font-size: 30px; letter-spacing: 0.04em; opacity: 0.85; }
+.k-panel-head, .k-row {
+  display: grid; align-items: center; padding: 0 32px; column-gap: 16px;
+}
+.k-panel-head { height: 64px; font-size: 30px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.08em; border-bottom: 1px solid var(--card-line); }
+.k-row { height: 84px; font-size: 36px; font-weight: 600; border-bottom: 1px solid #efe7dd; position: relative; }
+.k-row:last-child { border-bottom: none; }
+.k-row-hl { position: absolute; inset: 8px 14px; border-radius: 16px; background: var(--mint); }
+.k-row > * { position: relative; }
+.k-tag { display: inline-flex; align-items: center; height: 48px; padding: 0 16px; border-radius: 12px; font-size: 30px; font-weight: 700; letter-spacing: 0.04em; justify-self: start; }
+.k-tag.is-ok { background: var(--mint); color: var(--teal); }
+.k-tag.is-hold { background: var(--terra-soft); color: var(--terra); }
+
+.k-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 44px; padding: 0 18px; border-radius: 12px;
+  font-size: 30px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; box-sizing: border-box;
+}
+
+/* rolling digits */
+.k-roll { display: inline-flex; overflow: hidden; vertical-align: top; }
+.k-roll-col { display: block; position: relative; overflow: hidden; }
+.k-roll-strip { display: flex; flex-direction: column; }
+.k-roll-strip > span { display: block; text-align: center; }
+
+/* isometric airport */
+.k-airport { position: absolute; }
+.k-airport img { display: block; width: 100%; height: auto; position: relative; }
+.k-airport .k-airport-shadow {
+  position: absolute; left: 6%; right: 4%; bottom: -2%; height: 34%;
+  background: radial-gradient(closest-side, rgba(70, 58, 44, 0.28), rgba(70, 58, 44, 0));
+  filter: blur(6px);
+}
+
+/* ---------- K.sysPanel: "real system" panel (dark slate UI modelled on the client's AAR Setting Tool) ---------- */
+.ks-panel { position: absolute; background: #2b313b; border: 1px solid #414957; border-radius: 22px; box-shadow: 0 30px 60px -28px rgba(20, 24, 30, 0.6), 0 2px 8px rgba(0, 0, 0, 0.2); font-family: var(--font); color: #e8ecf1; overflow: hidden; box-sizing: border-box; padding: 0 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.ks-bar { height: 56px; flex: none; display: flex; align-items: center; gap: 12px; overflow: hidden; border-bottom: 1px solid #414957; margin: 0 -14px; padding: 0 18px; }
+.ks-title { font-size: 30px; font-weight: 700; letter-spacing: 0.06em; display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.ks-led { display: block; width: 12px; height: 12px; border-radius: 50%; background: #9fe0c9; box-shadow: 0 0 0 5px rgba(159, 224, 201, 0.18); }
+.ks-row { display: flex; gap: 12px; flex: 1; min-height: 0; }
+.ks-nav { width: 150px; flex: none; display: flex; flex-direction: column; gap: 8px; }
+.ks-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.ks-tabs { display: flex; flex-direction: column; gap: 8px; }
+.ks-tab { height: 44px; padding: 0 12px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #3c4350; color: #c9d1da; font-size: 30px; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; }
+.ks-tab.is-active { background: #3a8dde; color: #fff; }
+.ks-badge { height: 44px; padding: 0 12px; display: flex; align-items: center; justify-content: center; background: #ffe600; color: #111; font-weight: 800; font-size: 30px; letter-spacing: 0.06em; border-radius: 4px; border-left: 10px solid #3a8dde; white-space: nowrap; }
+.ks-clockbox { margin-top: auto; height: 48px; background: #343b46; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.ks-clock { font-size: 30px; color: #e8ecf1; white-space: nowrap; }
+.ks-pill { position: relative; width: 156px; height: 44px; flex: none; margin-left: auto; }
+.ks-pill-s { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 30px; font-weight: 700; white-space: nowrap; }
+.ks-body { flex: none; }
+.ks-caplabel { display: none; }
+.ks-cols { display: flex; justify-content: space-between; gap: 10px; padding: 0 4px; }
+.ks-col { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 112px; }
+.ks-aar { height: 36px; min-width: 64px; padding: 0 10px; display: flex; align-items: center; justify-content: center; background: #3c4350; border-radius: 6px; font-size: 30px; color: #e8ecf1; }
+.ks-aar.is-restricted { color: #e6399b; background: #3d2a3a; }
+.ks-bar-col { display: flex; flex-direction: column-reverse; gap: 3px; width: 60px; height: 40px; border-bottom: 2px solid #9aa3ae; padding-bottom: 3px; box-sizing: border-box; }
+.ks-stripe { display: block; height: 3px; border-radius: 1px; background: #aeb6c0; }
+.ks-stripe.is-restricted { background: #e6399b; }
+.ks-stripe.is-planned { background: #e8b400; }
+.ks-hour { font-size: 30px; color: #c9d1da; height: 34px; line-height: 34px; }
+.ks-tag { height: 36px; padding: 0 12px; display: flex; align-items: center; border-radius: 6px; background: #4a525e; color: #fff; font-size: 30px; font-weight: 700; letter-spacing: 0.04em; }
+.ks-tag.is-active { background: #c8323c; }
+.ks-strip { position: relative; flex: 1; min-height: 92px; background: #343b46; border-radius: 12px; padding: 0 16px; display: flex; flex-direction: column; justify-content: flex-end; }
+.ks-lane { position: relative; height: 48px; }
+.ks-chip { position: absolute; top: 2px; height: 44px; padding: 0 14px; display: flex; align-items: center; border-radius: 4px 10px 10px 4px; font-family: var(--mono); font-weight: 600; font-size: 30px; color: #fff; white-space: nowrap; }
+.ks-chip.is-pink { background: #e6399b; }
+.ks-chip.is-blue { background: #3a8dde; }
+.ks-chip.is-grey { background: #6b7482; }
+.ks-ruler { position: relative; height: 36px; background: #9aa3ae; border-radius: 3px; margin-bottom: 8px; }
+.ks-tick { position: absolute; top: 0; height: 36px; line-height: 36px; font-size: 30px; color: #1f252e; transform: translateX(-50%); font-family: var(--mono); font-weight: 600; }
+.ks-tick.is-hour { color: #111; font-weight: 700; }
