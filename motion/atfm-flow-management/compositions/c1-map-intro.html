@@ -17,10 +17,15 @@
         /* boundary-point name tag: mono 30/600 on a cream pill with a 1 px teal-soft ring */
         #c1-root .c1-bp { position: absolute; height: 40px; padding: 0 12px; border-radius: 11px; background: #FBF7F2; box-shadow: inset 0 0 0 1px #A9C7BD, 0 6px 14px -10px rgba(60, 48, 36, 0.35);
           font-family: "ATFM Mono", monospace; font-size: 30px; font-weight: 600; line-height: 40px; color: #1F6B62; letter-spacing: 0.04em; white-space: nowrap; }
+        /* airport tag (RCTP): the inverse pill — teal fill, cream text — so the airport never reads as a fifth 邊境點 */
+        #c1-root .c1-bp.c1-ap { background: #1F6B62; color: #FBF7F2; box-shadow: 0 6px 14px -10px rgba(31, 107, 98, 0.55); }
         /* interior fix tag: mono 30/500 ink-soft, no box */
         #c1-root .c1-fx { position: absolute; height: 34px; font-family: "ATFM Mono", monospace; font-size: 30px; font-weight: 500; line-height: 34px; color: #6E6A64; letter-spacing: 0.04em; white-space: nowrap; }
-        #c1-root .c1-al { right: 13px; bottom: 11px; }   /* above-left of the fix (A1 side) */
-        #c1-root .c1-br { left: 12px; top: 10px; }        /* below-right of the fix (M750 side) */
+        /* Tag offsets keep ≥ 6 px between a passing plane's wingtip (half-span 18.5 px, swept back) and the tag box or
+           glyphs, and ≥ 4 px to its 12 % shadow (offset 5.8/10.6 px down-right) — the M750 side needs the larger
+           inset because the shadow falls toward the below-right tag. */
+        #c1-root .c1-al { right: 15px; bottom: 14px; }   /* above-left of the fix (A1 side) */
+        #c1-root .c1-br { left: 20px; top: 16px; }        /* below-right of the fix (M750 side) */
         /* APU sits 10 wu NE of RCTP (19 px at z 1.9), so its tag goes straight above the tick: at F1 the box spans
            y ≈ 448–482, 19 px above the RCTP pill (y 501–541), ≥ 16 px off the A1 BULAN leg that climbs at −41° on its
            right (which carries no traffic in c1) and ≥ 19 px clear of the wingtips of M750 transits passing SANAS */
@@ -156,11 +161,12 @@
             K.mapFixed(m, outer, pt[0], pt[1], 1);
             return { g: outer, inner: inner };
           }
-          // Boundary nodes: dot r 6 + 3 px cream ring (outer r 9). ELATO and ENVAR are only 12.3 wu apart (16.6 px at F0_v2,
-          // 23.4 px at F1), so the kit's r 7 + 4 px ring (outer 22 px) merged them into one figure-8 marker at the wide
-          // opening and still touched at F1. The .c1-zs group also holds them at 0.78 while the camera is wide (outer 14 px,
-          // ≥ 2.6 px of sea between the pair) and grows to 1 with the F0d_v2 → F1 push (5.4 px apart at F1).
-          var BP_R = 6, BP_RING = 9, BP_WIDE = 0.78;
+          // Boundary nodes: dot r 7 (§0A: K.node r 7–8) + 2 px cream ring (outer r 9). ELATO and ENVAR are only 12.3 wu apart
+          // (16.6 px at F0_v2, 23.4 px at F1), so the kit's r 7 + 4 px ring (outer 22 px) merged them into one figure-8 marker
+          // at the wide opening and still touched at F1. The .c1-zs group also holds them at 0.78 while the camera is wide
+          // (outer 14 px, teal dot 11 px, ≥ 2.6 px of sea between the pair) and grows to 1 with the F0d_v2 → F1 push
+          // (5.4 px apart at F1).
+          var BP_R = 7, BP_RING = 9, BP_WIDE = 0.78;
           var nELATO = mkNode(FIX.ELATO, BP_R, BP_RING, TEAL, 2, m.world);
           var nENVAR = mkNode(FIX.ENVAR, BP_R, BP_RING, TEAL2, 2, m.world);
           var nBULAN = mkNode(FIX.BULAN, BP_R, BP_RING, TEAL, 2, m.world);
@@ -185,7 +191,7 @@
             MKG: mkTag(FIX.MKG, "MKG", "c1-fx", "c1-al"), APU: mkTag(FIX.APU, "APU", "c1-fx", "c1-ab"),
             ANLOT: mkTag(FIX.ANLOT, "ANLOT", "c1-fx", "c1-br"), SANAS: mkTag(FIX.SANAS, "SANAS", "c1-fx", "c1-br"),
             // RCTP is labelled too, or the APU tag above the pair would read as the airport's name
-            RCTP: mkTag(PT.RCTP, "RCTP", "c1-bp", "c1-lf"),
+            RCTP: mkTag(PT.RCTP, "RCTP", "c1-bp c1-ap", "c1-lf"),
           };
 
           // ---------- pinned chips ----------
@@ -374,9 +380,11 @@
 
           // zoom-through: RCTP swells as the camera dives into it, the band fades under c2's rising airport
           ft(nRCTP.inner, { scale: 1 }, { scale: 1.8, duration: 0.75, ease: "power2.in" }, 6.95, true);
-          // …then blooms and dissolves into c2's destination airport as it rises from the same point (7.70)
+          // …then blooms and dissolves into c2's destination airport as it rises from the same point (7.70). The opacity goes
+          // in 0.12 s (≈ 0.20 at 7.75, 0 at 7.82): the disc is gone before c2's DST passes 50 % (≈ 7.835), so the frame
+          // never shows a dark node sitting on the runway while the band is still half opaque.
           ft(nRCTP.inner, { scale: 1.8 }, { scale: 2.6, duration: 0.45, ease: "power2.out" }, 7.7, true);
-          ft(nRCTP.inner, { opacity: 1 }, { opacity: 0, duration: 0.2, ease: "power2.out" }, 7.7, true);
+          ft(nRCTP.inner, { opacity: 1 }, { opacity: 0, duration: 0.12, ease: "power2.out" }, 7.7, true);
           // name tags leave as the dive starts (7.00–7.30): screen-sized text must not ride the zoom into the terminal,
           // and ENVAR's pill would otherwise cross the band's bottom edge at ≈ 7.3
           Object.keys(TAG).forEach(function (k) { ft(TAG[k], { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in" }, 7.0, true); });

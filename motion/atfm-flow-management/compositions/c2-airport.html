@@ -12,55 +12,25 @@
         #c2-root #c2-ui { z-index: 3; }
         #c2-root .c2-box { position: absolute; display: block; }
         #c2-root svg.c2-svg { position: absolute; left: 0; top: 0; display: block; overflow: visible; }
+        /* terra glow behind the constrained destination (block 1410–1810 × 630–846) */
         #c2-root .c2-glow {
-          left: 1340px; top: 560px; width: 470px; height: 290px;
+          left: 1370px; top: 586px; width: 440px; height: 270px;
           background: radial-gradient(closest-side, rgba(178, 81, 53, 0.18), rgba(178, 81, 53, 0));
         }
-        /* airport captions sit under each block's inner (transparent) corner: box 798–850, ink ≈ 805–843 */
-        #c2-root .c2-lbl { top: 798px; height: 52px; line-height: 52px; }
-        #c2-root .c2-uline { left: 1320px; top: 846px; width: 160px; height: 3px; border-radius: 2px; background: #b25135; }
-
-        /* slot card (540 × 220, left of the panel; 5 slots of 80 px fit its 464 px inner width) */
-        #c2-root .c2-card { padding: 30px 38px; }
-        #c2-root .c2-avail {
-          position: absolute; right: 38px; top: 32px; height: 50px;
-          display: flex; align-items: center; gap: 12px;
-          font-size: 30px; font-weight: 500; color: #6e6a64; letter-spacing: 0.04em; white-space: nowrap;
-        }
-        #c2-root .c2-cnt { font-family: "ATFM Mono", "ATFM Sans", monospace; font-size: 38px; font-weight: 600; color: #1f6b62; }
-        #c2-root .c2-letter {
-          position: absolute; top: 112px; width: 80px; height: 36px; line-height: 36px; text-align: center;
-          font-size: 30px; font-weight: 700; color: #6e6a64; letter-spacing: 0;
-        }
-        #c2-root .c2-card .k-slots { position: absolute; left: 38px; top: 160px; margin: 0; }
-        #c2-root .c2-card .k-slot { width: 80px; }
-        #c2-root .c2-tick { position: absolute; left: 0; top: 0; overflow: visible; }
-
-        /* ATFM panel (STORYBOARD §0.3 / §0B: w 820, bar 78 + 3 × 84 rows = 332) */
-        #c2-root .k-row-hl { position: absolute; }
-        #c2-root .k-panel-bar .k-bar-right { margin-left: 0; }
-        #c2-root .c2-pills { display: flex; flex: none; margin-left: auto; }
-        /* ONE opaque pill box (background tweens S0→S3); only its text spans swap, strictly in sequence */
-        #c2-root .c2-pillbox { position: relative; background: #e1eee8; }
-        #c2-root .c2-pring { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: inherit; box-shadow: inset 0 0 0 1.5px #a9c7bd; }
-        /* swap boxes (pill, status tags, DEP chip) are sized by an invisible copy of their longest label, so they
-           follow the shared type scale; the visible labels are stacked, centred spans */
+        /* airport captions float BESIDE the blocks (§0C): box 790–842, ink ≈ 797–835 */
+        #c2-root .c2-lbl { top: 790px; height: 52px; line-height: 52px; }
+        #c2-root .c2-lbl-r { right: 540px; text-align: right; } /* 目的地機場: right edge at x 1380 */
+        #c2-root .c2-uline { left: 1220px; top: 846px; width: 160px; height: 3px; border-radius: 2px; background: #b25135; }
+        /* cause chips: 24 px side padding so 天氣 (121) + 跑道維護 (195) both fit inside x 1480–1810 */
+        #c2-root .c2-cause { padding: 0 24px; }
+        /* swap boxes (DEP chip) are sized by an invisible copy of their longest label; the visible labels are stacked spans */
         #c2-root .c2-sizer { visibility: hidden; white-space: nowrap; }
         #c2-root .c2-swap { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
-        #c2-root .c2-flt { color: #2f3a37; font-size: 36px; font-weight: 600; white-space: nowrap; }
-        #c2-root .c2-orig { position: relative; display: inline-block; justify-self: start; font-size: 34px; color: #6e6a64; }
-        #c2-root .c2-strike { position: absolute; display: block; left: -2px; right: -2px; top: 50%; height: 2px; margin-top: -1px; background: #6e6a64; }
-        #c2-root .c2-arrow { font-size: 30px; font-weight: 500; color: #6e6a64; justify-self: center; }
-        #c2-root .c2-newt {
-          display: inline-flex; justify-self: start; opacity: 0.45;
-          font-family: "ATFM Mono", "ATFM Sans", monospace; font-size: 34px; font-weight: 600; color: #1f6b62; letter-spacing: 0.02em;
-        }
-        /* status tag = one opaque box (background tweens); its two labels swap in sequence */
-        #c2-root .c2-tags { display: flex; justify-self: start; }
-        #c2-root .c2-tags .k-tag { position: relative; box-sizing: border-box; min-width: 126px; justify-content: center; white-space: nowrap; }
-        /* DEP chip = one opaque box (x 130–484, y 490–566) with the chip shadow; SIG2 ends 14 px inside it.
-           It sits above the DEP block (raster top ≥ 600) and ≥ 12 px above B's time tag at LU. */
-        #c2-root .c2-chipwrap { left: 130px; top: 490px; }
+        /* DEP chip = one opaque box (x 110–390, y 500–576); SIG2 ends 18 px inside it. It clears the panel (x ≥ 460) by 70 px
+           and sits ≥ 30 px above B's time tag at LU (top 603). */
+        #c2-root .c2-chipwrap { left: 110px; top: 500px; }
+        /* flight chip B draws in front of C while the two CTOT chips cross (19.88–20.45) */
+        #c2-root .ks-chip.c2-front { z-index: 2; }
       </style>
       <div id="c2-root" data-composition-id="c2-airport" data-width="1920" data-height="1080" data-duration="16.9"></div>
       <script>
@@ -73,20 +43,29 @@
           var W0 = 7.4; // window start on the master timeline
           function G(t) { return Math.round((t - W0) * 10000) / 10000; } // global → local
           var TEAL = "#1F6B62", TEAL2 = "#3E8C80", TSOFT = "#A9C7BD", TERRA = "#B25135", INKS = "#6E6A64", CARD = "#FBF7F2";
-          var LED_MINT = "#9fe0c9", LED_GLOW = "0 0 0 6px rgba(159,224,201,0.18)";
+          // the system panel's own colours (DESIGN §5b) — used only on the panel
+          var SYS = { pink: "#E6399B", grey: "#6B7482", mint: "#9FE0C9", terra: "#F08A6B" };
+          var LED_GLOW = "0 0 0 5px rgba(159,224,201,0.18)";
           var Q = 0.55; // iso ground squash (K.AIRPORT.squash)
           var SANS = '"ATFM Sans", sans-serif', MONO = '"ATFM Mono", "ATFM Sans", monospace';
 
-          // ---------- airport geometry (§0B re-fit: both blocks w 480 → k = 0.3, top y 597) ----------
-          // DEP box 110–590 × 597–856; DST (mirrored) 1330–1810 × 597–856. Every point below is K.airportPt-derived:
-          //   DEP runway  R(u)  = (143 + 366u, 697.5 − 81.3u), taxiway H(u) = R(u) + (5.2, 23.4)
-          //   DST runway  R′(u) = (1411 + 366u, 616.2 + 81.3u) (landing direction, +12.5°)
-          //   LU = R(0.50) (326, 656.85) · LO = LU + 120 px (443.16, 630.88) · E = R(1) (509, 616.2)
-          //   Q1 = H(0.37) (283.62, 690.86) · Q2 = H(0.21) (225.06, 703.87) · Q3 = H(0.05) (166.5, 716.87)  (60 px pitch)
-          //   H′ = R′(0) (1411, 616.2) · TD = R′(0.14) (1462.24, 627.58) · RO = R′(0.46) (1579.36, 653.6)
-          // The arc is a tangent-matched cubic (handles 110 px at ±12.5°): apex y 598.3, so a plane's wingtip (len 48)
-          // stays ≥ 16 px below the panel bottom (560) even before the stage drift.
-          var AP_W = 480, AP_H = 259, AP_Y = 597;
+          // ---------- airport geometry (§0C re-fit: both blocks w 400 → k = 0.25, top y 630, bottoms 846) ----------
+          // DEP box 110–510 × 630–846; DST (mirrored) 1410–1810 × 630–846. Every point below is K.airportPt-derived:
+          //   DEP runway  R(u)  = (137.5 + 305u, 713.75 − 67.75u) (−12.5°), taxiway H(u) = R(u) + (4.33, 19.5)
+          //   DST runway  R′(u) = (1477.5 + 305u, 646 + 67.75u) (landing direction, +12.5°)
+          //   LU = R(0.54) (302.2, 677.17) · LO = LU + 96 px (395.92, 656.39) · E = R(1) (442.5, 646)
+          //   Q1 = H(0.38) (257.73, 707.51) · Q2 = H(0.21) (205.88, 719.02) · Q3 = H(0.04) (154.02, 730.54)  (53 px pitch;
+          //   LU–Q1 = 53.9 px so two r 23 letter tags never touch; Q3 stays on the taxiway pavement, which starts at x ≈ 134)
+          //   H′ = R′(0) (1477.5, 646) · TD = R′(0.18) (1532.4, 658.2) · RO = R′(0.46) (1617.8, 677.17)
+          // The arc is a tangent-matched cubic (handles 236 px at ±12.5°): apex y 607.7 (≥ 606), so a plane's wingtip
+          // (len 44 → ±20) stays ≥ 20 px below the panel bottom (568) before the stage drift pushes it further down.
+          var AP_W = 400, AP_H = 216, AP_Y = 630, DEP_X = 110, DST_X = 1410;
+          var PT = { LU: [302.2, 677.17], LO: [395.92, 656.39], E: [442.5, 646], H: [1477.5, 646], TD: [1532.4, 658.2], RO: [1617.8, 677.17] };
+          function P2(p) { return p[0] + " " + p[1]; }
+          [["LU", 0.54], ["E", 1]].forEach(function (x) { // guard: the table above must agree with the kit's asset geometry
+            var r = K.airportPt(DEP_X, AP_Y, AP_W, 110 + 1220 * x[1], 335 - 271 * x[1]);
+            if (Math.abs(r[0] - PT[x[0]][0]) > 0.1 || Math.abs(r[1] - PT[x[0]][1]) > 0.1) { if (window.console) console.warn("[c2] airport point " + x[0] + " drifted", r); }
+          });
 
           // ---------- layers ----------
           var stage = K.el("div", { id: "c2-stage", class: "c2-layer" });
@@ -102,11 +81,11 @@
           var glow = K.el("div", { class: "c2-box c2-glow" });
           stage.appendChild(glow);
           // 2 · departure airport
-          var dep = K.el("div", { class: "c2-box", style: { left: "110px", top: AP_Y + "px", width: AP_W + "px", height: AP_H + "px" } }, [K.airport({ x: 0, y: 0, w: AP_W })]);
+          var dep = K.el("div", { class: "c2-box", style: { left: DEP_X + "px", top: AP_Y + "px", width: AP_W + "px", height: AP_H + "px" } }, [K.airport({ x: 0, y: 0, w: AP_W })]);
           stage.appendChild(dep);
           // 3 · destination airport (mirrored raster; entrance scale lives on the wrapper)
           var dstAp = K.airport({ x: 0, y: 0, w: AP_W });
-          var dst = K.el("div", { class: "c2-box", style: { left: "1330px", top: AP_Y + "px", width: AP_W + "px", height: AP_H + "px" } }, [dstAp]);
+          var dst = K.el("div", { class: "c2-box", style: { left: DST_X + "px", top: AP_Y + "px", width: AP_W + "px", height: AP_H + "px" } }, [dstAp]);
           stage.appendChild(dst);
           gsap.set(dstAp.querySelector("img"), { scaleX: -1 });
 
@@ -119,44 +98,44 @@
             '<pattern id="c2-hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">' +
             '<rect width="8" height="8" fill="#F2DDD3"/><rect width="3.2" height="8" fill="#B25135"/></pattern>';
           function hidden(d) { var p = K.s("path", { d: d, fill: "none", stroke: "none" }); fx.appendChild(p); return p; }
-          var ARC_D = "C616.39 592.39 1303.61 592.39 1411 616.2";
-          var FLT2 = hidden("M326 656.85L443.16 630.88L509 616.2" + ARC_D + "L1462.24 627.58L1579.36 653.6");
-          // flat exit (old shape scaled ×0.8): turn-in to the runway edge, then a G1-continuous 40° straight across the
-          // grass strip to the parallel taxiway centreline (y 689.3 at x 1629, just past the painted stand connector)
-          var TURN2 = hidden("M1579.36 653.6C1587.95 655.5 1596.49 661.57 1602 666.2L1629.36 689.16");
-          var MERGE = hidden("M283.62 690.86C303.14 686.53 306.47 661.18 326 656.85"); // Q1 → LU (20 px handles at ±12.5°)
-          var TAXI21 = hidden("M225.06 703.87L283.62 690.86"); // Q2 → Q1
-          var TAXI32 = hidden("M166.5 716.87L225.06 703.87"); // Q3 → Q2
+          var ARC_D = "C672.91 594.92 1247.09 594.92 " + P2(PT.H);
+          var FLT2 = hidden("M" + P2(PT.LU) + "L" + P2(PT.LO) + "L" + P2(PT.E) + ARC_D + "L" + P2(PT.TD) + "L" + P2(PT.RO));
+          // exit: turn-in to the runway edge, then a G1-continuous straight across the grass strip to the parallel
+          // taxiway centreline (y 706.8 at x 1659.5)
+          var TURN2 = hidden("M1617.8 677.17C1624.96 678.75 1632.08 683.81 1636.67 687.66L1659.47 706.8");
+          var MERGE = hidden("M257.73 707.5C274.32 703.83 285.6 680.84 302.2 677.17"); // Q1 → LU (17 px handles at ±12.5°)
+          var TAXI21 = hidden("M205.88 719.02L257.73 707.5"); // Q2 → Q1
+          var TAXI32 = hidden("M154.02 730.54L205.88 719.02"); // Q3 → Q2
 
-          // FLT2 breakpoints (asserted against the re-derived reference ±0.002; L = 1263.4)
+          // FLT2 breakpoints (asserted against the derived reference ±0.002; L = 1326.9)
           var F = {
-            LO: K.fracAt(FLT2, 443.16, 630.88),
-            E: K.fracAt(FLT2, 509, 616.2),
-            H: K.fracAt(FLT2, 1411, 616.2),
-            TD: K.fracAt(FLT2, 1462.24, 627.58),
+            LO: K.fracAt(FLT2, PT.LO[0], PT.LO[1]),
+            E: K.fracAt(FLT2, PT.E[0], PT.E[1]),
+            H: K.fracAt(FLT2, PT.H[0], PT.H[1]),
+            TD: K.fracAt(FLT2, PT.TD[0], PT.TD[1]),
           };
-          var REF = { LO: 0.095, E: 0.1484, H: 0.8635, TD: 0.905 };
+          var REF = { LO: 0.0724, E: 0.1083, H: 0.8917, TD: 0.9341 };
           Object.keys(REF).forEach(function (k) {
             if (Math.abs(F[k] - REF[k]) > 0.002) { if (window.console) console.warn("[c2] FLT2 frac " + k + " = " + F[k] + " (ref " + REF[k] + ")"); F[k] = REF[k]; }
           });
 
           var gR = K.s("g", { class: "c2-gr" }); // right group (fades right at the handoff)
           fx.appendChild(gR);
-          var route2 = K.s("path", { d: "M509 616.2" + ARC_D, fill: "none", stroke: TSOFT, "stroke-width": "4", "stroke-linecap": "round" });
+          var route2 = K.s("path", { d: "M" + P2(PT.E) + ARC_D, fill: "none", stroke: TSOFT, "stroke-width": "4", "stroke-linecap": "round" });
           var route2G = K.s("g", { class: "c2-route" }); // slides in with DEP so the arc's start stays on the runway end
           route2G.appendChild(route2);
           gR.appendChild(route2G);
-          // runway-works hatch on the DST runway, R′(0.60)–R′(0.94): N2's turn-off (RO = R′(0.46) → taxiway) stays clear of its start
-          var hatchO = K.s("g", { transform: "translate(1630.6 664.98) rotate(12.5)" });
+          // runway-works hatch on the DST runway, R′(0.60)–R′(0.94): N2's turn-off (RO = R′(0.46)) stays 44 px clear of its start
+          var hatchO = K.s("g", { transform: "translate(1660.5 686.65) rotate(12.5)" });
           var hatch = K.s("g");
-          hatch.appendChild(K.s("rect", { x: "0", y: "-7.5", width: "127.5", height: "15", rx: "3", fill: "url(#c2-hatch)", stroke: TERRA, "stroke-width": "1.5" })); // fits the 16 px painted runway
+          hatch.appendChild(K.s("rect", { x: "0", y: "-5.6", width: "106.2", height: "11.2", rx: "2.5", fill: "url(#c2-hatch)", stroke: TERRA, "stroke-width": "1.5" })); // fits the 11 px painted runway
           hatchO.appendChild(hatch);
           gR.appendChild(hatchO);
           // cones (bottom-centres on R′(0.64/0.74/0.84))
-          var cones = [[1645.2, 668.2], [1681.8, 676.4], [1718.4, 684.5]].map(function (p) {
-            var c = K.cones({ n: 1, h: 16 });
-            c.setAttribute("x", String(Math.round((p[0] - 6.24) * 10) / 10));
-            c.setAttribute("y", String(Math.round((p[1] - 16) * 10) / 10));
+          var cones = [[1672.7, 689.36], [1703.2, 696.14], [1733.7, 702.91]].map(function (p) {
+            var c = K.cones({ n: 1, h: 13 });
+            c.setAttribute("x", String(Math.round((p[0] - 5.07) * 10) / 10));
+            c.setAttribute("y", String(Math.round((p[1] - 13) * 10) / 10));
             gR.appendChild(c);
             return c.__cones[0];
           });
@@ -164,10 +143,10 @@
           // planes — each in its own wrapper <g> (opacity / slide); the plane <g> itself is driven only by `along`
           var gP = K.s("g", { class: "c2-planes" });
           gR.appendChild(gP);
-          var TT_DY = -56; // time tag centre above the plane (box −78…−34; ground wingtip ≈ ±11)
+          var TT_DY = -52; // time tag centre above the plane (box −74…−30; ground wingtip ≈ ±11). At E (y 646) the box top is 572 > 568
           function mkPlane(letter, time, dx, dy) {
             var w = K.s("g", { class: "c2-pw" });
-            var pl = K.plane({ len: 48, alt: 0, squash: Q });
+            var pl = K.plane({ len: 44, alt: 0, squash: Q });
             w.appendChild(pl);
             gP.appendChild(w);
             var o = { w: w, pl: pl };
@@ -197,162 +176,97 @@
             }
             return o;
           }
-          // C's tag parks left-low of centre at Q1: box x 182–294 (≥ 8 px clear of B's tail at LU, x ≥ 302) and
-          // y 627–671 (≥ 4 px below B's tag box, which ends at y 623), even at pop overshoot
-          var C_TT_DX = -46, C_TT_DY = 14;
+          // C's tag parks left of centre at Q1: box x 117.7–229.7 (16 px clear of B's tag at LU, x ≥ 246; inside the 110 margin)
+          // and y 637.5–681.5 (15 px above C's own wing line at 696.5)
+          var C_TT_DX = -84, C_TT_DY = 4;
           var N1 = mkPlane(), N2 = mkPlane(), A = mkPlane("A"), B = mkPlane("B", "10:10"), C = mkPlane("C", "10:20", C_TT_DX, C_TT_DY);
           gsap.set([A.ringGate, B.ringGate, C.ringGate], { opacity: 0 }); // hold rings stay hidden until their pulse
 
-          // 5 · rain (inside its own right-group wrapper)
+          // 5 · INLINK (world layer, under the cloud): from the weather over the DST runway into the panel's right edge.
+          // Its start hides under the cloud raster and its end 32 px inside the panel (x 1428 < 1460), so the stage drift
+          // (≤ 6 px here) can never expose either end; the panel (UI layer) covers the arriving terra packet.
+          var lkIn = K.s("svg", { class: "c2-svg", width: "1920", height: "1080", viewBox: "0 0 1920 1080" });
+          stage.appendChild(lkIn);
+          function link(d) { return K.s("path", { d: d, fill: "none", stroke: TEAL2, "stroke-width": "3", "stroke-dasharray": "10 12", "stroke-linecap": "round" }); }
+          function packet(col) { return K.s("circle", { cx: "0", cy: "0", r: "7", fill: col, stroke: CARD, "stroke-width": "2" }); }
+          var inlink = link(K.smooth([[1636, 606], [1560, 598], [1490, 560], [1428, 512]]));
+          var pkIn = packet(TERRA);
+          lkIn.appendChild(inlink);
+          lkIn.appendChild(pkIn);
+
+          // 6 · rain (inside its own right-group wrapper)
           var rainWrap = K.el("div", { class: "c2-layer" });
           stage.appendChild(rainWrap);
           var rainSvg = K.s("svg", { class: "c2-svg", width: "1920", height: "1080", viewBox: "0 0 1920 1080" });
           rainWrap.appendChild(rainSvg);
 
-          // 6 · cloud — right of the panel (x ≥ 1526), 26 px above the DST raster's top edge
-          var cloudWrap = K.el("div", { class: "c2-box", style: { left: "1534px", top: "508px", width: "180px", height: "94px" } });
+          // 7 · cloud over the DST runway (1580–1760 × 560–654): right of the touchdown zone, so landing planes
+          // (TD x 1532, wing top ≥ 653 by x 1580) never pass under it; the rain falls from it onto the runway and hatch
+          var cloudWrap = K.el("div", { class: "c2-box", style: { left: "1580px", top: "560px", width: "180px", height: "94px" } });
           var cloud = K.img({ src: K.PROPS.cloud.src, x: 0, y: 0, w: 180 });
           cloudWrap.appendChild(cloud);
           stage.appendChild(cloudWrap);
 
-          // 7 · labels (centred at 520 / 1400 — under each block's inner, transparent corner; symmetric about 960)
-          var depLabel = K.el("div", { class: "k-label c2-lbl", text: "起飛機場", style: { left: "520px" } });
-          var dstLabel = K.el("div", { class: "k-label c2-lbl", text: "目的地機場", style: { left: "1400px" } });
+          // 8 · labels beside the airports (§0C): 起飛機場 right of DEP (x 540), 目的地機場 left of DST (right edge 1380)
+          var depLabel = K.el("div", { class: "k-label c2-lbl", text: "起飛機場", style: { left: "540px" } });
+          var dstLabel = K.el("div", { class: "k-label c2-lbl c2-lbl-r", text: "目的地機場" });
           var uline = K.el("div", { class: "c2-box c2-uline" });
           stage.appendChild(depLabel);
           stage.appendChild(dstLabel);
           stage.appendChild(uline);
-          gsap.set([depLabel, dstLabel], { xPercent: -50 });
 
           // ===== UI LAYER (never drifts) =====
-          // 1 · signal links
+          // 1 · dispatch link SIG2: panel left edge → DEP chip (36 px inside the panel at x 496, 18 px inside the chip at x 372)
           var lk = K.s("svg", { class: "c2-svg", width: "1920", height: "1080", viewBox: "0 0 1920 1080" });
           ui.appendChild(lk);
-          function link(d) { return K.s("path", { d: d, fill: "none", stroke: TEAL2, "stroke-width": "3", "stroke-dasharray": "10 12", "stroke-linecap": "round" }); }
-          function packet(col) { return K.s("circle", { cx: "0", cy: "0", r: "7", fill: col, stroke: CARD, "stroke-width": "2" }); }
-          var gIn = K.s("g");
-          // UI layer never drifts → tuck only 6 px under each edge (card right 650, panel left 690), so the
-          // terra packet spends its trip in the clean 40 px gap instead of ghosting inside the panel
-          var inlink = link("M644 338L696 338");
-          var pkIn = packet(TERRA);
-          gIn.appendChild(inlink);
-          gIn.appendChild(pkIn);
-          lk.appendChild(gIn);
           var gSig = K.s("g");
-          // panel (50 px inside its left edge, 42 above its bottom) → DEP chip (14 px inside its right edge)
-          var sig2 = link(K.smooth([[740, 518], [660, 524], [560, 530], [470, 530]]));
+          var sig2 = link("M496 538L372 538");
           var pkSig = packet(TEAL2);
           gSig.appendChild(sig2);
           gSig.appendChild(pkSig);
           lk.appendChild(gSig);
 
-          // 2 · slot card 到場容量 (left of the panel: x 110–650, y 228–448)
-          var SLOT_P = 96; // slot pitch (80 + 16)
-          var card = K.card({ x: 110, y: 228, w: 540, h: 220, title: "到場容量", cls: "c2-card" });
-          var cnt = K.roll("5", { h: 50 });
-          cnt.classList.add("c2-cnt");
-          var avail = K.el("div", { class: "c2-avail" }, [K.el("span", { text: "可用時段" }), cnt]);
-          card.appendChild(avail);
-          var letters = ["A", "B", "C"].map(function (L, i) {
-            var e = K.el("div", { class: "c2-letter", text: L, style: { left: 38 + SLOT_P * i + "px" } });
-            card.appendChild(e);
-            return e;
+          // 2 · the real-system panel (STORYBOARD §0C): AIRPORT view, badge RCTP, x 460–1460, y 228–568
+          // Ruler: a 37-minute window (ticks 10:00 05 … 35) — on a 60-minute ruler 10 min is only 114 px, so the two
+          // CTOT chips "B 10:10" / "C 10:20" (154 px each) would overprint; here 10 min = 185 px (31 px apart), the grey
+          // "A ✓" chip (82 px) clears B at 05 by 11 px, and N2 at 35 (x 695–759) stays inside the 778 px lane.
+          var P = K.sysPanel({
+            x: 460, y: 228, w: 1000, h: 340, active: "AIRPORT", badge: "RCTP", clock: "10:01",
+            hours: [["0900", 0.9], ["1000", 0.8], ["1100", 0.95], ["1200", 0.7], ["1300", 0.75], ["1400", 0.6]].map(function (h) { return { h: h[0], aar: 25, fill: h[1], state: "normal" }; }),
+            ruler: { start: 0, minutes: 37, step: 5, label: "10" },
+            // all three flights start on time (blue); B and C turn pink (regulated) when the capacity drops at 15.85
+            flights: [{ id: "A", min: 0, tone: "blue" }, { id: "B", min: 5, tone: "blue" }, { id: "C", min: 10, tone: "blue" }, { id: "N2", min: 35, tone: "grey" }],
           });
-          var slotRow = K.slots(["on", "on", "on", "on", "on"]);
-          card.appendChild(slotRow);
-          var slots = slotRow.__slots;
-          var ticks = slots.map(function (s) {
-            var sv = K.s("svg", { class: "c2-tick", width: "80", height: "32", viewBox: "-40 -16 80 32" });
-            var p = K.s("path", { d: "M-10 0L-3 7L11-7", fill: "none", stroke: CARD, "stroke-width": "3.2", "stroke-linecap": "round", "stroke-linejoin": "round" });
-            sv.appendChild(p);
-            s.appendChild(sv);
-            return p;
-          });
-          gsap.set(ticks, { drawSVG: "0% 0%" }); // every tick starts undrawn; only landings draw one
-          ui.appendChild(card);
+          Object.keys(P.pill.states).forEach(function (k) { P.pill.states[k].setAttribute("data-layout-allow-overlap", ""); }); // stacked, crossfaded states
+          var chA = P.chips[0].el, chB = P.chips[1].el, chC = P.chips[2].el;
+          chB.classList.add("c2-front");
+          var led = P.title.firstChild;
+          ui.appendChild(P.el);
 
-          // 3 · ATFM panel (x 690–1510, y 228–560; identical rect in c3 at the handoff)
-          var ROWS = [
-            { f: "A", t0: "10:00", t1: "10:00", tags: [["已起飛", true]] },
-            { f: "B", t0: "10:05", t1: "10:05", tags: [["等待", false], ["已派發", true]] },
-            { f: "C", t0: "10:10", t1: "10:10", tags: [["等待", false], ["已派發", true]] },
-          ];
-          var R = ROWS.map(function (r) {
-            var strike = K.el("span", { class: "c2-strike" });
-            var orig = K.el("span", { class: "k-num c2-orig" }, [r.t0, strike]);
-            var roll = K.roll(r.t1, { h: 50 });
-            var nt = K.el("span", { class: "c2-newt" }, [roll]);
-            var holder = K.el("span", { class: "c2-tags" });
-            var box = null, tags;
-            if (r.tags.length === 1) {
-              holder.appendChild(K.tag(r.tags[0][0], r.tags[0][1]));
-              tags = [];
-            } else {
-              // one opaque box; the labels are stacked text spans swapped in sequence
-              box = K.tag("", r.tags[0][1]);
-              box.appendChild(sizer(r.tags[1][0]));
-              holder.appendChild(box);
-              tags = r.tags.map(function (x) {
-                var e = K.el("span", { class: "c2-swap", text: x[0], style: { color: x[1] ? TEAL : TERRA } });
-                e.setAttribute("data-layout-allow-overlap", "");
-                box.appendChild(e);
-                return e;
-              });
-            }
-            return { cells: [K.el("span", { class: "c2-flt", text: "航班 " + r.f }), orig, K.el("span", { class: "c2-arrow", text: "→" }), nt, holder], strike: strike, orig: orig, nt: nt, roll: roll, box: box, tags: tags };
-          });
-          var panel = K.panel({ x: 690, y: 228, w: 820, title: "ATFM 流量管理系統", cols: "160px 112px 44px 136px 1fr", rows: R.map(function (r) { return r.cells; }) });
-          var rows = panel.__rows;
-          rows.forEach(function (row) { gsap.set(row.__hl, { opacity: 0 }); });
-          var bar = panel.__bar, led = bar.querySelector(".k-led");
-          var pills = K.el("span", { class: "c2-pills" });
-          var pillBox = K.el("span", { class: "k-pill c2-pillbox" }, [sizer("✓ 已派發")]);
-          var pRing = K.el("span", { class: "c2-pring" }); // S2's inset ring
-          pillBox.appendChild(pRing);
-          pills.appendChild(pillBox);
-          var PS = [["監控中", TEAL, "#E1EEE8"], ["已偵測", TERRA, "#F2DDD3"], ["計算中", TEAL, CARD], ["✓ 已派發", TEAL, "#E1EEE8"]];
-          var P = PS.map(function (x) {
-            var e = K.el("span", { class: "c2-swap", text: x[0], style: { color: x[1] } });
-            e.setAttribute("data-layout-allow-overlap", "");
-            pillBox.appendChild(e);
-            return e;
-          });
-          gsap.set(P.slice(1).concat([pRing]), { opacity: 0 });
-          var clock = K.el("span", { class: "k-bar-right", text: "10:01" });
-          bar.appendChild(pills);
-          bar.appendChild(clock);
-          gsap.set(R[0].nt, { opacity: 1 }); // A keeps (and has flown) its time
-          gsap.set([R[1].tags[1], R[2].tags[1]], { opacity: 0 });
-          gsap.set(R.map(function (r) { return r.strike; }), { scaleX: 0, transformOrigin: "0% 50%" });
-          ui.appendChild(panel);
-
-          // 4 · cause chips — stacked top-right (x ≥ 1526, right of the panel's footprint), above the cloud, in pop order
-          var chipWx = K.chip("天氣", { x: 1534, y: 324, warn: true });
-          var chipRw = K.chip("跑道維護", { x: 1534, y: 416, warn: true });
+          // 3 · cause chips — right of the panel (x 1480–1810, y 420–560), in pop order: 天氣 upper-left, 跑道維護 lower-right
+          var chipWx = K.chip("天氣", { x: 1480, y: 420, warn: true });
+          var chipRw = K.chip("跑道維護", { x: 1612, y: 482, warn: true });
+          chipWx.classList.add("c2-cause");
+          chipRw.classList.add("c2-cause");
           ui.appendChild(chipWx);
           ui.appendChild(chipRw);
-          // 5 · DEP chip stack
-          // one opaque chip box (terra-soft → mint) that keeps SIG2's end covered; only the text swaps, in sequence
-          var chipWrap = K.el("div", { class: "k-chip is-warn c2-chipwrap" }, [sizer("已接收新起飛時間")]);
+          // 4 · DEP chip stack at (110, 500): one opaque box (terra-soft → mint) that keeps SIG2's end covered; only the text swaps
+          var chipWrap = K.el("div", { class: "k-chip is-warn c2-chipwrap" }, [sizer("已接收新時間")]);
           var chipHold = K.el("span", { class: "c2-swap", text: "地面等待", style: { color: TERRA } });
-          var chipNew = K.el("span", { class: "c2-swap", text: "已接收新起飛時間", style: { color: TEAL } });
+          var chipNew = K.el("span", { class: "c2-swap", text: "已接收新時間", style: { color: TEAL } });
           chipWrap.appendChild(chipHold);
           chipWrap.appendChild(chipNew);
           gsap.set(chipNew, { opacity: 0 });
-          // intentional layering / clipping (stacked swap texts; rolling digit strips inside their columns)
-          [chipHold, chipNew].forEach(function (e) { e.setAttribute("data-layout-allow-overlap", ""); });
-          [cnt].concat(R.map(function (r) { return r.roll; })).forEach(function (w) {
-            w.__cols.forEach(function (c) { if (c.__strip) c.__strip.setAttribute("data-layout-allow-overflow", ""); });
-          });
+          [chipHold, chipNew].forEach(function (e) { e.setAttribute("data-layout-allow-overlap", ""); }); // stacked swap texts
           ui.appendChild(chipWrap);
 
           // ================= TIMELINE (local times via G(global)) =================
-          // ambient: one continuous stage drift for the whole window (1.02 / −8 keeps the DST raster inside x 1810)
-          tl.fromTo(stage, { scale: 1, x: 0, transformOrigin: "960px 560px" }, { scale: 1.02, x: -8, duration: 16.9, ease: "sine.inOut" }, 0);
+          // ambient: one continuous stage drift for the whole window (1.015 / −6 keeps the DST block's shadow above y 860)
+          tl.fromTo(stage, { scale: 1, x: 0, transformOrigin: "960px 560px" }, { scale: 1.015, x: -6, duration: 16.9, ease: "sine.inOut" }, 0);
 
           // --- VO3: catch the zoom-through ---
-          // c1's dive lands RCTP on (1500, 648); that point is on the DST runway (R′ ≈ 0.24), so the block grows out of it
-          tl.fromTo(dst, { opacity: 0, scale: 0.86, transformOrigin: "170px 51px" }, { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" }, G(7.70));
+          // c1's dive lands RCTP on (1500, 648); that point is on the DST runway (R′ ≈ 0.07), so the block grows out of it
+          tl.fromTo(dst, { opacity: 0, scale: 0.86, transformOrigin: "90px 18px" }, { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" }, G(7.70));
           K.draw(tl, route2, G(7.70), 0.9, "expo.out");
           // DEP rises with ROUTE2 (both 7.70) so the arc never starts drawing over empty cream
           tl.fromTo(dep, { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out" }, G(7.70));
@@ -366,12 +280,8 @@
           tl.fromTo(N1.w, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, G(7.75));
           K.inUp(tl, depLabel, G(8.0), { y: 12, dur: 0.6 });
           K.inUp(tl, dstLabel, G(8.1), { y: 12, dur: 0.6 });
-          K.inUp(tl, card, G(8.4), { y: 16, dur: 0.7 });
-          slots.forEach(function (s, i) {
-            tl.fromTo(s, { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.4, ease: "power3.out" }, G(8.6) + 0.06 * i);
-          });
-          tl.fromTo(avail, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(8.7));
-          letters.forEach(function (e, i) { K.pop(tl, e, G(8.8) + 0.06 * i, { dur: 0.45, ease: "back.out(1.5)" }); });
+          // the system panel is on screen from 8.40 in S0 監控中 (where the slot card used to appear)
+          K.inUp(tl, P.el, G(8.4), { y: 16, dur: 0.7 });
 
           // --- VO4: destination constrained ---
           tl.to(dstLabel, { color: TERRA, duration: 0.4, ease: "power2.inOut" }, G(11.05));
@@ -380,7 +290,7 @@
           // 「天氣」
           tl.fromTo(cloud, { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.9, ease: "power3.out" }, G(12.85));
           K.pop(tl, chipWx, G(12.9), { dur: 0.55, ease: "back.out(1.5)" });
-          K.rain(tl, rainSvg, { id: "c2-rain", x: 1548, y: 598, w: 150, h: 84, n: 12, t0: G(12.95), t1: G(24.25) });
+          K.rain(tl, rainSvg, { id: "c2-rain", x: 1600, y: 648, w: 140, h: 76, n: 12, t0: G(12.95), t1: G(24.25) });
           // 「跑道」
           tl.fromTo(hatch, { scaleX: 0, opacity: 0, transformOrigin: "0% 50%" }, { scaleX: 1, opacity: 1, duration: 0.6, ease: "power3.out" }, G(13.65));
           K.pop(tl, chipRw, G(13.7), { dur: 0.55, ease: "back.out(1.5)" });
@@ -391,13 +301,16 @@
           K.out(tl, chipWx, G(15.7), { dur: 0.35 });
           K.out(tl, chipRw, G(15.75), { dur: 0.35 });
 
-          // --- VO5: capacity 5 → 3, B and C hold ---
-          K.slotTo(tl, slots[1], "off", G(15.85), 0.4);
-          K.slotTo(tl, slots[3], "off", G(16.0), 0.4);
-          K.rollTo(tl, cnt, "3", G(16.05), 0.6);
-          tl.to(cnt, { color: TERRA, duration: 0.6, ease: "power3.inOut" }, G(16.05));
-          tl.to(letters[1], { color: TERRA, duration: 0.3, ease: "power2.inOut" }, G(16.15));
-          tl.to(letters[2], { color: TERRA, duration: 0.3, ease: "power2.inOut" }, G(16.23));
+          // --- VO5 「降低」: hours 1000 and 1100 drop to AAR 23 (pink, red ATFM); B and C become regulated (pink) and hold ---
+          P.setAAR(tl, 1, 23, true, G(15.85));
+          P.setAAR(tl, 2, 23, true, G(16.0));
+          function chipPulse(el, t, rgb) {
+            tl.fromTo(el, { boxShadow: "0 0 0 0px rgba(" + rgb + ",0.6)" }, { boxShadow: "0 0 0 12px rgba(" + rgb + ",0)", duration: 0.7, ease: "power2.out", immediateRender: false }, t);
+          }
+          [[chB, 15.85], [chC, 16.0]].forEach(function (x) {
+            tl.fromTo(x[0], { backgroundColor: "#3A8DDE" }, { backgroundColor: SYS.pink, duration: 0.4, ease: "power2.inOut", immediateRender: false }, G(x[1]));
+            chipPulse(x[0], G(x[1]), "230,57,155");
+          });
           // hold rings: ground ellipses; C runs 0.2 s behind B so the two neighbouring rings never peak together
           // (last pulse ends B 19.05 / C 19.25, before B's release at 19.95)
           [[B, 16.5], [C, 16.7]].forEach(function (x) {
@@ -409,72 +322,36 @@
           });
           K.pop(tl, chipWrap, G(16.6), { dur: 0.55, ease: "back.out(1.5)" });
 
-          // A lands in slot 1
-          function slotRing(s, t) {
-            tl.fromTo(s, { boxShadow: "0 0 0 0px rgba(62,140,128,0.55)" }, { boxShadow: "0 0 0 10px rgba(62,140,128,0)", duration: 0.6, ease: "power2.out", immediateRender: false }, t);
+          // A touched down 18.26 → its chip is done: grey, "A ✓"
+          function chipDone(el, label, t) {
+            tl.to(el, { backgroundColor: SYS.grey, duration: 0.3, ease: "power2.inOut" }, t);
+            tl.set(el, { textContent: label }, t);
           }
-          function tick(i, t) {
-            tl.fromTo(ticks[i], { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: 0.3, ease: "power2.out" }, t);
-            slotRing(slots[i], t);
-          }
-          tick(0, G(18.3));
-          tl.to(letters[0], { color: TEAL, duration: 0.3, ease: "power2.inOut" }, G(18.3));
+          chipDone(chA, "A ✓", G(18.3));
 
           // --- VO6: the system detects, recomputes, dispatches ---
-          // opaque by 18.98 (before the terra packet arrives), while the rise keeps its long settle
-          tl.fromTo(panel, { opacity: 0 }, { opacity: 1, duration: 0.22, ease: "power2.out" }, G(18.76));
-          tl.fromTo(panel, { y: 24 }, { y: 0, duration: 0.7, ease: "power3.out" }, G(18.76));
-          rows.forEach(function (row, i) { K.inUp(tl, row, G(18.86) + 0.08 * i, { y: 10, dur: 0.5 }); });
-          tl.to(clock, { count: { from: 601.43, to: 633.93, fmt: "time" }, duration: 4.55, ease: "none" }, G(18.76));
-          tl.fromTo(led, { backgroundColor: LED_MINT, boxShadow: LED_GLOW }, { backgroundColor: LED_MINT, boxShadow: LED_GLOW, duration: 0.22, ease: "none" }, G(18.76));
-          // input link: card → panel, terra packet = constraint info
+          // 「系統」: a soft mint ring on the title-bar LED marks the beat (panel already up, pill S0)
+          tl.fromTo(led, { boxShadow: "0 0 0 5px rgba(159,224,201,0.45)" }, { boxShadow: "0 0 0 14px rgba(159,224,201,0)", duration: 0.5, ease: "power2.out", immediateRender: false }, G(18.76));
+          tl.to(P.clock, { count: { from: 601.43, to: 633.93, fmt: "time" }, duration: 4.55, ease: "none" }, G(18.76)); // 10:01 → 10:34; 10:10 at 19.95, 10:20 at 21.35
+          // input link: weather → panel, terra packet = constraint info
           K.reveal(tl, inlink, G(18.78), 0.2, { id: "c2-rv-in", width: 16, ease: "expo.out" });
-          // linear: the eased ends happen hidden under card / panel anyway, so spend the time in the visible gap
           tl.to(pkIn, { along: { path: inlink, from: 0, to: 1, rotate: false }, duration: 0.18, ease: "none", immediateRender: true }, G(18.8));
           tl.fromTo(pkIn, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, G(18.8));
           tl.to(pkIn, { opacity: 0, duration: 0.05, ease: "none" }, G(18.98));
-          K.flow(tl, inlink, G(18.98), G(23.8), 40);
-          // Label swap inside one opaque box: the old text is fully out (0.11) before the new one starts (0.14), so two
-          // labels are never visible at once (no overprinted glyphs). The box's background tweens across the same 0.25 slot.
-          function swap(a, b, t) {
-            tl.to(a, { opacity: 0, duration: 0.11, ease: "power2.in" }, t);
-            tl.fromTo(b, { opacity: 0, y: 3 }, { opacity: 1, y: 0, duration: 0.14, ease: "power2.out" }, t + 0.11);
-          }
-          function bgTo(el, c0, c1, t) {
-            tl.fromTo(el, { backgroundColor: c0 }, { backgroundColor: c1, duration: 0.25, ease: "power2.inOut", immediateRender: false }, t);
-          }
-          // S0 → S1 已偵測 (detect)
-          function pillTo(a, b, t) {
-            swap(P[a], P[b], t);
-            bgTo(pillBox, PS[a][2], PS[b][2], t);
-          }
-          pillTo(0, 1, G(18.98));
-          tl.to(led, { backgroundColor: TERRA, duration: 0.25, ease: "power2.inOut" }, G(18.98));
-          tl.to(led, { boxShadow: "0 0 0 0px rgba(178,81,53,0.35)", duration: 0.01, ease: "none" }, G(18.98));
-          tl.to(led, { boxShadow: "0 0 0 10px rgba(178,81,53,0)", duration: 0.6, ease: "power2.out" }, G(18.99));
+          K.flow(tl, inlink, G(18.98), G(23.55), 40);
+          // S0 → S1 已偵測 (detect): LED turns terra (pill.set) with one ring pulse
+          P.pill.set(tl, "S1", G(18.98));
+          tl.fromTo(led, { boxShadow: "0 0 0 0px rgba(240,138,107,0.55)" }, { boxShadow: "0 0 0 12px rgba(240,138,107,0)", duration: 0.6, ease: "power2.out", immediateRender: false }, G(18.98));
+          tl.to(led, { boxShadow: "0 0 0 5px rgba(240,138,107,0.22)", duration: 0.25, ease: "power2.out" }, G(19.58));
           // S1 → S2 計算中 (「自動」)
-          pillTo(1, 2, G(19.5));
-          tl.fromTo(pRing, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.inOut", immediateRender: false }, G(19.5));
-          [1, 2].forEach(function (i, k) {
-            var t = G(19.5) + 0.12 * k;
-            tl.fromTo(rows[i].__hl, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.inOut" }, t);
-            tl.to(rows[i].__hl, { opacity: 0, duration: 0.4, ease: "power2.inOut" }, t + 0.2);
-          });
-          // letters slide to their new slots (slot pitch 96)
-          tl.fromTo(letters[1], { x: 0 }, { x: SLOT_P, duration: 0.4, ease: "power2.inOut", immediateRender: false }, G(19.54));
-          tl.to(letters[1], { color: TEAL, duration: 0.4, ease: "power2.inOut" }, G(19.54));
-          tl.fromTo(letters[2], { x: 0 }, { x: 2 * SLOT_P, duration: 0.45, ease: "power2.inOut", immediateRender: false }, G(19.64));
-          tl.to(letters[2], { color: TEAL, duration: 0.45, ease: "power2.inOut" }, G(19.64));
-          slotRing(slots[2], G(19.94));
-          slotRing(slots[4], G(20.09));
+          P.pill.set(tl, "S2", G(19.5));
           // dispatch signal first: panel → DEP
           K.reveal(tl, sig2, G(19.58), 0.3, { id: "c2-rv-sig", width: 16, ease: "expo.out" });
           tl.to(pkSig, { along: { path: sig2, from: 0, to: 1, rotate: false }, duration: 0.26, ease: "power1.inOut", immediateRender: true }, G(19.6));
           tl.fromTo(pkSig, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, G(19.6));
           tl.to(pkSig, { opacity: 0, duration: 0.05, ease: "none" }, G(19.86));
           K.flow(tl, sig2, G(19.88), G(23.5), 40);
-          // DEP receives
-          // one opaque box (keeps SIG2's end covered): background terra-soft → mint, text out, then text in
+          // DEP receives: background terra-soft → mint, text out, then text in
           tl.fromTo(chipWrap, { backgroundColor: "#F2DDD3" }, { backgroundColor: "#E1EEE8", duration: 0.3, ease: "power2.inOut", immediateRender: false }, G(19.85));
           tl.to(chipHold, { opacity: 0, duration: 0.12, ease: "power2.in" }, G(19.84));
           tl.fromTo(chipNew, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.22, ease: "power2.out" }, G(19.95));
@@ -484,48 +361,39 @@
           });
           K.pop(tl, B.tt, G(19.86), { dur: 0.45, ease: "back.out(1.5)" });
           K.pop(tl, C.tt, G(19.94), { dur: 0.45, ease: "back.out(1.5)" });
-          // C's tag waits left-low of centre (clear of B on the runway) and re-centres during C's MERGE
+          // C's tag waits left of centre (clear of B on the runway) and re-centres during C's MERGE
           tl.fromTo(C.tt, { x: 0, y: 0 }, { x: -C_TT_DX, y: -C_TT_DY, duration: 0.75, ease: "power1.inOut", immediateRender: false }, G(20.45));
-          // then values roll (after the packet has arrived)
-          [[1, "10:10", 19.88], [2, "10:20", 20.0]].forEach(function (x) {
-            K.rollTo(tl, R[x[0]].roll, x[1], G(x[2]), 0.6, 0.05);
-            tl.fromTo(R[x[0]].nt, { opacity: 0.45 }, { opacity: 1, duration: 0.6, ease: "power3.inOut" }, G(x[2]));
-          });
-          [[1, 20.04], [2, 20.16]].forEach(function (x) {
-            swap(R[x[0]].tags[0], R[x[0]].tags[1], G(x[1]));
-            bgTo(R[x[0]].box, "#F2DDD3", "#E1EEE8", G(x[1]));
-          });
-          [[1, 20.1], [2, 20.22]].forEach(function (x) {
-            tl.fromTo(R[x[0]].strike, { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, G(x[1]));
-            tl.fromTo(R[x[0]].orig, { opacity: 1 }, { opacity: 0.5, duration: 0.3, ease: "power2.out", immediateRender: false }, G(x[1]));
-          });
-          // S2 → S3 ✓ 已派發 (「派發」)
-          pillTo(2, 3, G(20.24));
-          tl.to(pRing, { opacity: 0, duration: 0.25, ease: "power2.inOut" }, G(20.24));
-          tl.to(led, { backgroundColor: LED_MINT, boxShadow: LED_GLOW, duration: 0.25, ease: "power2.inOut" }, G(20.24));
-          // B lands in slot 3 — loop closed inside VO6
-          tick(2, G(23.12));
+          // then the CTOTs land on the timeline (after the packet has arrived, 19.86): B → 10:10, C → 10:20.
+          // B (in front) is relabelled mid-slide; C's label is set once C has cleared B's chip (20.39), so the two never overprint
+          P.moveChip(tl, 1, 10, G(19.88), 0.6, "B 10:10");
+          P.moveChip(tl, 2, 20, G(20.0), 0.6);
+          tl.set(chC, { textContent: "C 10:20" }, G(20.45));
+          // S2 → S3 ✓ 已派發 (「派發」): LED back to mint with its resting glow
+          P.pill.set(tl, "S3", G(20.24));
+          tl.to(led, { boxShadow: LED_GLOW, duration: 0.3, ease: "power2.inOut" }, G(20.24));
+          // B touched down 23.08 → its chip is done — loop closed inside VO6
+          chipDone(chB, "B ✓", G(23.12));
 
           // ================= AIRCRAFT =================
-          // Timing keeps every release (clock) and touchdown (tick) beat: roll 0.885 s → touchdown +3.134 s.
-          // On the re-fitted stage the runway is 375 px and the arc 903 px, so one constant speed cannot hold both beats:
-          // the roll accelerates (power2.in) to 271 px/s, the climb keeps accelerating smoothly (CustomEase, constant
-          // acceleration, velocity-continuous at both ends) to 463 px/s, and the arc, approach and rollout run at 463.
-          var V1 = 271.2, V2 = 462.9;
-          var ACCEL = CustomEase.create("c2-accel", "M0,0 C0.3333,0.2463 0.6667,0.5796 1,1"); // p = ατ + (1−α)τ², α = 2V1/(V1+V2)
+          // Timing keeps every release (clock) and touchdown beat: roll 0.885 s → touchdown +3.134 s.
+          // On the re-fitted stage the runway roll is 96 px and the arc 1039 px, so one constant speed cannot hold both beats:
+          // the roll accelerates (power2.in) to 217 px/s, the climb keeps accelerating smoothly (CustomEase, constant
+          // acceleration, velocity-continuous at both ends) to 517 px/s, and the arc, approach and rollout run at 517.
+          var V1 = 216.9, V2 = 517.1;
+          var ACCEL = CustomEase.create("c2-accel", "M0,0 C0.3333,0.1970 0.6667,0.5304 1,1"); // p = ατ + (1−α)τ², α = 2V1/(V1+V2)
           // seg(): one `along` tween; only each plane's chronologically first tween renders immediately
           function seg(pl, path, t, dur, o, first) {
             K.fly(tl, pl, path, t, dur, { from: o.from, to: o.to, ease: o.ease || "none", alt0: o.alt0, alt1: o.alt1, squash0: o.squash0, squash1: o.squash1, immediateRender: !!first });
             return t + dur;
           }
           var LEG = {
-            roll: { from: 0, to: F.LO, dur: 0.885, ease: "power2.in", alt0: 0, alt1: 0, squash0: Q, squash1: Q }, // 120 px → 271 px/s
-            climb: { from: F.LO, to: F.E, dur: 0.1838, ease: ACCEL, alt0: 0, alt1: 1, squash0: Q, squash1: 1 }, // 67.5 px, 271 → 463
-            arc: { from: F.E, to: F.H, dur: 1.9518, alt0: 1, alt1: 1, squash0: 1, squash1: 1 }, // 903.4 px
-            app: { from: F.H, to: F.TD, dur: 0.1134, alt0: 1, alt1: 0, squash0: 1, squash1: Q }, // 52.5 px
-            rollout: { from: F.TD, to: 1, dur: 0.5184, ease: "power2.out", alt0: 0, alt1: 0, squash0: Q, squash1: Q }, // 120 px → 0
+            roll: { from: 0, to: F.LO, dur: 0.885, ease: "power2.in", alt0: 0, alt1: 0, squash0: Q, squash1: Q }, // 96 px → 217 px/s
+            climb: { from: F.LO, to: F.E, dur: 0.13, ease: ACCEL, alt0: 0, alt1: 1, squash0: Q, squash1: 1 }, // 47.7 px, 217 → 517
+            arc: { from: F.E, to: F.H, dur: 2.0102, alt0: 1, alt1: 1, squash0: 1, squash1: 1 }, // 1039.4 px
+            app: { from: F.H, to: F.TD, dur: 0.1088, alt0: 1, alt1: 0, squash0: 1, squash1: Q }, // 56.2 px
+            rollout: { from: F.TD, to: 1, dur: 0.3384, ease: "power2.out", alt0: 0, alt1: 0, squash0: Q, squash1: Q }, // 87.5 px → 0
           };
-          var T_ARC0 = LEG.roll.dur + LEG.climb.dur; // roll start → arc start (1.0688)
+          var T_ARC0 = LEG.roll.dur + LEG.climb.dur; // roll start → arc start (1.015)
           var GROUND = { alt0: 0, alt1: 0, squash0: Q, squash1: Q };
           function legs(pl, t, list, first) {
             list.forEach(function (lg, i) { t = seg(pl, FLT2, t, lg.dur, lg, first && i === 0); });
@@ -539,24 +407,25 @@
             seg(pl, path, t, dur / 2, { from: 0, to: 0.5, ease: "power1.in", alt0: 0, alt1: 0, squash0: Q, squash1: QT }, first);
             return seg(pl, path, t + dur / 2, dur / 2, { from: 0.5, to: 1, ease: "power1.out", alt0: 0, alt1: 0, squash0: QT, squash1: Q }, false);
           }
-          function turnOff(p, t) { // TURN2 (62 px) to the stand; the fade starts as the nose leaves the runway
+          function turnOff(p, t) { // TURN2 (52 px) to the taxiway; the fade starts as the nose leaves the runway
             groundTurn(p.pl, TURN2, t, 0.62, false);
             tl.to(p.w, { opacity: 0, duration: 0.36, ease: "power1.out" }, t + 0.26);
           }
           var STD = [LEG.roll, LEG.climb, LEG.arc, LEG.app, LEG.rollout];
 
-          // N1 — airborne at start (x ≈ 893 at 7.75), continues c1's landing story: approach 8.87, touchdown 8.98
-          var t = legs(N1.pl, G(7.75), [{ from: 0.4531, to: F.H, dur: 1.12, alt0: 1, alt1: 1, squash0: 1, squash1: 1 }, LEG.app, LEG.rollout], true);
+          // N1 — airborne at start (x ≈ 891 at 7.75), continues c1's landing story: approach 8.87, touchdown 8.98
+          var n1From = Math.round((F.H - (1.12 * V2) / FLT2.getTotalLength()) * 10000) / 10000; // ≈ 0.4552
+          var t = legs(N1.pl, G(7.75), [{ from: n1From, to: F.H, dur: 1.12, alt0: 1, alt1: 1, squash0: 1, squash1: 1 }, LEG.app, LEG.rollout], true);
           turnOff(N1, t);
           // N2 — at LU, rolls 9.90, lands 13.03 in the rain, stops at R′(0.46) short of the hatch and turns off
           t = legs(N2.pl, G(9.9), STD, true);
           turnOff(N2, t);
-          // A — keeps its slot: Q1 → LU, rolls 15.13 (10:00), lifts off 16.02, lands 18.26 → tick 18.30
+          // A — keeps its slot: Q1 → LU, rolls 15.13 (10:00), lifts off 16.02, lands 18.26 → chip A ✓ 18.30
           groundTurn(A.pl, MERGE, G(10.6), 0.75, true);
           t = legs(A.pl, G(15.13), STD, false);
           turnOff(A, t);
           tl.to(A.lt, { opacity: 0, duration: 0.2, ease: "power2.in" }, G(16.02));
-          // B — Q2 → Q1 → LU, holds, released 19.95 (10:10), lifts off 20.84, lands 23.08 → tick 23.12
+          // B — Q2 → Q1 → LU, holds, released 19.95 (10:10), lifts off 20.84, lands 23.08 → chip B ✓ 23.12
           seg(B.pl, TAXI21, G(11.0), 0.7, Object.assign({ from: 0, to: 1, ease: "sine.inOut" }, GROUND), true);
           groundTurn(B.pl, MERGE, G(15.55), 0.75, false);
           legs(B.pl, G(19.95), STD, false);
@@ -570,15 +439,17 @@
           tl.to([C.lt, C.tt], { opacity: 0, duration: 0.2, ease: "power2.in" }, G(22.24));
 
           // ================= HANDOFF → c3 =================
-          tl.to(rows.concat([pills, clock]), { opacity: 0, duration: 0.25, ease: "power2.in" }, G(23.35));
+          // panel content (nav, columns, strip, pill) clears; the FRAME (dark box + title bar) stays for c3's identical frame
+          tl.to([P.nav, P.main, P.pill.el], { opacity: 0, duration: 0.25, ease: "power2.in" }, G(23.35));
           tl.to([dep, depLabel, chipWrap, gSig], { opacity: 0, x: -40, duration: 0.45, ease: "power2.in" }, G(23.5));
           // ROUTE2's tail retracts behind C (C is ≥ 55 % along the arc from 23.50), so no stub dangles at the DEP end
           tl.fromTo(route2, { drawSVG: "0% 100%" }, { drawSVG: "55% 100%", duration: 0.45, ease: "power2.in", immediateRender: false }, G(23.5));
-          tl.set(panel, { opacity: 0 }, G(23.8)); // c3's identical frame (x 690, y 228, w 820, h 332) is on top since 23.75
-          // right WORLD group leaves first (≈ 0 by 24.00, before c3's ROUTE3 front reaches x 1200 at ≈ 24.02);
-          // B ticked slot 3 at 23.12, so nothing narrative is lost. The UI (card, INLINK) keeps the 23.80 timing.
-          tl.to([glow, dst, gR, rainWrap, cloudWrap, dstLabel, uline], { opacity: 0, x: 24, duration: 0.45, ease: "power2.in" }, G(23.55));
-          tl.to([card, gIn], { opacity: 0, x: 24, duration: 0.45, ease: "power2.in" }, G(23.8));
+          // right WORLD group leaves first (≈ 0 by 24.00, before c3's ROUTE3 front reaches the DST footprint);
+          // B's chip ticked at 23.12, so nothing narrative is lost
+          tl.to([glow, dst, gR, lkIn, rainWrap, cloudWrap, dstLabel, uline], { opacity: 0, x: 24, duration: 0.45, ease: "power2.in" }, G(23.55));
+          // c3 shows the identical frame (x 460, y 228, w 1000, h 340, bar + LED + title) on top from 23.60 and glides/morphs
+          // it to x 990 / w 820 over 23.85–24.85; c2's own frame simply hides under it at 23.80
+          tl.set(P.el, { opacity: 0 }, G(23.8));
 
           tl.set({}, {}, 16.9);
           window.__timelines["c2-airport"] = tl;
