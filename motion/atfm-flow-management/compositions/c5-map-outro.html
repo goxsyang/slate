@@ -102,28 +102,32 @@
           // as separate segments with a linearGradient stroke that fades to 0, so the film never claims what lies beyond
           // the FIR. The charted 10-wu final APU → RCTP is flown (invisible guide) but not drawn: at CAM.S it would be a
           // 30 px stub hooking off A1 before the RCTP node pops; the hero highlight shows the final once, in context.
-          var RS = { fill: "none", stroke: "#1F6B62", "stroke-width": "5", "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" };
+          var RS = { fill: "none", stroke: "#1F6B62", "stroke-width": "4.5", "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" };
           function pts(d) { return d.slice(1).split("L").map(function (s) { var a = s.split(" "); return [Number(a[0]), Number(a[1])]; }); }
           function seg(a, b) { return "M" + a[0] + " " + a[1] + "L" + b[0] + " " + b[1]; }
-          function fadeSeg(id, a, b) { // straight segment a → b whose stroke fades from the airway colour at a to 0 at b
+          function fadeSeg(id, a, b, col) { // straight segment a → b whose stroke fades from the airway colour at a to 0 at b
+            col = col || "#1F6B62";
             var g = K.s("linearGradient", { id: id, gradientUnits: "userSpaceOnUse", x1: String(a[0]), y1: String(a[1]), x2: String(b[0]), y2: String(b[1]) }, [
-              K.s("stop", { offset: "0", "stop-color": "#1F6B62", "stop-opacity": "1" }),
-              K.s("stop", { offset: "1", "stop-color": "#1F6B62", "stop-opacity": "0" }),
+              K.s("stop", { offset: "0", "stop-color": col, "stop-opacity": "1" }),
+              K.s("stop", { offset: "1", "stop-color": col, "stop-opacity": "0" }),
             ]);
             m.defs.appendChild(g);
             return K.s("path", Object.assign({}, RS, { class: "c5-awy-ext", d: seg(a, b), stroke: "url(#" + id + ")", "stroke-linecap": "butt" }));
           }
           var core = {
             A1: K.s("path", Object.assign({ id: "c5-a1", d: AW.A1.d }, RS)),
-            M750: K.s("path", Object.assign({ id: "c5-m750", d: AW.M750.d }, RS)),
+            M750: K.s("path", Object.assign({ id: "c5-m750", d: AW.M750.d }, RS, { stroke: "#3E8C80" })), // M750 in --teal-2, as c1
           };
           var eA1 = pts(AW.A1.dExt), eM = pts(AW.M750.dExt);
           var ext = [
             fadeSeg("c5-fade-a1-sw", eA1[1], eA1[0]), fadeSeg("c5-fade-a1-ne", eA1[eA1.length - 2], eA1[eA1.length - 1]),
-            fadeSeg("c5-fade-m750-sw", eM[1], eM[0]), fadeSeg("c5-fade-m750-ne", eM[eM.length - 2], eM[eM.length - 1]),
+            fadeSeg("c5-fade-m750-sw", eM[1], eM[0], "#3E8C80"), fadeSeg("c5-fade-m750-ne", eM[eM.length - 2], eM[eM.length - 1], "#3E8C80"),
           ];
           ext.forEach(function (p) { m.world.appendChild(p); });
           [core.M750, core.A1].forEach(function (p) { m.world.appendChild(p); });
+          // the charted APU → RCTP final (as c1's R.SPUR): hidden while the camera sits on Taiwan, fades in with the RCTP node pop (41.10)
+          var spur = K.s("path", Object.assign({ id: "c5-a1-final", d: "M" + FIX.APU[0] + " " + FIX.APU[1] + "L" + PT.RCTP[0] + " " + PT.RCTP[1] }, RS, { opacity: "0" }));
+          m.world.appendChild(spur);
           // flight guides (invisible): the aircraft follow these exact airway paths
           var R = {
             SW: K.s("path", { id: "c5-g-a1-sw", d: AW.A1_ARR_SW.d, fill: "none", stroke: "none" }),
@@ -134,9 +138,12 @@
           // ELATO to RCTP. It sits ABOVE the airway core (and the extensions) and below the fix dots, nodes, leaders and
           // planes, so the segment the hero has flown visibly lightens from the 5 px #1F6B62 core to a 7 px #3E8C80 band —
           // "this flight's path". (Under the core, a 7 px stroke left ≤ 1 px of halo per side and read as nothing.)
-          var HL_OP = 0.88;
-          var hl = K.s("path", { class: "c5-hl", d: AW.A1_ARR_SW.d, fill: "none", stroke: "#3E8C80", "stroke-width": "7", opacity: String(HL_OP), "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" });
-          m.world.appendChild(hl);
+          var HL_OP = 1;
+          // cream casing under the highlight makes the hero's trail unmistakable at normal viewing (QA); it reuses the
+          // c5-rv-hero mask that K.reveal creates on hl, so both reveal together behind the aircraft
+          var hlCase = K.s("path", { class: "c5-hl-case", d: AW.A1_ARR_SW.d, fill: "none", stroke: "#FBF7F2", "stroke-width": "13", opacity: "0.45", "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke", mask: "url(#c5-rv-hero)" });
+          var hl = K.s("path", { class: "c5-hl", d: AW.A1_ARR_SW.d, fill: "none", stroke: "#3E8C80", "stroke-width": "9", opacity: String(HL_OP), "stroke-linecap": "round", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" });
+          m.world.appendChild(hlCase); m.world.appendChild(hl);
 
           var LEN = {};
           Object.keys(R).forEach(function (k) { LEN[k] = R[k].getTotalLength(); }); // SW ≈ 439.4 · M ≈ 794.9
@@ -151,10 +158,10 @@
           var HDG_SW = hdg(FIX.MKG, FIX.APU); // heading held through the APU → RCTP final
 
           // ---------- fixes (world, above the airways, under the planes): 5 px tick dots + soft tags ----------
-          function mkFix(pt) {
+          function mkFix(pt, col) {
             var g = K.s("g", { class: "c5-fixdot" }, [
               K.s("circle", { r: "4.5", fill: "#FBF7F2", opacity: "0.9" }),
-              K.s("circle", { r: "2.5", fill: "#1F6B62" }),
+              K.s("circle", { r: "2.5", fill: col || "#1F6B62" }),
             ]);
             var inner = K.s("g", { class: "c5-in", opacity: "0" }, [g]);
             var outer = K.s("g", { class: "c5-fix-node" }, [inner]);
@@ -162,21 +169,22 @@
             K.mapFixed(m, outer, pt[0], pt[1], 1);
             return { g: outer, inner: inner };
           }
-          var fx = { MKG: mkFix(FIX.MKG), APU: mkFix(FIX.APU), ANLOT: mkFix(FIX.ANLOT), SANAS: mkFix(FIX.SANAS) };
+          var fx = { MKG: mkFix(FIX.MKG), APU: mkFix(FIX.APU), ANLOT: mkFix(FIX.ANLOT, "#3E8C80"), SANAS: mkFix(FIX.SANAS, "#3E8C80") }; // M750 fixes in --teal-2, as c1
 
           // ---------- nodes: outer = mapFixed, inner .c5-in = animated, pulse rings are siblings of inner ----------
           // RCTP and the SE corner sit in m.top (arrivals land under the Taoyuan node). The boundary points are
           // waypoints, so they sit in m.world above the airways but below the planes (created later): traffic flies
           // over a boundary point instead of sliding under it (as in c1).
-          function mkNode(pt, r, color, nPulse, parent) {
+          function mkNode(pt, r, color, nPulse, parent, ringR) {
             var outer = K.s("g", { class: "c5-node" });
             var pulses = [];
             for (var i = 0; i < (nPulse == null ? 1 : nPulse); i++) {
-              var pc = K.s("circle", { class: "c5-pulse", r: String(r), fill: "none", stroke: color, "stroke-width": "2", opacity: "0" });
+              var pc = K.s("circle", { class: "c5-pulse", r: String(ringR || r), fill: "none", stroke: color, "stroke-width": "2", opacity: "0" });
               outer.appendChild(pc); pulses.push(pc);
             }
             var inner = K.s("g", { class: "c5-in", opacity: "0" });
             var n = K.node(0, 0, { r: r, color: color });
+            if (ringR) n.__ring.setAttribute("r", String(ringR)); // c1 draws the boundary ring at 9 (not r + 4)
             n.removeChild(n.__pulse);
             inner.appendChild(n); outer.appendChild(inner); (parent || m.top).appendChild(outer);
             K.mapFixed(m, outer, pt[0], pt[1], 1);
@@ -186,9 +194,9 @@
           // boundary points (邊境點) on the FIR edges: ELATO / ENVAR west (117°30′E), BULAN / MOLKA east (124°E)
           // r 7 → ring 11 (as c1): BULAN lies 12.3 wu off M750 (20–22 px at z 1.6–1.78), so a passing transit's wingtip
           // (half-span 13.9 px at len 30) reaches ≤ 5 px over the ring instead of 6.6+ px with r 8 / len 34.
-          var nB = {}, BP_R = 7, BP_RING = BP_R + 4;
+          var nB = {}, BP_R = 7, BP_RING = 9; // as c1
           ["ELATO", "ENVAR", "BULAN", "MOLKA"].forEach(function (k) {
-            nB[k] = mkNode(FIX[k], BP_R, "#1F6B62", 2, m.world);
+            nB[k] = mkNode(FIX[k], BP_R, (k === "ENVAR" || k === "MOLKA") ? "#3E8C80" : "#1F6B62", 2, m.world, BP_RING); // M750 points in --teal-2, as c1
             nB[k].pulses.forEach(function (c) { c.setAttribute("stroke-width", "2.5"); }); // must read over the 0.16 FIR fill
           });
           var nRCTP = mkNode(PT.RCTP, 9, "#1F6B62", 2);
@@ -216,10 +224,10 @@
           // 10 px right of it (glyphs ≈ x −22…+42, y −92…−52 rel. APU): ≥ 23 px above the pill, ≥ 25 px off the A1 BULAN leg
           // (which carries no traffic) and ≥ 13 px right of chip01's leader at every camera state.
           var tag = {
-            ELATO: mkTag(FIX.ELATO, "ELATO", "c5-tag", { right: -4, bottom: -14 }),
-            BULAN: mkTag(FIX.BULAN, "BULAN", "c5-tag", { right: -4, bottom: -14 }),
-            ENVAR: mkTag(FIX.ENVAR, "ENVAR", "c5-tag", { left: 10, top: 4 }),   // top 4: 9 px above the FIR south edge at B
-            MOLKA: mkTag(FIX.MOLKA, "MOLKA", "c5-tag", { left: 10, top: 8 }),
+            ELATO: mkTag(FIX.ELATO, "ELATO", "c5-tag", { right: -4, bottom: -20 }), // 8 px wingtip clearance at crossings
+            BULAN: mkTag(FIX.BULAN, "BULAN", "c5-tag", { right: -4, bottom: -20 }),
+            ENVAR: mkTag(FIX.ENVAR, "ENVAR", "c5-tag", { left: 16, top: 4 }),   // top 4: 9 px above the FIR south edge at B
+            MOLKA: mkTag(FIX.MOLKA, "MOLKA", "c5-tag", { left: 16, top: 8 }),
             RCTP: mkTag(PT.RCTP, "RCTP", "c5-tag c5-ap", { right: -22, bottom: 0 }),
             MKG: mkTag(FIX.MKG, "MKG", "c5-fix", { right: -10, bottom: -16 }),
             APU: mkTag(FIX.APU, "APU", "c5-fix", { left: -30, bottom: -52, w: 80 }),
@@ -416,6 +424,8 @@
           var hlCopy = K.reveal(tl, hl, hero.tb, hero.te - hero.tb, { id: "c5-rv-hero", width: 12, from: F_ELATO * 100, to: 100, ease: "none" });
           hlCopy.setAttribute("stroke-linecap", "butt"); // butt ends: the glow starts exactly at ELATO and ends under the hero
           ft(hl, { opacity: HL_OP }, { opacity: 0, duration: 0.5, ease: "power2.inOut" }, G(43.3));
+          ft(hlCase, { opacity: 0.45 }, { opacity: 0, duration: 0.5, ease: "power2.inOut" }, G(43.3));
+          ft(spur, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, G(41.1)); // with the RCTP node pop
 
           // ---------- VO13 「讓臺北飛航情報區的天空運作更加順暢」 ----------
           // gold FIR draws over the dashed outline (butt-capped mask: nothing shows before the draw starts)
