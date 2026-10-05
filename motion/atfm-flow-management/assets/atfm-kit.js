@@ -343,7 +343,7 @@
    */
   K.roll = function (text, o) {
     o = o || {};
-    var h = o.h || 34, wrap = K.el("span", { class: "k-roll", style: { height: h + "px", lineHeight: h + "px" } });
+    var h = o.h || 50, wrap = K.el("span", { class: "k-roll", style: { height: h + "px", lineHeight: h + "px" } });
     wrap.__cols = [];
     wrap.__h = h;
     text.split("").forEach(function (ch) {

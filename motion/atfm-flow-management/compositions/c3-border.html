@@ -380,8 +380,8 @@
           tl.to(led, { boxShadow: "0 0 0 0px rgba(178,81,53,0.35)", duration: 0.01, ease: "none" }, G(29.05));
           tl.to(led, { boxShadow: "0 0 0 8px rgba(178,81,53,0)", duration: 0.6, ease: "power2.out" }, G(29.06));
           function tagTo(r, a, b, t) {
-            tl.to(R[r].tags[a], { opacity: 0, duration: 0.25, ease: "power2.inOut" }, t);
-            tl.fromTo(R[r].tags[b], { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.inOut" }, t);
+            tl.to(R[r].tags[a], { opacity: 0, duration: 0.15, ease: "power2.in" }, t);
+            tl.fromTo(R[r].tags[b], { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out" }, t + 0.1);
           }
           tagTo(1, 0, 1, G(29.1));
           tagTo(2, 0, 1, G(29.18));
@@ -408,13 +408,16 @@
           slotRing(slots[4], G(30.9));
           // dispatch signal first: panel → across the boundary → DEP
           K.reveal(tl, disp3, G(30.95), 0.55, { id: "c3-rv-disp", width: 12, ease: "expo.out" });
-          var PK0 = G(30.97), PKD = 0.53;
+          // the packet crosses the boundary exactly at 31.19 (VO9 beat): its start is solved from DISP_BX
+          // (invert power1.inOut = quad inOut), so the beat survives any change to DISP3's geometry
+          var PKD = 0.53;
+          var uX = DISP_BX < 0.5 ? Math.sqrt(DISP_BX / 2) : 1 - Math.sqrt((1 - DISP_BX) / 2);
+          var tX = G(31.19);
+          var PK0 = Math.round((tX - PKD * uX) * 1000) / 1000; // ≈ G 30.96 (reveal starts 30.95, its expo.out front stays ahead)
           tl.to(pkDisp, { along: { path: disp3, from: 0, to: 1, rotate: false }, duration: PKD, ease: "power1.inOut", immediateRender: true }, PK0);
           tl.fromTo(pkDisp, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, PK0);
           tl.to(pkDisp, { opacity: 0, duration: 0.05, ease: "none" }, PK0 + PKD);
-          // crossing ring fires exactly when the packet reaches the boundary (invert power1.inOut = quad inOut)
-          var uX = DISP_BX < 0.5 ? Math.sqrt(DISP_BX / 2) : 1 - Math.sqrt((1 - DISP_BX) / 2);
-          var tX = Math.round((PK0 + PKD * uX) * 1000) / 1000; // ≈ L 7.59 (G 31.19)
+          // crossing ring fires exactly when the packet reaches the boundary
           tl.fromTo(xGate, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, tX);
           tl.fromTo(xRing, { attr: { r: 6 }, opacity: 0.6 }, { attr: { r: 26 }, opacity: 0, duration: 0.7, ease: "power2.out", immediateRender: false }, tX);
           K.flow(tl, disp3, G(32.0), G(37.25), 40);
@@ -440,27 +443,33 @@
           // S2 → S3 ✓ 已派發; D departs on the clock
           pillTo(2, 3, G(31.95));
           tl.to(led, { backgroundColor: LED_MINT, boxShadow: LED_GLOW, duration: 0.25, ease: "power2.inOut" }, G(31.95));
+          // D keeps slot 1 and is confirmed with S3: teal = "slot assigned" for all three letters (crossings = slot ticks)
+          tl.to(letters[0], { color: TEAL, duration: 0.3, ease: "power2.inOut" }, G(31.95));
           tagTo(0, 0, 1, G(32.68)); // D row 排定 → 已起飛 at lift-off (matches the map)
 
           // --- VO10: D crosses in slot 1; cross-region integration ---
-          function gateOpen(t) { tl.to(gate, { scaleY: 0.25, opacity: 0.4, duration: 0.15, ease: "power2.out" }, t); }
-          function gateClose(t) { tl.to(gate, { scaleY: 1, opacity: 1, duration: 0.2, ease: "power2.inOut" }, t); }
+          function gateOpen(g, t) { tl.to(g, { scaleY: 0.25, opacity: 0.4, duration: 0.15, ease: "power2.out" }, t); }
+          function gateClose(g, t) { tl.to(g, { scaleY: 1, opacity: 1, duration: 0.2, ease: "power2.inOut" }, t); }
           var XD = G(31.9) + RB, XE = G(33.3) + RB; // D / E cross the BP (≈ 34.87 / 36.27)
-          gateOpen(XD - 0.15);
-          gateClose(XD + 0.25);
-          gateOpen(XE - 0.15);
-          gateClose(XE + 0.25);
+          gateOpen(gate, XD - 0.15);
+          gateClose(gate, XD + 0.25);
+          gateOpen(gateOk, XE - 0.15);
+          gateClose(gateOk, XE + 0.25);
           tick(0, XD);
-          tl.to(letters[0], { color: TEAL, duration: 0.3, ease: "power2.inOut" }, XD);
           tl.fromTo(tintL, { clipPath: "inset(0% 0% 0% 100%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, ease: "power3.inOut" }, G(35.0));
+          // TintL's edge reaches the DEP chip 35.69–35.96: the chip turns card (cream + 1 px line) as the mint arrives
+          tl.fromTo(chipNew, { backgroundColor: "#E1EEE8", boxShadow: "inset 0 0 0 1px rgba(230,221,210,0), 0 10px 24px -18px rgba(60,48,36,0.35)" },
+            { backgroundColor: CARD, boxShadow: "inset 0 0 0 1px rgba(230,221,210,1), 0 10px 24px -18px rgba(60,48,36,0.35)", duration: 0.6, ease: "power2.inOut", immediateRender: false }, G(35.45));
           tl.to(bnd, { opacity: 0.4, duration: 1.0, ease: "power2.inOut" }, G(35.0));
           // seam light runs down the boundary
           tl.fromTo(seam, { strokeDashoffset: 60 }, { strokeDashoffset: -640, duration: 1.2, ease: "sine.inOut" }, G(35.1));
           tl.fromTo(seam, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power1.out" }, G(35.1));
           tl.to(seam, { opacity: 0, duration: 0.2, ease: "power1.in" }, G(36.1));
           // BP handled: terra → teal + check
-          tl.to(dot, { fill: TEAL, duration: 0.4, ease: "power2.inOut" }, G(35.4));
-          tl.fromTo(gate, { fill: TERRA }, { fill: TEAL, duration: 0.4, ease: "power2.inOut", immediateRender: false }, G(35.4)); // gate keeps metering, now teal
+          // radial pop at full opacity: a fading teal disc over terra would read muddy brown again
+          tl.fromTo(dotOk, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.35, ease: "back.out(1.5)" }, G(35.4));
+          tl.to(gate, { scaleY: 0, duration: 0.15, ease: "power2.in" }, G(35.4));
+          tl.fromTo(gateOk, { scaleY: 0, transformOrigin: "50% 50%" }, { scaleY: 1, duration: 0.25, ease: "back.out(1.4)" }, G(35.52)); // gate keeps metering, now teal
           tl.fromTo(check, { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: 0.3, ease: "power2.out" }, G(35.45));
           tl.fromTo(check, { scale: 0.6, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.4, ease: "back.out(1.5)" }, G(35.4));
           // 「整合」: both region labels breathe together (away from the boundary)
@@ -483,7 +492,7 @@
             return t; // climb end
           }
           // passing pulse at the BP for each crossing (RB computed with the FLT3 breakpoints)
-          function passPulse(t) { K.pulse(tl, bp.__pulse, t, { r0: 9, r1: 30, dur: 0.8, opacity: 0.5 }); }
+          function passPulse(t, dur) { K.pulse(tl, bp.__pulse, t, { r0: 9, r1: 30, dur: dur || 0.8, opacity: 0.5 }); }
 
           // T1 / T2 — cruising transit traffic, fade over their last 0.3 s at x 1810
           [[T1, T1BP], [T2, T2BP]].forEach(function (x) {
@@ -492,7 +501,7 @@
             var dur = ((F.FADE - f0) * L3) / V;
             seg(x[0].pl, FLT3, t0, dur, Object.assign({ from: f0, to: F.FADE }, AIR), true);
             tl.to(x[0].w, { opacity: 0, duration: 0.3, ease: "power1.in" }, t0 + dur - 0.3);
-            passPulse(tBP);
+            passPulse(tBP, 0.65); // T1 ends 25.21, before T2's pulse (25.26) on the same circle
           });
           var END = 14.1;
           // D — at LU, keeps 10:20: rolls 31.90, BP ≈ 34.87
@@ -503,19 +512,29 @@
           seg(Ep.pl, MERGE3, G(32.4), 0.7, Object.assign({ from: 0, to: 1, ease: "power1.inOut" }, GROUND), true);
           depart(Ep, G(33.3), END, false);
           tl.to([Ep.lt, Ep.tt], { opacity: 0, duration: 0.2, ease: "power2.in" }, G(33.3) + ROLL);
+          tagTo(1, 2, 3, G(33.3) + ROLL); // E row 已派發 → 已起飛 at lift-off (34.08)
           passPulse(G(33.3) + RB);
           // F — Q2 → Q1 32.45–33.35, Q1 → LU 33.55–34.25, released 34.70 (10:40); mid-climb-out when the world fades
           seg(Fp.pl, TAXI3, G(32.45), 0.9, Object.assign({ from: 0, to: 1, ease: "sine.inOut" }, GROUND), true);
           seg(Fp.pl, MERGE3, G(33.55), 0.7, Object.assign({ from: 0, to: 1, ease: "power1.inOut" }, GROUND), false);
           depart(Fp, G(34.7), END, false);
           tl.to([Fp.lt, Fp.tt], { opacity: 0, duration: 0.2, ease: "power2.in" }, G(34.7) + ROLL);
+          tagTo(2, 2, 3, G(34.7) + ROLL); // F row 已派發 → 已起飛 at lift-off (35.48)
 
           // ================= HANDOFF → c4 (zone morph) =================
           var tOut = G(37.25);
-          // UI clears left → right (the DEP chip first, it sits on c4's incoming flight path); all gone by 37.59
+          // content clears BEFORE the morph (37.08 →), so nothing is left on stale geometry while the zone moves.
+          // UI goes right → left with the morph's leftward motion: the panel first (gone 37.33, the zone edge has moved
+          // ≤ 45 px), the DEP chip last (gone 37.36, before c4's relay plane shows at 37.40).
           // (K.out tweens x to o.x||0 — the panel keeps its glide offset x 560)
-          [chipNew, chipBP, chipLim, card, panel].forEach(function (e, i) { K.out(tl, e, tOut + 0.015 * i, { dur: 0.28, x: e === panel ? 560 : 0 }); });
-          tl.to([fx, tintL], { opacity: 0, duration: 0.35, ease: "power2.in" }, tOut);
+          [panel, card, chipLim, chipBP, chipNew].forEach(function (e, i) {
+            K.out(tl, e, G(37.08) + 0.015 * i, { dur: e === panel || e === card ? 0.25 : 0.22, x: e === panel ? 560 : 0 });
+          });
+          tl.to([fx, tintL], { opacity: 0, duration: 0.3, ease: "power2.in" }, G(37.08));
+          // the BP (node, gate, check) and the signal links are gone by 37.30, while the boundary has moved ≤ 10 px
+          tl.to([bpO, gLinks], { opacity: 0, duration: 0.22, ease: "power2.in" }, G(37.08));
+          // ROUTE3 retracts behind F (route frac ≈ 0.27 at 37.05) as the DEP leaves, so no stub hangs over empty ground
+          tl.to(route3, { drawSVG: "25% 100%", duration: 0.3, ease: "power2.in" }, G(37.05));
           // region labels clear before the boundary rides left through 鄰近飛航情報區 (37.33+)
           tl.to([lblL, lblR], { opacity: 0, duration: 0.25, ease: "power2.out" }, G(37.1));
           // the DEP is idle after F lifts off (35.48): clear it before c4's relay plane crosses it

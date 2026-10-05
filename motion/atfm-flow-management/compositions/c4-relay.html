@@ -19,15 +19,15 @@
         #c4-root .c4-dv-r { left: 1250px; }
 
         /* labels: fixed-width boxes centred on the node x (no measured centring) */
-        #c4-root .c4-lbl { left: 0; top: 458px; width: 400px; line-height: 36px; text-align: center; }
-        #c4-root .c4-mic { left: 0; top: 500px; width: 400px; line-height: 28px; text-align: center; }
+        #c4-root .c4-lbl { left: 0; top: 456px; width: 500px; line-height: 52px; text-align: center; }
+        #c4-root .c4-mic { left: 0; top: 514px; width: 500px; line-height: 40px; text-align: center; }
         /* CTOT partner line (client-supplied list), centred under the micro-labels, clear of the smile (y ≥ 640 here) */
-        #c4-root .c4-ctot { left: 360px; top: 548px; width: 1200px; line-height: 28px; text-align: center; letter-spacing: 0.08em; }
+        #c4-root .c4-ctot { left: 360px; top: 566px; width: 1200px; line-height: 40px; text-align: center; letter-spacing: 0.04em; }
 
-        /* baton = an assigned slot (64×22, r 6, teal) carrying the slot-card tick; rests 48 px above the node row
+        /* baton = an assigned slot (92×32, r 8, teal — type-scale ×1.5) carrying the slot-card tick; rests 48 px above the node row
            (bottom edge y 393) so the Taipei / B ring pulses (tops ≥ 396) pass cleanly beneath it */
         #c4-root .c4-baton {
-          left: 328px; top: 371px; width: 64px; height: 22px; border-radius: 6px; background: #1f6b62;
+          left: 314px; top: 361px; width: 92px; height: 32px; border-radius: 8px; background: #1f6b62;
           box-shadow: 0 10px 22px -12px rgba(31, 75, 68, 0.55), 0 2px 5px rgba(60, 48, 36, 0.1);
         }
         #c4-root .c4-baton svg { position: absolute; left: 0; top: 0; display: block; overflow: visible; }
@@ -136,7 +136,7 @@
 
           // 4 · labels + micro-labels (HTML)
           function label(text, cx, cls) {
-            var el = K.el("div", { class: cls, style: { left: cx - 200 + "px" } }, [text]);
+            var el = K.el("div", { class: cls, style: { left: cx - 250 + "px" } }, [text]);
             stage.appendChild(el);
             return el;
           }
@@ -152,8 +152,8 @@
 
           // 5 · baton (top)
           var baton = K.el("div", { class: "c4-box c4-baton" });
-          var tick = K.s("path", { d: "M-7 0L-2 5L8-5", fill: "none", stroke: CARD, "stroke-width": "2.5", "stroke-linecap": "round", "stroke-linejoin": "round" });
-          var bsvg = K.s("svg", { width: "64", height: "22", viewBox: "-32 -11 64 22" }, [tick]);
+          var tick = K.s("path", { d: "M-10 0L-3 7L11-7", fill: "none", stroke: CARD, "stroke-width": "3.5", "stroke-linecap": "round", "stroke-linejoin": "round" });
+          var bsvg = K.s("svg", { width: "92", height: "32", viewBox: "-46 -16 92 32" }, [tick]);
           baton.appendChild(bsvg);
           stage.appendChild(baton);
 
@@ -210,7 +210,7 @@
           tl.to(baton, { scale: 1.12, duration: 0.2, ease: "power2.out" }, G(38.95));
           tl.to(baton, { scale: 1, duration: 0.3, ease: "power2.inOut" }, G(39.15));
           // …and re-stamps its tick: it ducks into the swelling baton, then stamps back with a small overshoot
-          // (scale about the baton centre, svgOrigin 0 0 in the -32 -11 viewBox; first tween fromTo per contract rule 5)
+          // (scale about the baton centre, svgOrigin 0 0 in the -46 -16 viewBox; first tween fromTo per contract rule 5)
           tl.fromTo(tick, { scale: 1, opacity: 1, svgOrigin: "0 0" }, { scale: 0.4, opacity: 0, svgOrigin: "0 0", duration: 0.1, ease: "power2.in", immediateRender: false }, G(38.95));
           tl.to(tick, { scale: 1, opacity: 1, svgOrigin: "0 0", duration: 0.3, ease: "back.out(2)" }, G(39.07));
           K.inUp(tl, mT, G(39.0), { y: 10, dur: 0.5 });

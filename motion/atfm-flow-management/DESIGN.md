@@ -18,10 +18,10 @@ Mood words: 安定、精準、有序、溫潤 (calm, precise, orderly, warm).
 
 - 1920×1080, 59.94 fps (`60000/1001`). Composition length **49.0 s**. t=0 ≙ source TC `00;04;26;25`.
 - Left margin **110 px**; right margin **110 px** (content right edge x=1810).
-- **Header band** y 60–200: kicker (y≈88 cap-centre) + title (y≈150 cap-centre). Owned by the ROOT
+- **Header band** y 44–216: kicker (32 px, y≈72 centre) + title (80 px, y≈159 centre). Owned by the ROOT
   composition (`#hdr`), never by scenes.
 - **Stage band** y 220–860: all scene content lives here.
-- **Footnote** right-aligned at x=1810, y≈890: `航路、時段與機場配置為解說示意`. Owned by ROOT.
+- **Footnote** right-aligned at x=1810, y 864–904 (30 px): `航路、時段與機場配置為解說示意`. Owned by ROOT.
 - **Subtitle-safe zone y 915–1080 must stay EMPTY** (editor burns subtitles there). Nothing may
   enter it except the plain background and full-bleed background treatments.
 
@@ -58,9 +58,12 @@ no pure white backgrounds, no saturated blues, no neon glows.
   CJK and Latin. Family name in CSS: `"ATFM Sans"`.
 - **IBM Plex Mono** Medium/SemiBold (`"ATFM Mono"`) only for data inside the system panel
   (flight IDs, clock times like `10:25`, counts).
-- Scale: title 54/700 teal, letter-spacing 0.02em · kicker 22/500 `--ink-soft`, letter-spacing 0.22em ·
-  card title 30/700 teal · card body 24/500 ink · label 26/700 teal · small label 20/500 ink-soft ·
-  section numeral 220/200 teal (thin) · footnote 20/500 ink-soft.
+- Scale (**×1.5 at client request — every text ≥ 30 px**): title 80/700 teal, letter-spacing 0.03em · kicker 32/500 `--ink-soft`,
+  letter-spacing 0.2em · card title 44/700 teal · card body 36/500 ink · card note 30/500 ink-soft · chip 36/700 (pill h 76) ·
+  label 38/700 teal · soft label 30/500 ink-soft · panel bar 30/700, rows 36/600, tags & pills 30/700, clock mono 30 ·
+  map fix tags mono 30/600, boundary-point tags mono 30/600 · plane letter/time tags 30 · footnote 30/500 ink-soft.
+- Components scale with the type: cards padding 34/40 radius 24; chips h 76 radius 18; slot bars 92×32 gap 16; panel bar h 78,
+  rows h 84, tags h 48, pills h 44; rolling digits h 50.
 - Full-width CJK space `　` separates number and phrase (`第一　機場端流量管理`).
 - Never use `<br>` in body copy.
 

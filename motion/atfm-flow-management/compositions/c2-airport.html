@@ -100,9 +100,10 @@
             '<rect width="10" height="10" fill="#F2DDD3"/><rect width="4" height="10" fill="#B25135"/></pattern>';
           function hidden(d) { var p = K.s("path", { d: d, fill: "none", stroke: "none" }); fx.appendChild(p); return p; }
           var FLT2 = hidden("M390 560.81L545.55 526.26L618.75 510Q960 434.35 1301.25 510L1347 520.16L1511.7 556.75");
-          // flat exit (peak heading ≈ 39°, G1-continuous into the final straight) across the 15 px grass strip onto
-          // the parallel taxiway centreline (y ≈ 598 at x 1560), just short of the painted stand connector (x ≈ 1566)
-          var TURN2 = hidden("M1511.7 556.75C1527 560.2 1534 576.1 1546 586L1560 597.5");
+          // flat exit: every control leg is ≤ 40° (12.5° → 35.4° → 40°), so the heading never exceeds 40°; the turn-in
+          // ends on the runway edge, then a G1-continuous 40° straight crosses the 15 px grass strip (faded by then)
+          // to the parallel taxiway centreline (y ≈ 601 at x 1574, just past the painted stand connector)
+          var TURN2 = hidden("M1511.7 556.75C1522.44 559.13 1533.11 566.71 1540 572.5L1574.2 601.2");
           var MERGE = hidden("M332.45 604.34C356.85 598.94 365.6 566.21 390 560.81");
           var TAXI21 = hidden("M268.4 618.57L332.45 604.34"); // Q2 → Q1
           var TAXI32 = hidden("M204.35 632.79L268.4 618.57"); // Q3 → Q2
@@ -279,15 +280,23 @@
           rows.forEach(function (row) { row.style.height = "48px"; gsap.set(row.__hl, { opacity: 0 }); });
           var bar = panel.__bar, led = bar.querySelector(".k-led");
           var pills = K.el("span", { class: "c2-pills" });
-          var P = [["監控中", "c2-p0"], ["已偵測", "c2-p1"], ["計算中", "c2-p2"], ["✓ 已派發", "c2-p3"]].map(function (x) {
-            var e = K.el("span", { class: "k-pill " + x[1], text: x[0] });
-            pills.appendChild(e);
+          var pillBox = K.el("span", { class: "k-pill c2-pillbox" });
+          var pRing = K.el("span", { class: "c2-pring" }); // S2's inset ring
+          pillBox.appendChild(pRing);
+          pills.appendChild(pillBox);
+          var PS = [["監控中", TEAL, "#E1EEE8"], ["已偵測", TERRA, "#F2DDD3"], ["計算中", TEAL, CARD], ["✓ 已派發", TEAL, "#E1EEE8"]];
+          var P = PS.map(function (x) {
+            var e = K.el("span", { class: "c2-swap", text: x[0], style: { color: x[1] } });
+            e.setAttribute("data-layout-allow-overlap", "");
+            pillBox.appendChild(e);
             return e;
           });
+          gsap.set(P.slice(1).concat([pRing]), { opacity: 0 });
           var clock = K.el("span", { class: "k-bar-right", text: "10:01" });
           bar.appendChild(pills);
           bar.appendChild(clock);
           gsap.set(R[0].nt, { opacity: 1 }); // A keeps (and has flown) its time
+          gsap.set([R[1].tags[1], R[2].tags[1]], { opacity: 0 });
           gsap.set(R.map(function (r) { return r.strike; }), { scaleX: 0, transformOrigin: "0% 50%" });
           ui.appendChild(panel);
 
@@ -297,12 +306,14 @@
           ui.appendChild(chipWx);
           ui.appendChild(chipRw);
           // 5 · DEP chip stack
-          var chipWrap = K.el("div", { class: "c2-chipwrap" });
-          var chipHold = K.chip("地面等待", { x: 0, y: 0, warn: true });
-          var chipNew = K.chip("已接收新起飛時間", { x: 0, y: 0 });
+          // one opaque chip box (terra-soft → mint) that keeps SIG2's end covered; only the text swaps, in sequence
+          var chipWrap = K.el("div", { class: "k-chip is-warn c2-chipwrap" });
+          var chipHold = K.el("span", { class: "c2-swap", text: "地面等待", style: { color: TERRA } });
+          var chipNew = K.el("span", { class: "c2-swap", text: "已接收新起飛時間", style: { color: TEAL } });
           chipWrap.appendChild(chipHold);
           chipWrap.appendChild(chipNew);
-          // intentional layering / clipping (crossfaded chip stack; rolling digit strips inside their columns)
+          gsap.set(chipNew, { opacity: 0 });
+          // intentional layering / clipping (stacked swap texts; rolling digit strips inside their columns)
           [chipHold, chipNew].forEach(function (e) { e.setAttribute("data-layout-allow-overlap", ""); });
           [cnt].concat(R.map(function (r) { return r.roll; })).forEach(function (w) {
             w.__cols.forEach(function (c) { if (c.__strip) c.__strip.setAttribute("data-layout-allow-overflow", ""); });
@@ -318,6 +329,9 @@
           K.draw(tl, route2, G(7.70), 0.9, "expo.out");
           // DEP rises with ROUTE2 (both 7.70) so the arc never starts drawing over empty cream
           tl.fromTo(dep, { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out" }, G(7.70));
+          // ROUTE2 rides the same slide, so its start stays on the DEP runway end; the expo.out draw front only
+          // reaches the DST end after ≈ 8.3, when the slide offset is < 1 px
+          tl.fromTo(route2G, { x: -40 }, { x: 0, duration: 0.8, ease: "power3.out" }, G(7.70));
           [N2, A, B, C].forEach(function (p) {
             tl.fromTo(p.w, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, G(7.80));
             tl.fromTo(p.w, { x: -40 }, { x: 0, duration: 0.8, ease: "power3.out" }, G(7.70)); // rides in registered with its airport
@@ -337,7 +351,8 @@
           tl.fromTo(uline, { scaleX: 0, transformOrigin: "50% 50%" }, { scaleX: 1, duration: 0.5, ease: "expo.out" }, G(11.05));
           tl.fromTo(glow, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, G(11.05));
           // 「天氣」
-          tl.fromTo(cloud, { opacity: 0, x: 50 }, { opacity: 1, x: 0, duration: 0.9, ease: "power3.out" }, G(12.85));
+          // +20 (not +50): the cloud's right edge never slides under the 天氣 chip popping at 12.90
+          tl.fromTo(cloud, { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.9, ease: "power3.out" }, G(12.85));
           K.pop(tl, chipWx, G(12.9), { dur: 0.55, ease: "back.out(1.5)" });
           K.rain(tl, rainSvg, { id: "c2-rain", x: 1370, y: 470, w: 150, h: 92, n: 12, t0: G(12.95), t1: G(24.25) });
           // 「跑道」
@@ -366,7 +381,7 @@
             tl.fromTo(p.ringGate, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, G(x[1]));
             tl.fromTo(p.ring, { attr: { r: 22 }, opacity: 0.7 }, { attr: { r: 38 }, opacity: 0, duration: 1.1, ease: "power2.out", repeat: 1, repeatDelay: 0.35 }, G(x[1])); // 0.7: the squashed ellipse has less ink than a circle
           });
-          K.pop(tl, chipHold, G(16.6), { dur: 0.55, ease: "back.out(1.5)" });
+          K.pop(tl, chipWrap, G(16.6), { dur: 0.55, ease: "back.out(1.5)" });
 
           // A lands in slot 1
           function slotRing(s, t) {
@@ -393,10 +408,19 @@
           tl.fromTo(pkIn, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, G(18.8));
           tl.to(pkIn, { opacity: 0, duration: 0.05, ease: "none" }, G(18.98));
           K.flow(tl, inlink, G(18.98), G(23.8), 40);
+          // Label swap inside one opaque box: the old text is fully out (0.11) before the new one starts (0.14), so two
+          // labels are never visible at once (no overprinted glyphs). The box's background tweens across the same 0.25 slot.
+          function swap(a, b, t) {
+            tl.to(a, { opacity: 0, duration: 0.11, ease: "power2.in" }, t);
+            tl.fromTo(b, { opacity: 0, y: 3 }, { opacity: 1, y: 0, duration: 0.14, ease: "power2.out" }, t + 0.11);
+          }
+          function bgTo(el, c0, c1, t) {
+            tl.fromTo(el, { backgroundColor: c0 }, { backgroundColor: c1, duration: 0.25, ease: "power2.inOut", immediateRender: false }, t);
+          }
           // S0 → S1 已偵測 (detect)
           function pillTo(a, b, t) {
-            tl.to(P[a], { opacity: 0, duration: 0.25, ease: "power2.inOut" }, t);
-            tl.fromTo(P[b], { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.inOut" }, t);
+            swap(P[a], P[b], t);
+            bgTo(pillBox, PS[a][2], PS[b][2], t);
           }
           pillTo(0, 1, G(18.98));
           tl.to(led, { backgroundColor: TERRA, duration: 0.25, ease: "power2.inOut" }, G(18.98));
@@ -404,6 +428,7 @@
           tl.to(led, { boxShadow: "0 0 0 8px rgba(178,81,53,0)", duration: 0.6, ease: "power2.out" }, G(18.99));
           // S1 → S2 計算中 (「自動」)
           pillTo(1, 2, G(19.5));
+          tl.fromTo(pRing, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.inOut", immediateRender: false }, G(19.5));
           [1, 2].forEach(function (i, k) {
             var t = G(19.5) + 0.12 * k;
             tl.fromTo(rows[i].__hl, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.inOut" }, t);
@@ -423,10 +448,10 @@
           tl.to(pkSig, { opacity: 0, duration: 0.05, ease: "none" }, G(19.86));
           K.flow(tl, sig2, G(19.88), G(23.5), 40);
           // DEP receives
-          // same 240 px box: the new chip fades in on top, the hold chip underneath leaves a beat later,
-          // so the stack stays near-opaque over SIG2's end the whole time
-          tl.fromTo(chipNew, { opacity: 0, scale: 0.97, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.inOut" }, G(19.85));
-          tl.to(chipHold, { opacity: 0, duration: 0.24, ease: "power2.inOut" }, G(19.95));
+          // one opaque box (keeps SIG2's end covered): background terra-soft → mint, text out, then text in
+          tl.fromTo(chipWrap, { backgroundColor: "#F2DDD3" }, { backgroundColor: "#E1EEE8", duration: 0.3, ease: "power2.inOut", immediateRender: false }, G(19.85));
+          tl.to(chipHold, { opacity: 0, duration: 0.12, ease: "power2.in" }, G(19.84));
+          tl.fromTo(chipNew, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.22, ease: "power2.out" }, G(19.95));
           [[B, 19.86], [C, 19.92]].forEach(function (x) {
             tl.to(x[0].ltC, { stroke: TEAL, duration: 0.25, ease: "power2.inOut" }, G(x[1]));
             tl.to(x[0].ltT, { fill: TEAL, duration: 0.25, ease: "power2.inOut" }, G(x[1]));
@@ -441,8 +466,8 @@
             tl.fromTo(R[x[0]].nt, { opacity: 0.45 }, { opacity: 1, duration: 0.6, ease: "power3.inOut" }, G(x[2]));
           });
           [[1, 20.04], [2, 20.16]].forEach(function (x) {
-            tl.to(R[x[0]].tags[0], { opacity: 0, duration: 0.25, ease: "power2.inOut" }, G(x[1]));
-            tl.fromTo(R[x[0]].tags[1], { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.inOut" }, G(x[1]));
+            swap(R[x[0]].tags[0], R[x[0]].tags[1], G(x[1]));
+            bgTo(R[x[0]].box, "#F2DDD3", "#E1EEE8", G(x[1]));
           });
           [[1, 20.1], [2, 20.22]].forEach(function (x) {
             tl.fromTo(R[x[0]].strike, { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, G(x[1]));
@@ -450,6 +475,7 @@
           });
           // S2 → S3 ✓ 已派發 (「派發」)
           pillTo(2, 3, G(20.24));
+          tl.to(pRing, { opacity: 0, duration: 0.25, ease: "power2.inOut" }, G(20.24));
           tl.to(led, { backgroundColor: LED_MINT, boxShadow: LED_GLOW, duration: 0.25, ease: "power2.inOut" }, G(20.24));
           // B lands in slot 3 — loop closed inside VO6
           tick(2, G(23.12));
@@ -472,7 +498,7 @@
             list.forEach(function (lg, i) { t = seg(pl, FLT2, t, lg.dur, lg, first && i === 0); });
             return t;
           }
-          // Ground turn (MERGE / TURN2, both peak at ≈ ±50° heading at mid-path). The kit squashes in the plane's
+          // Ground turn (MERGE peaks at ≈ −50°, TURN2 at +40° heading). The kit squashes in the plane's
           // local frame, which collapses the wings into a dart at steep headings, so ease the squash Q → QT → Q.
           // power1.inOut split exactly into power1.in + power1.out halves keeps position and speed continuous.
           var QT = 0.8;
@@ -480,9 +506,9 @@
             seg(pl, path, t, dur / 2, { from: 0, to: 0.5, ease: "power1.in", alt0: 0, alt1: 0, squash0: Q, squash1: QT }, first);
             return seg(pl, path, t + dur / 2, dur / 2, { from: 0.5, to: 1, ease: "power1.out", alt0: 0, alt1: 0, squash0: QT, squash1: Q }, false);
           }
-          function turnOff(p, t) { // TURN2 to the stand, fading over its last 0.3 s
-            groundTurn(p.pl, TURN2, t, 0.76, false);
-            tl.to(p.w, { opacity: 0, duration: 0.3, ease: "power1.in" }, t + 0.46);
+          function turnOff(p, t) { // TURN2 to the stand; the centre is on the grass t+0.36 → t+0.475, so the fade
+            groundTurn(p.pl, TURN2, t, 0.76, false); // starts as the nose leaves the runway: ≈ 0.4 left on exit
+            tl.to(p.w, { opacity: 0, duration: 0.42, ease: "power1.out" }, t + 0.32);
           }
           var STD = [LEG.roll, LEG.climb, LEG.arc, LEG.app, LEG.rollout];
 

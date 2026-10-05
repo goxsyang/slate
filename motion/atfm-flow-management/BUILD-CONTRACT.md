@@ -80,8 +80,8 @@ Visual rules live in DESIGN.md; the plan lives in STORYBOARD.md. This file is th
 ## Layout guardrails
 
 - Stage content within y 220–860 (map band may feather 20 px beyond). NOTHING in y ≥ 915. Keep clear of the header
-  area (x 110–1410, y 60–205) and the footnote (x 1480–1810, y 868–906).
-- Text ≥ 20 px. Max ~12 CJK characters per label line. No `<br>`.
+  area (x 110–1410, y 60–205) and the footnote (x 1330–1810, y 860–906).
+- **Text ≥ 30 px everywhere** (client: all type ×1.5 vs the first build; see DESIGN §4 and STORYBOARD §0B). Max ~12 CJK characters per label line. No `<br>`.
 - z-order inside a scene via `z-index` / SVG order.
 
 ## Verify before handing back
