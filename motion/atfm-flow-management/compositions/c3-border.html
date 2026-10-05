@@ -39,6 +39,12 @@
           position: absolute; left: 833px; top: 784px; width: 100px; height: 36px; line-height: 36px; text-align: center;
           font-family: "ATFM Mono", "ATFM Sans", monospace; font-size: 30px; font-weight: 600; color: #6e6a64; letter-spacing: 0.04em; white-space: nowrap;
         }
+        /* strip chips: [id][ext] — ext is a clipped box (width 0) holding the CTOT / ✓ texts stacked at its left, so a
+           relabel is a width + opacity tween (wipe) instead of a one-frame textContent set. Same 44 px line box for both
+           spans keeps the baselines level. */
+        #c3-root .c3-chip-id { display: block; flex: none; height: 44px; line-height: 44px; }
+        #c3-root .c3-chip-ext { position: relative; display: block; flex: none; min-width: 0; width: 0; height: 44px; overflow: hidden; }
+        #c3-root .c3-chip-txt { position: absolute; left: 0; top: 0; height: 44px; line-height: 44px; white-space: pre; opacity: 0; } /* pre: keeps the leading space (nowrap collapses it) */
 
       </style>
       <div id="c3-root" data-composition-id="c3-border" data-width="1920" data-height="1080" data-duration="14.1"></div>
@@ -169,9 +175,10 @@
           // DISP3: panel left edge → across the boundary → the DEP chip (§0C). Starts 40 px inside the panel's left edge
           // and 30 px above its bottom, leaves through its bottom-left corner, crosses the boundary at (980, 600) — 32 px
           // under the panel, 38 px above the gate capsule — then arcs over M750 (y ≈ 553 at x 776, tag top 588) and lands
-          // 20 px inside the DEP chip's right edge (x 458, y 518 = chip mid-height).
+          // 60 px inside the DEP chip's right edge (x 418, y 518 = chip mid-height): the chip pops about its centre
+          // (301, 518), so it covers the line's end as soon as its scale passes 0.66 — a few frames after the packet lands.
           var XING = [980, 600];
-          var disp3 = link(K.smooth([[1030, 538], XING, [900, 596], [760, 548], [600, 516], [458, 518]]));
+          var disp3 = link(K.smooth([[1030, 538], XING, [900, 596], [760, 548], [600, 516], [418, 518]]));
           gLinks.appendChild(bpLink);
           gLinks.appendChild(disp3);
           var pkBp = packet(TERRA), pkDisp = packet(TEAL2);
@@ -242,8 +249,10 @@
           //     (x 990, w 820 → ruler/chips measured for 820); the FRAME enters at c2's rect (x 460, w 1000, h 340) and
           //     glides/morphs here 23.85–24.85. Content (nav, columns, strip, pill) stays hidden until 24.95.
           //     Ruler: the 10:20–10:50 half hour at 5-min ticks (16.9 px/min, as c2 zooms its own ruler). A full hour at
-          //     w 820 runs 8.4 px/min, where a CTOT chip ("E 10:30" ≈ 158 px ≈ 19 min) would sit on the next chip 10 min
-          //     later and "D ✓" would reach past E's 10:30 slot. In this window D ✓ 46–124 · E 10:30 215–373 · F 10:40 383–541.
+          //     w 820 runs 8.4 px/min, where a CTOT chip ("E 10:30" = 154 px ≈ 18 min) would sit on the next chip 10 min
+          //     later and "D ✓" would reach past E's 10:30 slot. In this window D ✓ 46–128 · E 10:30 215–369 · F 10:40 383–537.
+          //     The window has no :00 tick, so its end ticks are relabelled as clock times (10:20 … 10:50), the way c2's
+          //     ruler reads "10:00 05 10 …": "10:20" (90 px) centred at inset 46 stays inside the ruler and clears "25" by 21 px.
           var PANEL = { x: 990, y: 228, w: 820, h: 340 };
           var PANEL0 = { x: 460, w: 1000, h: 340 }; // c2's rect (identical frame 23.60–23.85)
           var Pn = K.sysPanel({
@@ -256,10 +265,45 @@
             flights: [{ id: "D", min: 20, tone: "blue" }, { id: "E", min: 25, tone: "pink" }, { id: "F", min: 30, tone: "pink" }],
           });
           var panel = Pn.el, led = Pn.title.firstChild;
-          var chipD = Pn.chips[0].el, chipE = Pn.chips[1].el, chipF = Pn.chips[2].el;
+          var chipE = Pn.chips[1].el, chipF = Pn.chips[2].el;
           var content = [Pn.nav, Pn.main, Pn.pill.el];
           gsap.set(content, { opacity: 0 });
           ui.appendChild(panel);
+          [[0, "10:20"], [Pn.ticks.length - 1, "10:50"]].forEach(function (x) {
+            Pn.ticks[x[0]].textContent = x[1];
+            Pn.ticks[x[0]].classList.add("is-hour");
+          });
+          // chip relabels as motion: [id][ext] with the CTOT / ✓ texts stacked inside ext (see .c3-chip-ext). The mono
+          // font advances 18 px per glyph at 30 px — space and ✓ included — so " 10:30" = 108 px and " ✓" = 36 px, and the
+          // chip (padding 14 + 14) grows 46 → 154 / 46 → 82 without any layout measurement.
+          var CH = 18;
+          function chipExt(c, texts) {
+            c.el.textContent = "";
+            c.el.appendChild(K.el("span", { class: "c3-chip-id", text: c.id }));
+            c.ext = K.el("span", { class: "c3-chip-ext" });
+            c.txt = texts.map(function (s) {
+              var e = K.el("span", { class: "c3-chip-txt", text: s });
+              e.setAttribute("data-layout-allow-overlap", "");
+              c.ext.appendChild(e);
+              return e;
+            });
+            c.el.appendChild(c.ext);
+            c.lab = -1;
+          }
+          chipExt(Pn.chips[0], [" ✓"]);
+          chipExt(Pn.chips[1], [" 10:30", " ✓"]);
+          chipExt(Pn.chips[2], [" 10:40"]);
+          /** wipe text k into chip c's ext over dur: ext width → its text width, text k fades in (the previous one out) */
+          function chipLabel(c, k, t, dur) {
+            var w = c.txt[k].textContent.length * CH;
+            if (c.lab < 0) tl.fromTo(c.ext, { width: 0 }, { width: w, duration: dur, ease: "power2.inOut" }, t);
+            else {
+              tl.to(c.ext, { width: w, duration: dur, ease: "power2.inOut" }, t);
+              tl.to(c.txt[c.lab], { opacity: 0, duration: dur * 0.6, ease: "power2.in" }, t);
+            }
+            tl.fromTo(c.txt[k], { opacity: 0 }, { opacity: 1, duration: dur * 0.8, ease: "power2.inOut" }, t + dur * 0.2);
+            c.lab = k;
+          }
 
           // 2 · chips flanking the boundary (x 980) at y 700 with equal 12 px gaps; ENVAR (real BP name) under the 邊境點 chip
           var chipBP = K.chip("邊境點", { x: 0, y: 700, card: true });
@@ -359,15 +403,18 @@
             tl.fromTo(c, { boxShadow: "0 0 0 0px rgba(255,255,255,0.0)" }, { boxShadow: "0 0 0 3px rgba(255,255,255,0.55)", duration: 0.2, ease: "power2.inOut", immediateRender: false }, t);
             tl.to(c, { boxShadow: "0 0 0 3px rgba(255,255,255,0)", duration: 0.4, ease: "power2.inOut" }, t + 0.2);
           });
-          // dispatch signal first: panel → across the boundary → DEP
-          K.reveal(tl, disp3, G(30.95), 0.55, { id: "c3-rv-disp", width: 12, ease: "expo.out" });
+          // dispatch signal first: panel → across the boundary → DEP. The reveal's front reaches the DEP chip WITH the
+          // packet (31.50, power2.inOut over 0.55 s), not 0.3 s before it: an expo.out draw left the dashed line ending on
+          // bare cream at the chip's spot from ≈ 31.2 until the chip popped. The front stays ahead of the packet throughout
+          // (≈ 160 px mid-way, 3 px at 31.47, both 1.0 at 31.50).
+          K.reveal(tl, disp3, G(30.95), 0.55, { id: "c3-rv-disp", width: 12, ease: "power2.inOut" });
           // the packet crosses the boundary exactly at 31.19 (VO9 beat) and lands on the DEP chip at 31.50: with the
           // boundary early on DISP3 (frac ≈ 0.1) its start and duration are solved from DISP_BX (invert power1.inOut =
           // quad inOut), so both beats survive any change to DISP3's geometry
           var uX = DISP_BX < 0.5 ? Math.sqrt(DISP_BX / 2) : 1 - Math.sqrt((1 - DISP_BX) / 2);
           var tX = G(31.19), tArr = G(31.5);
           var PKD = Math.round(((tArr - tX) / (1 - uX)) * 1000) / 1000; // ≈ 0.40 s
-          var PK0 = Math.round((tArr - PKD) * 1000) / 1000; // ≈ G 31.10 (reveal starts 30.95, its expo.out front stays ahead)
+          var PK0 = Math.round((tArr - PKD) * 1000) / 1000; // ≈ G 31.10 (reveal starts 30.95; its front stays ahead)
           tl.to(pkDisp, { along: { path: disp3, from: 0, to: 1, rotate: false }, duration: PKD, ease: "power1.inOut", immediateRender: true }, PK0);
           tl.fromTo(pkDisp, { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, PK0);
           tl.to(pkDisp, { opacity: 0, duration: 0.05, ease: "none" }, PK0 + PKD);
@@ -384,9 +431,13 @@
           });
           // then the CTOTs land in the strip (after the packet has arrived): F 10:30 → 10:40, E 10:25 → 10:30; D keeps 10:20.
           // F takes the first beat (31.55) and E the second (31.67): F has to vacate the :30 slot before E's chip, which
-          // grows to "E 10:30" at mid-move, slides into it — the other order overlaps the two chips for ≈ 0.3 s.
-          Pn.moveChip(tl, 2, 40, G(31.55), 0.6, "F 10:40");
-          Pn.moveChip(tl, 1, 30, G(31.67), 0.6, "E 10:30");
+          // grows to "E 10:30" while it moves, slides into it — the other order overlaps the two chips for ≈ 0.3 s.
+          // The CTOT text wipes in over the slide's middle (chipLabel), so each chip arrives fully formed at 32.15 / 32.27
+          // (E's right edge 369 vs F's left 383 at the end; ≥ 30 px apart at every frame of the move).
+          Pn.moveChip(tl, 2, 40, G(31.55), 0.6);
+          chipLabel(Pn.chips[2], 0, G(31.55) + 0.15, 0.35);
+          Pn.moveChip(tl, 1, 30, G(31.67), 0.6);
+          chipLabel(Pn.chips[1], 0, G(31.67) + 0.15, 0.35);
           // S2 → S3 ✓ 已派發 (LED back to mint); D departs on the clock
           Pn.pill.set(tl, "S3", G(31.95));
           tl.to(led, { boxShadow: LED_GLOW, duration: 0.25, ease: "power2.inOut" }, G(31.95));
@@ -399,13 +450,13 @@
           gateClose(gate, XD + 0.25);
           gateOpen(gateOk, XE - 0.15);
           gateClose(gateOk, XE + 0.25);
-          // crossed flights go grey in the strip: D ✓ (34.90), E ✓ (36.30)
-          function chipDone(c, label, t) {
-            tl.to(c, { backgroundColor: CHIP_GREY, duration: 0.3, ease: "power2.inOut" }, t);
-            tl.set(c, { textContent: label }, t + 0.12);
+          // crossed flights go grey in the strip: D ✓ (34.90), E ✓ (36.30) — the ✓ wipes in as the chip greys (E's 10:30 out)
+          function chipDone(c, k, t) {
+            tl.to(c.el, { backgroundColor: CHIP_GREY, duration: 0.3, ease: "power2.inOut" }, t);
+            chipLabel(c, k, t + 0.05, 0.3);
           }
-          chipDone(chipD, "D ✓", XD);
-          chipDone(chipE, "E ✓", XE);
+          chipDone(Pn.chips[0], 0, XD);
+          chipDone(Pn.chips[1], 1, XE);
           tl.fromTo(tintL, { clipPath: "inset(0% 0% 0% 100%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, ease: "power3.inOut" }, G(35.0));
           // TintL's edge sweeps the DEP chip (x 124–478) 35.63–36.01: the chip turns card (cream + 1 px line) as the mint arrives
           tl.fromTo(chipNew, { backgroundColor: "#E1EEE8", boxShadow: "inset 0 0 0 1px rgba(230,221,210,0), 0 10px 24px -18px rgba(60,48,36,0.35)" },
