@@ -38,11 +38,21 @@
           L.taiwan.setAttribute("fill", "#E9D9B0"); L.taiwan.setAttribute("stroke", "#A8761A");
           L.firFill.setAttribute("opacity", "0.10"); L.firLine.setAttribute("opacity", "1");
 
-          // Taiwan halo (as c1): two soft gold strokes slotted directly under the island
+          // Taiwan halo (as c1): two soft gold strokes slotted directly under the island. Same ring filter as c1:
+          // only the main island + its islets + Penghu glow (ring centroid inside the build-map allow-list boxes), so
+          // Kinmen / Matsu / Wuqiu keep their gold fill (Q1) but get no bloom against the mainland coast.
+          function llBox(lon0, lon1, lat0, lat1) { var a = MAP.project([lon0, lat1]), b = MAP.project([lon1, lat0]); return [a[0], a[1], b[0], b[1]]; }
+          var HALO_BOX = [llBox(119.95, 122.05, 21.85, 25.35), llBox(119.3, 119.75, 23.15, 23.85)];
+          var haloD = W.HALO_D || MAP.taiwan.split(/(?=M)/).filter(function (ring) {
+            var n = ring.match(/-?\d*\.?\d+/g).map(Number), sx = 0, sy = 0, k = n.length / 2;
+            for (var i = 0; i < n.length; i += 2) { sx += n[i]; sy += n[i + 1]; }
+            sx /= k; sy /= k;
+            return HALO_BOX.some(function (b) { return sx >= b[0] && sx <= b[2] && sy >= b[1] && sy <= b[3]; });
+          }).join("");
           var NS = { fill: "none", stroke: "#E9D9B0", "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round", "stroke-linecap": "round" };
           var halo = K.s("g", { class: "c5-halo", opacity: "0.25" }, [
-            K.s("path", Object.assign({ d: MAP.taiwan, "stroke-width": "30", opacity: "0.25" }, NS)),
-            K.s("path", Object.assign({ d: MAP.taiwan, "stroke-width": "16", opacity: "0.5" }, NS)),
+            K.s("path", Object.assign({ d: haloD, "stroke-width": "30", opacity: "0.25" }, NS)),
+            K.s("path", Object.assign({ d: haloD, "stroke-width": "16", opacity: "0.5" }, NS)),
           ]);
           m.cam.insertBefore(halo, L.taiwan);
 
@@ -133,13 +143,14 @@
             return { inner: inner, chip: chip, line: ld.line, dot: ld.dot, origin: ox + "px " + oy + "px" };
           }
           function num(n, text) { return [K.el("span", { class: "c5-num", text: n }), K.el("span", { text: text })]; }
-          // chip01 at RCTP: same top / joint geometry as c1 but 72 px further right, so the card stays outside the
-          // FIR's east edge (RCTP_x + 91.8·z) at every zoom it is shown at (15 px clear at the 42.15 pop, 85 px at B)
-          var chip01 = mkChip(PT.RCTP, num("01", "機場端流量管理"), 254, -108, 232, -160, 22, 52);
+          // chip01 at RCTP: card 72 px further right than c1's, so it stays outside the FIR's east edge
+          // (RCTP_x + 91.8·z) at every zoom it is shown at; the joint sits on the card's left-edge midpoint (as the
+          // FIR label's does), so the leader leaves RCTP at ≈ 30°, clearly off R01's departure heading
+          var chip01 = mkChip(PT.RCTP, num("01", "機場端流量管理"), 232, -134, 232, -160, 0, 26);
           // chip02: a screen offset from BPW would slide onto the FIR's dashed south edge as the camera pulls back
           // (49.8·z px below BPW: 142 px at the pop, 80 px at B). So the card hangs from a world anchor J just below
           // that edge (≥ 10 px clear at every zoom) and its leader is a map line BPW → J, drawn with K.reveal.
-          var J02 = [-70, 105]; // leader opens ≈ 39° off the FIR west edge
+          var J02 = [-70, 109]; // leader opens ≈ 39° off the FIR west edge; joint ≈ 19 px below the dashed edge at B
           var chip02 = mkChip(J02, num("02", "邊境點流量管理"), 0, 0, -20, 0, 20, 0);
           chip02.line.setAttribute("display", "none"); // no screen leader: only its joint dot (above the card) is used
           var lead02 = K.s("path", { class: "c5-lead02", d: "M" + bp[0] + " " + bp[1] + "L" + J02[0] + " " + J02[1], fill: "none", stroke: "#1F6B62", "stroke-width": "2", "vector-effect": "non-scaling-stroke" });
@@ -273,7 +284,7 @@
           ft(firLbl.inner, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, G(44.9));
           K.draw(tl, firLbl.line, G(44.95), 0.4, "expo.out");
           ft(firLbl.dot, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.3, ease: "back.out(2)" }, G(45.07));
-          ft(firLbl.chip, { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, G(45.0));
+          ft(firLbl.chip, { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, G(44.9));
 
           // south spoke from RCKH completes the circle
           K.reveal(tl, R.SS, G(45.5), 0.8, { id: "c5-rv-ss", width: 40, ease: "expo.out" });
@@ -288,7 +299,13 @@
             else pulse(nRCTP.pulses[i % 2], t, 9, 32, 0.9);
           });
           // BPW: crossings every 1.8 s — hero 41.60 (02) · R02 43.40 · RH 45.20 · R02 47.00 · RH 48.80 (closes the sweep)
-          [hero.tb, G(43.4), rh2.tb, G(47.0), rh3.tb].forEach(function (t, i) { pulse(nBPW.pulses[i % 2], t, 8, 30, 0.9, i ? 0.5 : 0.6); });
+          // The last one is the W step of the closing sweep: a shorter, stronger pulse (like the X dots) that reads by the cut.
+          // (its ring goes 2 → 2.5 px while idle at 48.70 — the 45.20 pulse on it ended at 46.10 — so the earlier BPW rings all stay 2 px)
+          ft(nBPW.pulses[0], { attr: { "stroke-width": 2 } }, { attr: { "stroke-width": 2.5 }, duration: 0.01, ease: "none" }, G(48.7));
+          [hero.tb, G(43.4), rh2.tb, G(47.0), rh3.tb].forEach(function (t, i) {
+            if (i === 4) pulse(nBPW.pulses[0], t, 8, 30, 0.5, 0.85);
+            else pulse(nBPW.pulses[i % 2], t, 8, 30, 0.9, i ? 0.5 : 0.6);
+          });
           // closing sweep around the FIR edge, N → E → E → S; the W step is BPW's real crossing at 48.80
           [["X_N", 47.6], ["X_E1", 47.9], ["X_E2", 48.2], ["X_S", 48.5]].forEach(function (e) {
             pulse(nX[e[0]].pulses[0], G(e[1]), 6, 22, 0.8, 0.85);

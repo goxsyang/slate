@@ -171,8 +171,9 @@
 
           // plane: the race (≈443.6 px/s). Crosses x 660 at 38.521 and x 1260 at 39.879; trail draws itself.
           K.fly(tl, plane, flight, 0, 4.0, { from: 0, to: 1, ease: "none", alt0: 1, alt1: 1, trail: trail, trailLen: 3000 });
-          // (fade starts once c3's 外區起飛機場 raster is ≤ 15 %, so the airliner never sits on the outgoing airport)
-          tl.fromTo(plane, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, G(37.55));
+          // (fade starts once c3's 外區起飛機場 raster is ≤ 15 %, so the airliner never sits on the outgoing airport;
+          // the trail fades in with it, so no headless stroke grows over c3's runway before the aircraft is there)
+          tl.fromTo([plane, trail], { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, G(37.55));
 
           // handoff from c3: column + left divider become opaque on c3's morphed zone
           tl.fromTo([col, dvWrap], { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, G(37.62));
@@ -203,9 +204,10 @@
           pulse(nT.pulse, G(38.95), 13, 34, 0.9, 0.7); // r1 34: ring top 396 stays clear of the parked baton (393)
           tl.to(baton, { scale: 1.12, duration: 0.2, ease: "power2.out" }, G(38.95));
           tl.to(baton, { scale: 1, duration: 0.3, ease: "power2.inOut" }, G(39.15));
-          // …and re-stamps its tick (plain `to` tweens: the full tick is the recorded start state, so seeking back restores it)
-          tl.to(tick, { drawSVG: "0% 0%", duration: 0.12, ease: "power2.in" }, G(38.95));
-          tl.to(tick, { drawSVG: "0% 100%", duration: 0.32, ease: "power2.out" }, G(39.09));
+          // …and re-stamps its tick: it ducks into the swelling baton, then stamps back with a small overshoot
+          // (scale about the baton centre, svgOrigin 0 0 in the -32 -11 viewBox; first tween fromTo per contract rule 5)
+          tl.fromTo(tick, { scale: 1, opacity: 1, svgOrigin: "0 0" }, { scale: 0.4, opacity: 0, svgOrigin: "0 0", duration: 0.1, ease: "power2.in", immediateRender: false }, G(38.95));
+          tl.to(tick, { scale: 1, opacity: 1, svgOrigin: "0 0", duration: 0.3, ease: "back.out(2)" }, G(39.07));
           K.inUp(tl, mT, G(39.0), { y: 10, dur: 0.5 });
 
           // relay leg 2: 臺北飛航情報區 → 區域 B (crosses x 1260 at 39.875, as the plane crosses below)
@@ -222,18 +224,21 @@
           tl.to(trail, { attr: { "stroke-width": 4 }, duration: 0.25, ease: "sine.inOut" }, G(40.55));
 
           // ---------- exit (handoff to c5, whose map sits above c4 and fades in 40.70–41.20) ----------
-          // Text, nodes and baton clear first and fast (power2.out 0.30, left → right, stagger 0.02), so no c4 glyph
-          // or node is legible over c5's coastline: all ≤ 0.22 at 40.90 and ≤ 0.02 at 41.00. Only the geometry
-          // (column, dividers, crossing dots, trail, track) keeps the slow power2.in, all clear by 41.19.
-          tl.to([col, dvWrap], { opacity: 0, duration: 0.4, ease: "power2.in" }, G(40.7));
+          // Text, nodes, baton and line geometry clear first and fast (power2.out, left → right), so nothing of c4
+          // reads over c5's coastline or doubles its routes / FIR edge: track ≈ 0.04 and trail ≈ 0.16 at 40.90,
+          // everything ≤ 0.05 by 40.95. Only the mint column keeps the slow power2.in (it matches c5's sea).
+          tl.to(col, { opacity: 0, duration: 0.4, ease: "power2.in" }, G(40.7));
+          tl.to(dvWrap, { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.7));
+          tl.to([track, trackIn], { opacity: 0, duration: 0.25, ease: "power2.out" }, G(40.7));
           tl.to([nA.g, lA, mA], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.7));
           tl.to([lT, mT], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.72));
           tl.to([nB.g, lB, mB, baton], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.74));
-          tl.to([d1.g, d2.g, trail], { opacity: 0, duration: 0.4, ease: "power2.in" }, G(40.76));
-          tl.to([track, trackIn], { opacity: 0, duration: 0.4, ease: "power2.in" }, G(40.79));
+          tl.to([d1.g, d2.g, trail], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.72));
           // the gold Taipei node blooms into c5's Taiwan (963, 430)
           tl.to(nT.inner, { scale: 2.4, opacity: 0, duration: 0.45, ease: "power2.in" }, G(40.7));
-          tl.to(plane, { opacity: 0, duration: 0.3, ease: "power2.in" }, G(40.95));
+          // the plane outlives its trail only briefly (≈ 0.25 effective at 40.95, gone by 41.10), so it never
+          // crosses c5's sea on its own
+          tl.to(plane, { opacity: 0, duration: 0.3, ease: "sine.inOut" }, G(40.8));
 
           tl.set({}, {}, 4.0); // pad to the window length
           window.__timelines["c4-relay"] = tl;

@@ -135,7 +135,10 @@ no pure white backgrounds, no saturated blues, no neon glows.
 ## 9. Accuracy guardrails
 
 - Taiwan must always be present and correctly drawn on every map (the v4 map omitted it).
-- The Taipei FIR outline comes from `ATFM_MAP.fir.RCAA` — do not hand-draw it.
+- The Taipei FIR outline comes from `ATFM_MAP.fir.RCAA` — the OFFICIAL CAA eAIP ENR 2.1 lateral limits
+  (21°N 117°30′E – 21°N 121°30′E – 23°30′N 124°E – 29°N 124°E – 29°N 117°30′E). Do not hand-draw it.
+- **Routes are real ATS routes only**: A1 (ELATO–MKG–APU–BULAN) and M750 (ENVAR–ANLOT–SANAS–MOLKA) from
+  `ATFM_WORLD.AIRWAY`, drawn as straight segments between fixes. Never invent a route or a boundary point.
 - No national borders, no country names, no flags, no airline liveries or logos.
 - Neighbouring regions are referred to generically (`區域 A / B / C`, `鄰近飛航情報區`). Boundary
   points are unnamed (`邊境點`). All routes/slots/times are illustrative (footnote says so).

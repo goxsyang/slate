@@ -92,8 +92,9 @@
           }
 
           // nodes + edge dots: outer = mapFixed, inner .c1-in = animated, pulse rings are siblings of inner.
-          // Airports and BPW sit in m.top; the FIR edge dots sit in m.world above the routes but below the planes
-          // (created later), so traffic flies over a waypoint instead of sliding under it.
+          // The airports sit in m.top (arrivals land under the node). BPW and the FIR edge dots are waypoints, so they
+          // sit in m.world above the routes but below the planes (created later): traffic flies over a waypoint
+          // instead of sliding under it.
           function mkNode(pt, r, color, nPulse, parent) {
             var outer = K.s("g", { class: "c1-node" });
             var pulses = [];
@@ -117,8 +118,8 @@
             X_E2: mkNode(PT.X_E2, 6, "#3E8C80", 1, m.world),
             X_S: mkNode(PT.X_S, 6, "#3E8C80", 1, m.world),
           };
+          var nBPW = mkNode(PT.BPW, 8, "#1F6B62", 1, m.world);
           var nRCKH = mkNode(PT.RCKH, 5, "#3E8C80");
-          var nBPW = mkNode(PT.BPW, 8, "#1F6B62");
           var nRCTP = mkNode(PT.RCTP, 9, "#1F6B62", 2);
 
           // ---------- pinned chips ----------
@@ -175,23 +176,31 @@
           // band opens from its centre line
           ft(band, { clipPath: "inset(50% 0% 50% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.85, ease: "expo.out" }, 0);
           // camera, gapless: F0 → F0d → F1 → F2 (zoom-through) → F2z (settle)
+          // The dive uses a soft-landing curve instead of the storyboard's power2.in. power2.in ended at peak speed
+          // (RCTP ≈ 58 px/frame), so the map slammed to a stop at 7.70 and then recoiled into the settle.
+          // c1-dive keeps both endpoints. Most of the travel happens 7.15–7.60 (peak ≈ 25 px/frame at 7.45), and RCTP
+          // moves ≤ 3 px/frame from 7.667 before it lands exactly on (1500, 648) at 7.70. The settle restarts from
+          // rest, so there is no jolt.
+          var DIVE = CustomEase.create("c1-dive", "M0,0 C0.55,0 0.6,1 1,1");
           K.camTo(tl, m, 0, 5.45, CAM.F0, CAM.F0d, "sine.inOut");
           K.camTo(tl, m, 5.45, 1.5, CAM.F0d, CAM.F1, "sine.inOut");
-          K.camTo(tl, m, 6.95, 0.75, CAM.F1, CAM.F2, "power2.in");
-          K.camTo(tl, m, 7.7, 0.5, CAM.F2, CAM.F2z, "power3.out");
+          K.camTo(tl, m, 6.95, 0.75, CAM.F1, CAM.F2, DIVE);
+          K.camTo(tl, m, 7.7, 0.5, CAM.F2, CAM.F2z, "power2.inOut");
 
           ft(L.grat, { opacity: 0 }, { opacity: 0.32, duration: 1.0, ease: "power2.out" }, 0.1);
           // FIR outline: switched on inside its mask, then the mask draws it (clockwise from the SW corner)
           ft(L.firLine, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, 0.2);
-          // mask width 10 wu (not 40): the closed outline starts and ends at the SW corner, so a 20-wu round cap
-          // exposed a dash of the south edge before the draw began. 10 wu still covers the 2.4 px line at every zoom.
-          K.reveal(tl, L.firLine, 0.2, 1.5, { id: "c1-rv-fir", width: 10, ease: "expo.inOut" });
+          // Mask width 10 wu (spec 40) covers the 2.4 px line at every zoom. The closed outline starts and ends at the
+          // SW corner, so the mask copy gets butt caps: at 0.20 the zero-length mask exposes nothing, where a round cap
+          // left a static teal stub at the corner. sine.inOut (spec expo.inOut) starts the travel at once: about 17 % is
+          // drawn at 0.60, where expo.inOut was still under 2 %.
+          K.reveal(tl, L.firLine, 0.2, 1.5, { id: "c1-rv-fir", width: 10, ease: "sine.inOut" }).setAttribute("stroke-linecap", "butt");
           ft(L.taiwan, { fill: "#EEE8DD", stroke: "#B9A57A" }, { fill: "#E9D9B0", stroke: "#A8761A", duration: 0.6, ease: "power2.out" }, 0.3);
-          // halo: 0 → 0.7 → 0.25 (identity) … 0.8 → 0.35 on 「臺灣」, then out with the overlays at 7.58
+          // halo: 0 → 0.7 → 0.25 (identity) … 0.8 → 0.35 on 「臺灣」, then out with the island's gold at 7.55
           ft(halo, { opacity: 0 }, { opacity: 0.7, duration: 0.5, ease: "power2.out" }, 0.5);
           ft(halo, { opacity: 0.7 }, { opacity: 0.25, duration: 0.9, ease: "sine.inOut" }, 1.0, true);
           ft(halo, { opacity: 0.25 }, { opacity: 0.8, duration: 0.6, ease: "power2.out" }, 6.45, true);
-          ft(halo, { opacity: 0.8 }, { opacity: 0.35, duration: 0.53, ease: "sine.inOut" }, 7.05, true);
+          ft(halo, { opacity: 0.8 }, { opacity: 0.35, duration: 0.5, ease: "sine.inOut" }, 7.05, true);
 
           // routes
           K.reveal(tl, R.R01, 1.2, 1.0, { id: "c1-rv-r01", width: 40, ease: "expo.inOut" });
@@ -214,8 +223,9 @@
 
           // VO2 「全方位守護臺灣的天空」
           ft(L.firFill, { opacity: 0.1 }, { opacity: 0.18, duration: 1.0, ease: "power2.out" }, 5.55, true);
-          // SN starts at 5.45 (not 5.60) so its draw front reaches X_N as the dot lights and is ahead of PNa (frac 0.795) at 5.75
-          K.reveal(tl, R.SN, 5.45, 0.85, { id: "c1-rv-sn", width: 40, ease: "expo.out" });
+          // SN starts at 5.32 (not 5.60): the draw front plus its 20-wu cap passes X_N (frac 0.905) by 5.58, when the dot
+          // starts to pop, so the dot never lights ahead of its route on open sea. PNa (frac 0.795 at 5.75) stays behind it.
+          K.reveal(tl, R.SN, 5.32, 0.85, { id: "c1-rv-sn", width: 40, ease: "expo.out" });
           // edge dots light clockwise N → E → E → S; the W step is BPW's real crossing pulse at 6.35
           [["X_N", 5.58], ["X_E1", 5.77], ["X_E2", 5.96], ["X_S", 6.15]].forEach(function (e) {
             var n = nX[e[0]];
@@ -225,12 +235,13 @@
           // south spoke from RCKH
           K.reveal(tl, R.SS, 5.85, 0.7, { id: "c1-rv-ss", width: 40, ease: "expo.out" });
           popIn(nRCKH.inner, 5.85, 0.5, 0.45, "back.out(1.6)");
-          // guardian rings (「守護」), clipped to the FIR
+          // guardian rings (「守護」), clipped to the FIR. 1.4 s each (spec 1.6), so the third ring ends exactly at 8.20
+          // and the timeline does not overrun its window. All three use the same speed so the motif stays even.
           [6.0, 6.4, 6.8].forEach(function (t, i) {
             var c = rings[i];
-            ft(c, { attr: { r: 20 } }, { attr: { r: 230 }, duration: 1.6, ease: "power1.out" }, t);
+            ft(c, { attr: { r: 20 } }, { attr: { r: 230 }, duration: 1.4, ease: "power1.out" }, t);
             ft(c, { opacity: 0 }, { opacity: 0.55, duration: 0.12, ease: "power1.out" }, t);
-            ft(c, { opacity: 0.55 }, { opacity: 0, duration: 1.48, ease: "sine.in" }, t + 0.12, true);
+            ft(c, { opacity: 0.55 }, { opacity: 0, duration: 1.28, ease: "sine.in" }, t + 0.12, true);
           });
 
           // event pulses — RCTP: R01/SN landings; BPW: R02 crossings (two rings on RCTP so overlaps never fight)
@@ -238,7 +249,9 @@
           pulse(nRCTP.pulses[1], 4.8, 9, 32, 0.9);
           pulse(nRCTP.pulses[0], 6.2, 9, 32, 0.9);
           pulse(nRCTP.pulses[1], 6.9, 9, 32, 0.9);
-          pulse(nRCTP.pulses[0], 7.6, 16, 48, 0.6); // node is ×1.6 into the dive here, so the ring starts outside it
+          // node is ×1.6 into the dive here, so the ring starts outside it. 0.35 s so the ring is gone (< 0.05 by 7.80)
+          // before c2's terminal rises through the same point.
+          pulse(nRCTP.pulses[0], 7.6, 16, 48, 0.35);
           [2.15, 3.55, 4.95, 6.35].forEach(function (t) { pulse(nBPW.pulses[0], t, 8, 30, 0.9); });
 
           // zoom-through: RCTP swells as the camera dives into it, the band fades under c2's rising airport
@@ -246,7 +259,9 @@
           // …then blooms and dissolves into c2's destination airport as it rises from the same point (7.70)
           ft(nRCTP.inner, { scale: 1.8 }, { scale: 2.6, duration: 0.45, ease: "power2.out" }, 7.7, true);
           ft(nRCTP.inner, { opacity: 1 }, { opacity: 0, duration: 0.2, ease: "power2.out" }, 7.7, true);
-          ft(band, { opacity: 1 }, { opacity: 0, duration: 0.65, ease: "power2.in" }, 7.5, true);
+          // band fade 7.55–8.00 (spec 7.50–8.15): ≈ 0.89 at 7.70, ≈ 0.56 at 7.85, 0 at 8.00. This crossfades against
+          // c2's DST (≈ 0.41 at 7.80, ≈ 0.68 at 7.90), so the coastline behind the terminal clears sooner and the frame never dips blank.
+          ft(band, { opacity: 1 }, { opacity: 0, duration: 0.45, ease: "power1.in" }, 7.55, true);
           // The sea and land fade with the band, but the high-contrast overlays (routes, rings, planes, edge dots,
           // FIR line and tint, BPW, RCKH) clear 7.58–7.80, before c2's DST passes ~35 %, so RCTP reads as becoming
           // the airport rather than map lines drawn over it.
@@ -254,32 +269,36 @@
           ft(L.firLine, { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58, true);
           ft(L.firFill, { opacity: 0.18 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58, true);
           [nBPW.g, nRCKH.g].forEach(function (g) { ft(g, { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58); });
-          // Taiwan keeps its gold fill (it fades with the band) but loses the crisp coastline and glow, so no gold
-          // line cuts across the rising terminal.
-          ft(L.taiwan, { stroke: "#A8761A" }, { stroke: "#E9D9B0", duration: 0.22, ease: "power1.in" }, 7.58, true);
-          ft(halo, { opacity: 0.35 }, { opacity: 0, duration: 0.22, ease: "power1.in" }, 7.58, true);
+          // Taiwan's gold fill, crisp coastline and glow drain to the land tone 7.55–7.80 (≈ 65 % at 7.70, ≈ 86 % at 7.74).
+          // Otherwise a gold wedge of the island shows through the half-transparent terminal and then hangs under it while
+          // the band fades.
+          ft(L.taiwan, { fill: "#E9D9B0", stroke: "#A8761A" }, { fill: "#EEE8DD", stroke: "#EEE8DD", duration: 0.25, ease: "sine.inOut" }, 7.55, true);
+          ft(halo, { opacity: 0.35 }, { opacity: 0, duration: 0.25, ease: "sine.inOut" }, 7.55, true);
 
           // ---------- aircraft (V = 120 wu/s, ease none, alt 1) ----------
-          // R01 arrivals into RCTP every 1.4 s (P1e, P1f keep the east end populated; P1f spawns at the off-frame end, t0 ≈ 1.98)
-          [3.4, 4.8, 6.2, 7.6, 9.0, 10.4].forEach(function (TE) {
+          // R01 arrivals into RCTP every 1.4 s. P1e–P1h keep the east end populated through the whole scene: P1f, P1g and
+          // P1h spawn at the off-frame end (wx 1000; t0 ≈ 1.98 / 3.39 / 4.79) and enter the frame ≈ 0.5 s later.
+          [3.4, 4.8, 6.2, 7.6, 9.0, 10.4, 11.8, 13.2].forEach(function (TE) {
             var p = mkPlane(), t0 = Math.max(1.9, TE - LEN.R01 / V);
             var f0 = fAt("R01", 1, TE, t0);
             if (TE <= END) cruise(p, "R01", t0, f0, TE, true);
             else cruise(p, "R01", t0, f0, END, false);
           });
-          // R02 transits: cross BPW at 2.15 / 3.55 / 4.95 / 6.35 / 7.75, then carry on east. Three more crossed it
-          // before the scene (−2.05 / −0.65 / 0.75), so the eastbound leg is as evenly populated as R01 from 1.90;
-          // a plane that reaches the off-frame end (wx 1000) simply stops there, out of shot.
-          [-2.05, -0.65, 0.75, 2.15, 3.55, 4.95, 6.35, 7.75].forEach(function (TE) {
+          // R02 transits: cross BPW at 2.15 / 3.55 / 4.95 / 6.35 / 7.75, then carry on east. Six more crossed it before
+          // the scene (−6.25 … 0.75), so at 1.90 the eastbound leg already carries a plane every 1.4 s out to the frame
+          // edge (the front three sit at frac 0.910 / 0.812 / 0.714, screen x ≈ 1834 / 1665 / 1497). A plane that
+          // reaches the off-frame end (wx 1000) simply stops there, out of shot.
+          [-6.25, -4.85, -3.45, -2.05, -0.65, 0.75, 2.15, 3.55, 4.95, 6.35, 7.75].forEach(function (TE) {
             var p = mkPlane(), t0 = Math.max(1.9, TE - (F_BPW * LEN.R02) / V);
             var f0 = Math.max(0, fAt("R02", F_BPW, TE, t0));
             cruise(p, "R02", t0, f0, Math.min(END, t0 + ((1 - f0) * LEN.R02) / V), false);
           });
-          // SN: PNa lands 6.90; PNb follows
+          // SN: PNa lands 6.90; PNb follows at the 1.4 s spacing used on every route (would land 8.30, f0 ≈ 0.546),
+          // so it enters the band top ≈ 6.35 and stays in shot through the dive.
           (function () {
             var a = mkPlane(), b = mkPlane();
             cruise(a, "SN", 5.75, fAt("SN", 1, 6.9, 5.75), 6.9, true);
-            cruise(b, "SN", 5.75, 0.4, END, false);
+            cruise(b, "SN", 5.75, fAt("SN", 1, 8.3, 5.75), END, false);
           })();
           // SS: PSa departs RCKH 6.30 — accelerates over 0.4 s (power1.in reaches exactly V) while climbing alt 0 → 1
           (function () {

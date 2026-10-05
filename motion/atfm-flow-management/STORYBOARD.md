@@ -8,6 +8,11 @@ Base: "faithful". Grafted: from "system", the 5-step grammar, the status pill, s
 
 ## 0. Global
 
+> **FIR update (client feedback):** the Taipei FIR is now the OFFICIAL CAA eAIP ENR 2.1 polygon —
+> 21°N 117°30′E → 21°N 121°30′E → 23°30′N 124°E → 29°N 124°E → 29°N 117°30′E (a rectangle with the SE corner cut).
+> The earlier VATSIM outline (strait median line) is retired. Bounding box is unchanged, so every camera state
+> below still frames it; only `X_N` and `FIR_SE` moved (values updated in §0.4 and assets/atfm-world.js).
+
 ### 0.1 Pre-build tasks (do these first, in this order)
 
 | # | file | change | why |
@@ -62,8 +67,8 @@ Base: "faithful". Grafted: from "system", the 5-step grammar, the status pill, s
 | `PT.RCKH` | (−21.6, 40.5) |
 | `PT.BPW` | boundary point on the FIR **west edge**, 117.5°E 22.4°N: (−116.1, 47.0). Open sea. |
 | `PT.TWC` | Taiwan centroid: (1, 3) |
-| `PT.FIR_SE` | (99.5, 14.5) |
-| FIR-edge crossing dots | where each route crosses the FIR outline (computed on the `K.smooth` curves): `X_N` (23.8, −112.2) on SN · `X_E1` (99.5, −59.45) on R01 · `X_E2` (99.5, −17.6) on R02 · `X_S` (−29.9, 96.8) on SS · W = BPW (−116.1, 47.0) on R02/RH. The east dots sit exactly on the 124°E edge (x 99.5). |
+| `PT.FIR_SE` | (99.48, 7.24) — the SE-cut vertex on the 124°E edge (23°30′N) |
+| FIR-edge crossing dots | where each route crosses the FIR outline (computed on the `K.smooth` curves): `X_N` (69.67, −196.24) on SN (north edge, 29°N) · `X_E1` (99.5, −59.45) on R01 · `X_E2` (99.5, −17.6) on R02 · `X_S` (−29.9, 96.8) on SS · W = BPW (−116.1, 47.0) on R02/RH. The east dots sit exactly on the 124°E edge (x 99.5). |
 | `ROUTE.R01` | arrival into RCTP from the ENE: [[900,−215],[520,−140],[240,−85],[90,−58],[7.7,−50.2]]. L 907.8. Enters the FIR at frac 0.8985. |
 | `ROUTE.R02` | transit, SW → BPW → over central Taiwan → E: [[−560,420],[−380,235],[−230,118],[−116.1,47],[−55,16],[10,−2],[120,−20],[400,−45],[900,−95]]. L 1614.1. **BPW frac 0.3611**; exits the FIR at frac 0.5019. |
 | `ROUTE.SN` | arrival from the N: [[330,−640],[170,−360],[48,−160],[18,−95],[7.7,−50.2]]. L 674.6. |
@@ -155,6 +160,35 @@ Base: "faithful". Grafted: from "system", the 5-step grammar, the status pill, s
 - **Q1.** Gold highlight for Kinmen, Matsu and Wuqiu. Default is **on**: they are Taiwan-administered but sit outside the Taipei FIR polygon, next to the mainland coast. Toggle `TW_OUTLYING`.
 - **Q2.** The destination airport raster is **mirrored** (scaleX −1 on the `<img>`, aspect unchanged) so the flight arc can rise like v4's. Is that acceptable?
 - **Q3.** All times, slots and routes are illustrative; the footnote already says so.
+
+---
+
+## 0A. REAL-AIRWAY UPDATE (client feedback — supersedes every illustrative route in Frames 1 and 5)
+
+The client requires routes to follow **real ATS routes**. Only two are verified, both running SW → NE across the FIR
+(source: CAA eAIP ENR 3.1 + OurAirports navaids; all in `ATFM_WORLD.FIX` / `ATFM_WORLD.AIRWAY`, projected at load):
+
+| airway | fixes (SW → NE) | world xy | role in the film |
+|---|---|---|---|
+| **A1** | **ELATO** 邊境點 (22°20′N 117°30′E) → **MKG** 馬公 VOR (23.595N 119.637E) → **APU** 安布 VOR (25.177N 121.522E) → **BULAN** 邊境點 (27°05′30″N 124°E) | (−116.1, 49.2) → (−45.2, 3.8) → (17.3, −53.8) → (99.5, −124.5) | **Arrivals into Taoyuan** (function 01): SW arrivals ELATO→MKG→APU→RCTP (`AIRWAY.A1_ARR_SW`), NE arrivals BULAN→APU→RCTP (`AIRWAY.A1_ARR_NE`). Note: BULAN–ELATO at FL280+ is westbound-only, so A1 is **never** shown as an eastbound through-route. |
+| **M750** | **ENVAR** 邊境點 (21°59′30″N 117°30′E) → **ANLOT** (23°54′26″N 120°29′13″E) → **SANAS** (24°53′49″N 121°41′32″E) → **MOLKA** 邊境點 (26°39′31″N 124°E) | (−116.1, 61.5) → (−17.0, −7.5) → (23.0, −43.6) → (99.5, −108.4) | **Eastbound transit** (function 02): 過境航班 enter at ENVAR, overfly, exit at MOLKA. Even 1.4 s spacing. |
+
+RCTP = (7.7, −50.2). The old R01/R02/SN/SS/RH, the edge dots X_N/X_E1/X_E2/X_S and the BPW point are **retired**. Draw airways as **straight segments between fixes** (`AIRWAY.<id>.d`); for visual continuity use `.dExt` (260 wu extensions into the neighbouring FIRs) with a linearGradient stroke that fades to 0 over the extension — the film never claims what lies beyond the boundary.
+
+**Boundary points are the 02 anchors.** Chip 02 pins to **ENVAR** (transit entry). ELATO, ENVAR, BULAN, MOLKA get the node treatment (`K.node`, r 7–8) plus a mono name tag (`.k-num` 20/600, `#FBF7F2` pill with 1 px `--teal-soft` ring) — A1 tags **above-left** of the route, M750 tags **below-right**, because the two airways are only 12–16 wu apart (23–31 px at z 1.9). Interior fixes (MKG, APU, ANLOT, SANAS) get a 4 px tick dot + 20/500 `--ink-soft` tag. **Fix tags are shown only from the F1 push-in onward** (c1 ≥ 5.45; c5 whenever z ≥ 1.6); at the wide opening only routes + the four boundary nodes + RCTP are visible.
+
+**Cameras (c1):** open on `CAM.F0_v2` {−10, −45, 1.35} → `F0d_v2` {−6, −47, 1.40} (0–5.45), push to `F1` {−8, −50, 1.9} (5.45–6.95), dive F1 → F2 → F2z unchanged (RCTP still lands on (1500, 648) at 7.70). Screen positions at F0_v2: ELATO (817, 667) · ENVAR (817, 684) · MKG (913, 606) · APU (997, 528) · RCTP (984, 533) · BULAN (1108, 433) · MOLKA (1108, 454). At F1: ELATO (755, 729) · ENVAR (755, 752) · MKG (889, 642) · ANLOT (943, 621) · APU (1008, 533) · SANAS (1019, 552) · RCTP (990, 540) · BULAN (1164, 398) · MOLKA (1164, 429).
+
+**Beats to re-map (c1):** VO1 — A1 arrivals land at RCTP every 1.4 s (pulse) and M750 transits cross ENVAR every 1.4 s (pulse); chip 01 at RCTP, chip 02 at ENVAR on 「2 種」. VO2 「全方位」 — the four boundary nodes light in turn **BULAN → MOLKA → ENVAR → ELATO** (0.19 s steps, the last being a real transit crossing), fix tags fade in, guardian rings sweep out from Taiwan clipped to the FIR. Everything else (band open, Taiwan gold, FIR reveal, zoom-through) stays.
+
+**Beats to re-map (c5):** the **hero** flies **A1 from the SW**: crosses **ELATO** at 41.60 (02 pulse) → MKG → APU → lands **RCTP** at 43.05 (01 pulse); the hero highlight is a 7 px `--teal-2` overlay on `A1_ARR_SW` revealed in step with it. Chip 02 at ENVAR pops 41.45, chip 01 at RCTP pops 42.15 (same pin rules as before). Background streams: M750 transits ENVAR→MOLKA every 1.8 s; A1 NE arrivals BULAN→APU→RCTP so that RCTP receives every 1.2 s. VO13: gold FIR redraw, FIR label at `FIR_SE` (99.48, 7.24), boundary-node sweep BULAN → MOLKA → ENVAR → ELATO. No SN/SS streams.
+
+**c3 (small):** add the real designators without changing the diagram — a mono tag `M750` on ROUTE3 (left of the boundary, above the line) and `ENVAR` under the 邊境點 chip (mono 20/600). Region names stay generic (鄰近飛航情報區 / 臺北飛航情報區) unless the client asks for real FIR names.
+
+**c4 (small):** add one soft line under the micro-labels, centred at (960, 548), 20/500 `--ink-soft`:
+`CTOT 跨區協作　日本・香港・韓國・菲律賓・泰國・新加坡・越南` (client-supplied list of regions participating in Taipei FIR CTOT operations; `ATFM_WORLD.CTOT_PARTNERS`). Fade in with the 協調時序 beat (39.00).
+
+**Guardrail (new, DESIGN §9):** never draw a route that is not in `ATFM_WORLD.AIRWAY`.
 
 ---
 
