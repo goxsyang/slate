@@ -156,7 +156,8 @@
           var gLinks = K.s("g", { class: "c3-links" });
           fx.appendChild(gLinks);
           var bpLink = link(K.smooth([[994, 568], [1120, 530], [1300, 480], [1430, 398]]));
-          var disp3 = link(K.smooth([[1290, 398], [1200, 470], [980, 488], [640, 494], [468, 520], [364, 528]]));
+          // starts 70 px inside the panel and leaves through its straight bottom edge (y 428 at x ≈ 1290, clear of the 22 px corner)
+          var disp3 = link(K.smooth([[1320, 398], [1230, 470], [980, 488], [640, 494], [468, 520], [364, 528]]));
           gLinks.appendChild(bpLink);
           gLinks.appendChild(disp3);
           var pkBp = packet(TERRA), pkDisp = packet(TEAL2);
@@ -167,7 +168,7 @@
           var xRing = K.s("circle", { r: "6", fill: "none", stroke: TEAL2, "stroke-width": "2", opacity: "0" });
           xGate.appendChild(xRing);
           gLinks.appendChild(xGate);
-          var DISP_BX = K.fracAt(disp3, 980, 488); // boundary frac on DISP3 (ref 0.3497)
+          var DISP_BX = K.fracAt(disp3, 980, 488); // boundary frac on DISP3 (path passes exactly through 980 488)
 
           // boundary point: node + terra pulse + gate capsule + check
           var bpO = K.s("g", { transform: "translate(980 580)" });
@@ -176,6 +177,11 @@
           bp.insertBefore(bpWarn, bp.firstChild);
           var gate = K.s("rect", { x: "-3", y: "-22", width: "6", height: "44", rx: "3", fill: TERRA });
           bp.insertBefore(gate, bp.__dot); // over the cream ring, under the dot (keeps the check clean)
+          // resolved state: a teal gate + teal dot pop in over the terra ones (never fill-lerp terra → teal: muddy midpoint)
+          var gateOk = K.s("rect", { x: "-3", y: "-22", width: "6", height: "44", rx: "3", fill: TEAL });
+          bp.insertBefore(gateOk, bp.__dot);
+          var dotOk = K.s("circle", { r: "9", fill: TEAL });
+          bp.appendChild(dotOk);
           var check = K.s("path", { d: "M-5 0L-1.5 3.5L5.5-3.5", fill: "none", stroke: CARD, "stroke-width": "2.2", "stroke-linecap": "round", "stroke-linejoin": "round" });
           bp.appendChild(check);
           bpO.appendChild(bp);
@@ -191,7 +197,7 @@
             gP.appendChild(w);
             var o = { w: w, pl: pl };
             if (!letter) return o;
-            o.ringGate = K.s("g");
+            o.ringGate = K.s("g", { transform: "rotate(-12.5) scale(1 " + Q + ")" }); // ring on the iso ground plane
             o.ring = K.s("circle", { r: "18", fill: "none", stroke: TERRA, "stroke-width": "2" });
             o.ringGate.appendChild(o.ring);
             pl.insertBefore(o.ringGate, pl.__body);
@@ -203,7 +209,7 @@
             pl.appendChild(o.lt);
             var tto = K.s("g", { transform: "translate(0 -40)" });
             o.tt = K.s("g");
-            o.tt.appendChild(K.s("rect", { x: "-38", y: "-15", width: "76", height: "30", rx: "8", fill: CARD, stroke: TSOFT, "stroke-width": "1.5" }));
+            o.tt.appendChild(K.s("rect", { x: "-34", y: "-15", width: "68", height: "30", rx: "8", fill: CARD, stroke: TSOFT, "stroke-width": "1.5" }));
             o.tt.appendChild(K.s("text", { x: "0", y: "1", "text-anchor": "middle", "dominant-baseline": "central", fill: TEAL, style: { fontFamily: MONO, fontSize: "20px", fontWeight: "600" }, text: time }));
             tto.appendChild(o.tt);
             pl.appendChild(tto);
@@ -218,8 +224,8 @@
           // 1 · ATFM panel — enters as c2's identical frame at x 690
           var ROWS = [
             { f: "D", t0: "10:20", t1: "10:20", tags: [["排定", "n"], ["已起飛", "ok"]] },
-            { f: "E", t0: "10:25", t1: "10:25", tags: [["排定", "n"], ["等待", "hold"], ["已派發", "ok"]] },
-            { f: "F", t0: "10:30", t1: "10:30", tags: [["排定", "n"], ["等待", "hold"], ["已派發", "ok"]] },
+            { f: "E", t0: "10:25", t1: "10:25", tags: [["排定", "n"], ["等待", "hold"], ["已派發", "ok"], ["已起飛", "ok"]] },
+            { f: "F", t0: "10:30", t1: "10:30", tags: [["排定", "n"], ["等待", "hold"], ["已派發", "ok"], ["已起飛", "ok"]] },
           ];
           var R = ROWS.map(function (r) {
             var strike = K.el("span", { class: "c3-strike" });
@@ -259,7 +265,7 @@
           ui.appendChild(panel);
 
           // 2 · slot card 通過時段 (straddles the boundary, as in v4)
-          var card = K.card({ x: 770, y: 300, w: 440, h: 150, title: "通過時段", cls: "c3-card" });
+          var card = K.card({ x: 770, y: 300, w: 428, h: 150, title: "通過時段", cls: "c3-card" }); // 770–1198: slot row 29 px in on both sides
           var cnt = K.roll("5", { h: 34 });
           cnt.classList.add("c3-cnt");
           markRoll(cnt);

@@ -21,6 +21,8 @@
         /* labels: fixed-width boxes centred on the node x (no measured centring) */
         #c4-root .c4-lbl { left: 0; top: 458px; width: 400px; line-height: 36px; text-align: center; }
         #c4-root .c4-mic { left: 0; top: 500px; width: 400px; line-height: 28px; text-align: center; }
+        /* CTOT partner line (client-supplied list), centred under the micro-labels, clear of the smile (y ≥ 640 here) */
+        #c4-root .c4-ctot { left: 360px; top: 548px; width: 1200px; line-height: 28px; text-align: center; letter-spacing: 0.08em; }
 
         /* baton = an assigned slot (64×22, r 6, teal) carrying the slot-card tick; rests 48 px above the node row
            (bottom edge y 393) so the Taipei / B ring pulses (tops ≥ 396) pass cleanly beneath it */
@@ -138,12 +140,15 @@
             stage.appendChild(el);
             return el;
           }
-          var lA = label("區域 A", XA, "k-label c4-lbl");
+          var lA = label("香港飛航情報區", XA, "k-label c4-lbl");
           var lT = label("臺北飛航情報區", XT, "k-label c4-lbl");
-          var lB = label("區域 B", XB, "k-label c4-lbl");
+          var lB = label("福岡飛航情報區", XB, "k-label c4-lbl");
           var mA = label("收到資訊", XA, "k-label is-soft c4-mic");
           var mT = label("協調時序", XT, "k-label is-soft c4-mic");
           var mB = label("回應確認", XB, "k-label is-soft c4-mic");
+          // CTOT partners (ATFM_WORLD.CTOT_PARTNERS): regions taking part in Taipei FIR CTOT operations
+          var ctot = K.el("div", { class: "k-label is-soft c4-ctot" }, ["CTOT 跨區協作　" + window.ATFM_WORLD.CTOT_PARTNERS.join("・")]);
+          stage.appendChild(ctot);
 
           // 5 · baton (top)
           var baton = K.el("div", { class: "c4-box c4-baton" });
@@ -191,7 +196,7 @@
           K.inUp(tl, lT, G(38.06), { y: 12, dur: 0.6 });
           K.inUp(tl, lB, G(38.14), { y: 12, dur: 0.6 });
 
-          // relay leg 1: 區域 A → 臺北飛航情報區 (crosses x 660 at 38.525, as the plane crosses below)
+          // relay leg 1: 香港飛航情報區 → 臺北飛航情報區 (crosses x 660 at 38.525, as the plane crosses below)
           K.pop(tl, baton, G(38.1), { dur: 0.4, ease: "back.out(1.5)" });
           K.inUp(tl, mA, G(38.15), { y: 10, dur: 0.5 });
           tl.fromTo(baton, { x: 0 }, { x: 600, duration: 0.85, ease: "power2.inOut" }, G(38.1));
@@ -209,15 +214,16 @@
           tl.fromTo(tick, { scale: 1, opacity: 1, svgOrigin: "0 0" }, { scale: 0.4, opacity: 0, svgOrigin: "0 0", duration: 0.1, ease: "power2.in", immediateRender: false }, G(38.95));
           tl.to(tick, { scale: 1, opacity: 1, svgOrigin: "0 0", duration: 0.3, ease: "back.out(2)" }, G(39.07));
           K.inUp(tl, mT, G(39.0), { y: 10, dur: 0.5 });
+          K.inUp(tl, ctot, G(39.12), { y: 10, dur: 0.6 });
 
-          // relay leg 2: 臺北飛航情報區 → 區域 B (crosses x 1260 at 39.875, as the plane crosses below)
+          // relay leg 2: 臺北飛航情報區 → 福岡飛航情報區 (crosses x 1260 at 39.875, as the plane crosses below)
           tl.to(baton, { x: 1200, duration: 0.85, ease: "power2.inOut" }, G(39.45));
           tl.to(baton, { y: -22, duration: 0.425, ease: "sine.inOut" }, G(39.45));
           tl.to(baton, { y: 0, duration: 0.425, ease: "sine.inOut" }, G(39.875));
           pulse(d2.pulse, G(39.88), 6, 22, 0.7, 0.7);
           seam(dvR.seam, G(39.88));
 
-          // arrival at 區域 B
+          // arrival at 福岡飛航情報區
           pulse(nB.pulse, G(40.3), 11, 30, 0.9, 0.7); // r1 30: ring top 400 clears the baton (393)
           K.inUp(tl, mB, G(40.32), { y: 10, dur: 0.5 });
           tl.fromTo(trail, { attr: { "stroke-width": 4 } }, { attr: { "stroke-width": 6 }, duration: 0.25, ease: "sine.inOut" }, G(40.3));
@@ -231,7 +237,7 @@
           tl.to(dvWrap, { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.7));
           tl.to([track, trackIn], { opacity: 0, duration: 0.25, ease: "power2.out" }, G(40.7));
           tl.to([nA.g, lA, mA], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.7));
-          tl.to([lT, mT], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.72));
+          tl.to([lT, mT, ctot], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.72));
           tl.to([nB.g, lB, mB, baton], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.74));
           tl.to([d1.g, d2.g, trail], { opacity: 0, duration: 0.3, ease: "power2.out" }, G(40.72));
           // the gold Taipei node blooms into c5's Taiwan (963, 430)

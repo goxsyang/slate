@@ -37,11 +37,11 @@
         #c2-root .k-row-hl { position: absolute; }
         #c2-root .k-panel-bar .k-bar-right { margin-left: 0; }
         #c2-root .c2-pills { position: relative; display: block; flex: none; width: 116px; height: 30px; margin-left: auto; }
-        #c2-root .c2-pills .k-pill { position: absolute; left: 0; top: 0; width: 116px; }
-        #c2-root .c2-p0 { background: #e1eee8; color: #1f6b62; }
-        #c2-root .c2-p1 { background: #f2ddd3; color: #b25135; }
-        #c2-root .c2-p2 { background: #fbf7f2; color: #1f6b62; box-shadow: inset 0 0 0 1.5px #a9c7bd; }
-        #c2-root .c2-p3 { background: #e1eee8; color: #1f6b62; }
+        /* ONE opaque pill box (background tweens S0→S3); only its text spans swap, strictly in sequence */
+        #c2-root .c2-pillbox { position: absolute; left: 0; top: 0; width: 116px; background: #e1eee8; }
+        #c2-root .c2-pring { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: 9px; box-shadow: inset 0 0 0 1.5px #a9c7bd; }
+        /* stacked swap texts (pill, status tags, DEP chip) */
+        #c2-root .c2-swap { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
         #c2-root .c2-flt { color: #2f3a37; font-size: 24px; font-weight: 600; white-space: nowrap; }
         #c2-root .c2-orig { position: relative; display: inline-block; justify-self: start; font-size: 22px; color: #6e6a64; }
         #c2-root .c2-strike { position: absolute; display: block; left: -2px; right: -2px; top: 50%; height: 1.5px; margin-top: -0.75px; background: #6e6a64; }
@@ -51,11 +51,10 @@
           font-family: "ATFM Mono", "ATFM Sans", monospace; font-size: 24px; font-weight: 600; color: #1f6b62; letter-spacing: 0.02em;
         }
         #c2-root .c2-tags { position: relative; display: block; width: 120px; height: 34px; }
-        /* stacked status tags share one 92 px box, so a crossfade never shows a ghost glyph */
+        /* status tag = one opaque 92 px box (background tweens); its two labels swap in sequence */
         #c2-root .c2-tags .k-tag { position: absolute; left: 0; top: 0; box-sizing: border-box; min-width: 92px; justify-content: center; }
-        /* both DEP chips share one 240 px box (x 130–370); SIG2 ends 14 px inside it */
-        #c2-root .c2-chipwrap { position: absolute; left: 130px; top: 440px; width: 240px; height: 52px; }
-        #c2-root .c2-chipwrap .k-chip { left: 0; top: 0; width: 240px; justify-content: center; }
+        /* DEP chip = one opaque 240 px box (x 130–370) with the chip shadow; SIG2 ends 14 px inside it */
+        #c2-root .c2-chipwrap { left: 130px; top: 440px; width: 240px; height: 52px; padding: 0; }
       </style>
       <div id="c2-root" data-composition-id="c2-airport" data-width="1920" data-height="1080" data-duration="16.9"></div>
       <script>
@@ -101,7 +100,9 @@
             '<rect width="10" height="10" fill="#F2DDD3"/><rect width="4" height="10" fill="#B25135"/></pattern>';
           function hidden(d) { var p = K.s("path", { d: d, fill: "none", stroke: "none" }); fx.appendChild(p); return p; }
           var FLT2 = hidden("M390 560.81L545.55 526.26L618.75 510Q960 434.35 1301.25 510L1347 520.16L1511.7 556.75");
-          var TURN2 = hidden("M1511.7 556.75C1530 560.8 1540 590 1562 600"); // exits onto the taxiway before the works zone
+          // flat exit (peak heading ≈ 39°, G1-continuous into the final straight) across the 15 px grass strip onto
+          // the parallel taxiway centreline (y ≈ 598 at x 1560), just short of the painted stand connector (x ≈ 1566)
+          var TURN2 = hidden("M1511.7 556.75C1527 560.2 1534 576.1 1546 586L1560 597.5");
           var MERGE = hidden("M332.45 604.34C356.85 598.94 365.6 566.21 390 560.81");
           var TAXI21 = hidden("M268.4 618.57L332.45 604.34"); // Q2 → Q1
           var TAXI32 = hidden("M204.35 632.79L268.4 618.57"); // Q3 → Q2
@@ -121,7 +122,9 @@
           var gR = K.s("g", { class: "c2-gr" }); // right group (fades right at the handoff)
           fx.appendChild(gR);
           var route2 = K.s("path", { d: "M618.75 510Q960 434.35 1301.25 510", fill: "none", stroke: TSOFT, "stroke-width": "4", "stroke-linecap": "round" });
-          gR.appendChild(route2);
+          var route2G = K.s("g", { class: "c2-route" }); // slides in with DEP so the arc's start stays on the runway end
+          route2G.appendChild(route2);
+          gR.appendChild(route2G);
           // runway-works hatch on the DST runway, R′(0.58)–R′(0.92)
           var hatchO = K.s("g", { transform: "translate(1566.6 568.9) rotate(12.5)" });
           var hatch = K.s("g");
@@ -254,8 +257,22 @@
             var roll = K.roll(r.t1, { h: 34 });
             var nt = K.el("span", { class: "c2-newt" }, [roll]);
             var holder = K.el("span", { class: "c2-tags" });
-            var tags = r.tags.map(function (x) { var e = K.tag(x[0], x[1]); holder.appendChild(e); return e; });
-            return { cells: [K.el("span", { class: "c2-flt", text: "航班 " + r.f }), orig, K.el("span", { class: "c2-arrow", text: "→" }), nt, holder], strike: strike, orig: orig, nt: nt, roll: roll, tags: tags };
+            var box = null, tags;
+            if (r.tags.length === 1) {
+              holder.appendChild(K.tag(r.tags[0][0], r.tags[0][1]));
+              tags = [];
+            } else {
+              // one opaque box; the labels are stacked text spans swapped in sequence
+              box = K.tag("", r.tags[0][1]);
+              holder.appendChild(box);
+              tags = r.tags.map(function (x) {
+                var e = K.el("span", { class: "c2-swap", text: x[0], style: { color: x[1] ? TEAL : TERRA } });
+                e.setAttribute("data-layout-allow-overlap", "");
+                box.appendChild(e);
+                return e;
+              });
+            }
+            return { cells: [K.el("span", { class: "c2-flt", text: "航班 " + r.f }), orig, K.el("span", { class: "c2-arrow", text: "→" }), nt, holder], strike: strike, orig: orig, nt: nt, roll: roll, box: box, tags: tags };
           });
           var panel = K.panel({ x: 690, y: 228, w: 560, title: "ATFM 流量管理系統", cols: "110px 76px 30px 92px 1fr", rows: R.map(function (r) { return r.cells; }) });
           var rows = panel.__rows;

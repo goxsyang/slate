@@ -223,8 +223,9 @@
 
           // VO2 「全方位守護臺灣的天空」
           ft(L.firFill, { opacity: 0.1 }, { opacity: 0.18, duration: 1.0, ease: "power2.out" }, 5.55, true);
-          // SN starts at 5.32 (not 5.60): the draw front plus its 20-wu cap passes X_N (frac 0.905) by 5.58, when the dot
-          // starts to pop, so the dot never lights ahead of its route on open sea. PNa (frac 0.795 at 5.75) stays behind it.
+          // SN starts at 5.32 (spec 5.60). The draw front passes X_N (measured frac 0.763) at ≈ 5.48, ahead of the dot's
+          // 5.58 pop, so the dot never lights ahead of its route on open sea. PNa (frac 0.795 at 5.75) stays behind the
+          // front, which is at 0.978 by then.
           K.reveal(tl, R.SN, 5.32, 0.85, { id: "c1-rv-sn", width: 40, ease: "expo.out" });
           // edge dots light clockwise N → E → E → S; the W step is BPW's real crossing pulse at 6.35
           [["X_N", 5.58], ["X_E1", 5.77], ["X_E2", 5.96], ["X_S", 6.15]].forEach(function (e) {
