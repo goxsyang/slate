@@ -29,8 +29,13 @@
         /* DEP chip = one opaque box (x 110–390, y 500–576); SIG2 ends 36 px inside its top edge. It clears the panel (x ≥ 460)
            by 70 px and sits ≥ 30 px above B's time tag at LU (top 603). */
         #c2-root .c2-chipwrap { left: 110px; top: 500px; }
-        /* the ✓ in a done flight chip ("A ✓") is Sans — the mono face has no check glyph and falls back to a radical sign (P5) */
-        #c2-root .ks-chip .c2-ck { font-family: "ATFM Sans", sans-serif; margin-left: 8px; } /* the chip is a flex row: the space collapses, so the gap is a margin */
+        /* strip chips: [id][ext] — ext is a clipped box (width 0) holding the CTOT / ✓ texts stacked at its left, so a
+           relabel is a width wipe + crossfade (same pattern as c3's .c3-chip-*), never a one-frame text swap */
+        #c2-root .c2-chip-id { display: block; flex: none; height: 44px; line-height: 44px; }
+        #c2-root .c2-chip-ext { position: relative; display: block; flex: none; min-width: 0; width: 0; height: 44px; overflow: hidden; }
+        #c2-root .c2-chip-txt { position: absolute; left: 0; top: 0; height: 44px; line-height: 44px; white-space: pre; opacity: 0; } /* pre: keeps the leading space (nowrap collapses it) */
+        /* the ✓ in a done flight chip ("A ✓") is Sans — the mono face's check reads as a radical sign (P5) */
+        #c2-root .ks-chip .c2-ck { font-family: "ATFM Sans", sans-serif; }
       </style>
       <div id="c2-root" data-composition-id="c2-airport" data-width="1920" data-height="1080" data-duration="16.9"></div>
       <script>
@@ -178,11 +183,12 @@
             }
             return o;
           }
-          // C's tag parks left of centre at Q1: box x 126.7–238.7 (7 px clear of B's tag at LU, x ≥ 246) and y 637.5–681.5
-          // (15 px above C's own wing line at 696.5). The stage drift (scale 1.013, x −5 while it is parked, 19.94–20.45)
-          // carries its left edge to x ≈ 110.5, so it stays inside the 110 margin.
-          var C_TT_DX = -75, C_TT_DY = 4;
-          var N1 = mkPlane(), N2 = mkPlane(), A = mkPlane("A"), B = mkPlane("B", "10:10"), C = mkPlane("C", "10:20", C_TT_DX, C_TT_DY);
+          // B's tag sits 10 px right of centre (box x 256–368 at LU; it never re-centres — it fades at lift-off 20.84), and C's
+          // parks left of centre at Q1: box x 136.7–248.7 (7 px clear of B's tag) and y 637.5–681.5 (15 px above C's own wing
+          // line at 696.5). The stage drift (scale 1.013, x −5 while it is parked, 19.94–20.45) carries C's left edge to
+          // x ≈ 120, 10 px inside the 110 margin and off the DEP block's top-left grass.
+          var B_TT_DX = 10, C_TT_DX = -65, C_TT_DY = 4;
+          var N1 = mkPlane(), N2 = mkPlane(), A = mkPlane("A"), B = mkPlane("B", "10:10", B_TT_DX, 0), C = mkPlane("C", "10:20", C_TT_DX, C_TT_DY);
           gsap.set([A.ringGate, B.ringGate, C.ringGate], { opacity: 0 }); // hold rings stay hidden until their pulse
 
           // 5 · INLINK (world layer, under the cloud): from the weather over the DST runway into the panel's right edge.
@@ -235,7 +241,8 @@
           // 2 · the real-system panel (STORYBOARD §0C): AIRPORT view, badge RCTP, x 460–1460, y 228–568
           // Ruler: a 37-minute window (ticks 10:00 05 … 35) — on a 60-minute ruler 10 min is only 114 px, so the two
           // CTOT chips "B 10:10" / "C 10:20" (154 px each) would overprint; here 10 min = 185 px (31 px apart), the grey
-          // "A ✓" chip (82 px) clears B at 05 by 11 px, and N2 at 35 (x 695–759) stays inside the 778 px lane.
+          // "A ✓" chip (84 px, right edge 130) clears B — parked at 05.5 (left 148) until its 19.94 slide to 10 — by 18 px,
+          // and N2 at 35 (x 695–759) stays inside the 778 px lane.
           // Clock: the panel is up from 8.40 while A (10:00 on the strip) is still on the ground until 15.13, so it reads
           // 10:00 (not §0C's 10:01, inherited from the 18.76 entrance) and ticks to 10:01 at 18.63, just before the
           // count that §0C specifies takes over at 18.76 (601.43 → 633.93: 10:10 at 19.95, 10:20 at 21.35).
@@ -245,12 +252,49 @@
             ruler: { start: 0, minutes: 37, step: 5, label: "10" },
             // all three flights start on time (blue); B and C turn pink (regulated) when the capacity drops at 15.85.
             // N2 at 10:35 is later traffic, so it is blue (planned) — §0C's grey would mark a flight 34 minutes ahead of the clock as done
-            flights: [{ id: "A", min: 0, tone: "blue" }, { id: "B", min: 5, tone: "blue" }, { id: "C", min: 10, tone: "blue" }, { id: "N2", min: 35, tone: "blue" }],
+            // B parks at 05.5 (not 05): after A's 18.30 relabel "A ✓" ends at x 130, and at 05 B's left edge (138.7) would sit
+            // only 9 px away for 1.6 s. Its 19.94 destination (minToX(10)) is unchanged.
+            flights: [{ id: "A", min: 0, tone: "blue" }, { id: "B", min: 5.5, tone: "blue" }, { id: "C", min: 10, tone: "blue" }, { id: "N2", min: 35, tone: "blue" }],
           });
           Object.keys(P.pill.states).forEach(function (k) { P.pill.states[k].setAttribute("data-layout-allow-overlap", ""); }); // stacked, crossfaded states
-          var chA = P.chips[0].el, chB = P.chips[1].el, chC = P.chips[2].el;
+          var chB = P.chips[1].el, chC = P.chips[2].el;
           var led = P.title.firstChild;
           ui.appendChild(P.el);
+          // chip relabels as motion (c3's pattern): [id][ext] with the CTOT / ✓ texts stacked inside ext (see .c2-chip-ext).
+          // The mono font advances 18 px per glyph at 30 px, so " 10:10" = 108 px; the ✓ is a Sans glyph (19.32 px) after a
+          // mono space → " ✓" = 37.3 px, boxed at 38. The chip (padding 14 + 14) grows 46 → 154 / 46 → 84 without any
+          // layout measurement.
+          var CH = 18, W_CK = 38;
+          function chipExt(c, texts) {
+            c.el.textContent = "";
+            c.el.appendChild(K.el("span", { class: "c2-chip-id", text: c.id }));
+            c.ext = K.el("span", { class: "c2-chip-ext" });
+            c.txt = texts.map(function (s) {
+              var e = s === "ck"
+                ? K.el("span", { class: "c2-chip-txt", text: " " }, [K.el("span", { class: "c2-ck", text: "✓" })])
+                : K.el("span", { class: "c2-chip-txt", text: s });
+              e.__w = s === "ck" ? W_CK : s.length * CH;
+              e.setAttribute("data-layout-allow-overlap", "");
+              c.ext.appendChild(e);
+              return e;
+            });
+            c.el.appendChild(c.ext);
+            c.lab = -1;
+          }
+          chipExt(P.chips[0], ["ck"]);
+          chipExt(P.chips[1], [" 10:10", "ck"]);
+          chipExt(P.chips[2], [" 10:20"]);
+          /** wipe text k into chip c's ext over dur: ext width → that text's width, text k fades in (the previous one out) */
+          function chipLabel(c, k, t, dur) {
+            var w = c.txt[k].__w;
+            if (c.lab < 0) tl.fromTo(c.ext, { width: 0 }, { width: w, duration: dur, ease: "power2.inOut" }, t);
+            else {
+              tl.to(c.ext, { width: w, duration: dur, ease: "power2.inOut" }, t);
+              tl.to(c.txt[c.lab], { opacity: 0, duration: dur * 0.6, ease: "power2.in" }, t);
+            }
+            tl.fromTo(c.txt[k], { opacity: 0 }, { opacity: 1, duration: dur * 0.8, ease: "power2.inOut" }, t + dur * 0.2);
+            c.lab = k;
+          }
 
           // 3 · cause chips — right of the panel (x 1480–1810, y 420–560), in pop order: 天氣 upper-left, 跑道維護 lower-right
           var chipWx = K.chip("天氣", { x: 1480, y: 420, warn: true });
@@ -331,12 +375,12 @@
           });
           K.pop(tl, chipWrap, G(16.6), { dur: 0.55, ease: "back.out(1.5)" });
 
-          // A touched down 18.26 → its chip is done: grey, "A ✓" (the check in a Sans span; a tl.set like the textContent relabels)
-          function chipDone(el, letter, t) {
-            tl.to(el, { backgroundColor: SYS.grey, duration: 0.3, ease: "power2.inOut" }, t);
-            tl.set(el, { innerHTML: letter + '<span class="c2-ck">✓</span>' }, t);
+          // A touched down 18.26 → its chip is done: grey, and " ✓" wipes in (0.3 s) as it greys — the same motion as c3's D ✓ / E ✓
+          function chipDone(c, k, t) {
+            tl.to(c.el, { backgroundColor: SYS.grey, duration: 0.3, ease: "power2.inOut" }, t);
+            chipLabel(c, k, t + 0.05, 0.3);
           }
-          chipDone(chA, "A", G(18.3));
+          chipDone(P.chips[0], 0, G(18.3));
 
           // --- VO6: the system detects, recomputes, dispatches ---
           // 「系統」: a soft mint ring on the title-bar LED marks the beat (panel already up, pill S0)
@@ -371,22 +415,23 @@
           });
           K.pop(tl, B.tt, G(19.86), { dur: 0.45, ease: "back.out(1.5)" });
           K.pop(tl, C.tt, G(19.94), { dur: 0.45, ease: "back.out(1.5)" });
-          // C's tag waits left of centre (clear of B on the runway) and re-centres during C's MERGE
+          // C's tag waits left of centre (clear of B on the runway) and re-centres (x +65, y −4) during C's MERGE
           tl.fromTo(C.tt, { x: 0, y: 0 }, { x: -C_TT_DX, y: -C_TT_DY, duration: 0.75, ease: "power1.inOut", immediateRender: false }, G(20.45));
           // then the CTOTs land on the timeline (after the packet has arrived, 19.86): B → 10:10, C → 10:20.
           // Both chips slide together (19.94, ±0.06 s from §0C's 19.88 / 20.00): B's destination is C's origin, so with one
-          // start and one ease C's displacement is always 2× B's and the gap between them only grows (92.7 → 185 px) —
-          // C is never covered. Labels follow once the gap can hold them: "B 10:10" (154 px) at 20.30 (progress 0.74, C's left
-          // edge 7 px past B's new right edge), "C 10:20" at 20.42 (progress 0.97, 25 px clear). No z-order tricks needed.
+          // start and one ease C's displacement is always 2× B's and the gap between them only grows (83 → 185 px) —
+          // C is never covered. The CTOT texts wipe in (0.25 s) once the gap can hold them: " 10:10" from 20.30 (progress 0.74;
+          // B's right edge grows 254 → 385 while C's left edge moves 369 → 417, so B stays ≥ 31 px clear of C at every frame),
+          // " 10:20" from 20.42 (progress 0.97; C's right edge ends at 571, N2 starts at 695). No z-order tricks needed.
           P.moveChip(tl, 1, 10, G(19.94), 0.6);
           P.moveChip(tl, 2, 20, G(19.94), 0.6);
-          tl.set(chB, { textContent: "B 10:10" }, G(20.3));
-          tl.set(chC, { textContent: "C 10:20" }, G(20.42));
+          chipLabel(P.chips[1], 0, G(20.3), 0.25);
+          chipLabel(P.chips[2], 0, G(20.42), 0.25);
           // S2 → S3 ✓ 已派發 (「派發」): LED back to mint with its resting glow
           P.pill.set(tl, "S3", G(20.24));
           tl.to(led, { boxShadow: LED_GLOW, duration: 0.3, ease: "power2.inOut" }, G(20.24));
-          // B touched down 23.08 → its chip is done — loop closed inside VO6
-          chipDone(chB, "B", G(23.12));
+          // B touched down 23.08 → its chip is done — loop closed inside VO6 (" 10:10" fades out as " ✓" wipes in, 108 → 38 px)
+          chipDone(P.chips[1], 1, G(23.12));
 
           // ================= AIRCRAFT =================
           // Timing keeps every release (clock) and touchdown beat: roll 0.885 s → touchdown +3.134 s.

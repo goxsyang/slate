@@ -28,8 +28,8 @@
           position: absolute; left: 1004px; top: 804px; line-height: 36px;
           font-size: 30px; font-weight: 700; color: #1f6b62; letter-spacing: 0.04em; white-space: nowrap;
         }
-        /* 外區起飛機場 beside the airport (right of its apron, under ROUTE3) */
-        #c3-root .c3-deplbl { left: 500px; top: 790px; line-height: 46px; }
+        /* 外區起飛機場 beside the airport (§0C x ≈ 520: 16 px clear of the apron's right edge 504, under ROUTE3) */
+        #c3-root .c3-deplbl { left: 520px; top: 790px; line-height: 46px; }
         /* real designators (client): airway M750 above ROUTE3 left of the boundary; boundary point ENVAR under the 邊境點 chip */
         #c3-root .c3-m750 {
           position: absolute; left: 700px; top: 588px; width: 100px; height: 36px; line-height: 36px; text-align: left;
@@ -175,10 +175,10 @@
           // DISP3: panel left edge → across the boundary → the DEP chip (§0C). Starts 40 px inside the panel's left edge
           // and 30 px above its bottom, leaves through its bottom-left corner, crosses the boundary at (980, 600) — 32 px
           // under the panel, 38 px above the gate capsule — then arcs over M750 (y ≈ 553 at x 776, tag top 588) and lands
-          // 60 px inside the DEP chip's right edge (x 418, y 518 = chip mid-height): the chip pops about its centre
-          // (301, 518), so it covers the line's end as soon as its scale passes 0.66 — a few frames after the packet lands.
+          // 60 px inside the DEP chip's right edge (x 406, y 518 = chip mid-height): the chip pops about its centre
+          // (289, 518), so it covers the line's end as soon as its scale passes 0.66 — a few frames after the packet lands.
           var XING = [980, 600];
-          var disp3 = link(K.smooth([[1030, 538], XING, [900, 596], [760, 548], [600, 516], [418, 518]]));
+          var disp3 = link(K.smooth([[1030, 538], XING, [900, 596], [760, 548], [600, 516], [406, 518]]));
           gLinks.appendChild(bpLink);
           gLinks.appendChild(disp3);
           var pkBp = packet(TERRA), pkDisp = packet(TEAL2);
@@ -247,7 +247,8 @@
           // 1 · the real-system panel (K.sysPanel, §0C "c3 — FIXES view"): badge ENVAR, hours 0900–1300 at 12/h,
           //     flights D 10:20 (blue, on time) · E 10:25 · F 10:30 (pink, regulated). Built at its final rect
           //     (x 990, w 820 → ruler/chips measured for 820); the FRAME enters at c2's rect (x 460, w 1000, h 340) and
-          //     glides/morphs here 23.85–24.85. Content (nav, columns, strip, pill) stays hidden until 24.95.
+          //     glides/morphs here 23.85–24.85. Content stays hidden meanwhile: the nav column fades in over the last
+          //     third of the glide (24.55), the main column + pill once the frame has settled (24.95).
           //     Ruler: the 10:20–10:50 half hour at 5-min ticks (16.9 px/min, as c2 zooms its own ruler). A full hour at
           //     w 820 runs 8.4 px/min, where a CTOT chip ("E 10:30" = 154 px ≈ 18 min) would sit on the next chip 10 min
           //     later and "D ✓" would reach past E's 10:30 slot. In this window D ✓ 46–128 · E 10:30 215–369 · F 10:40 383–537.
@@ -268,10 +269,18 @@
           var chipE = Pn.chips[1].el, chipF = Pn.chips[2].el;
           var content = [Pn.nav, Pn.main, Pn.pill.el];
           gsap.set(content, { opacity: 0 });
+          gsap.set(panel, { boxShadow: PANEL_SHADOW0 }); // c2's identical frame casts the shadow until 23.80 (handoff below)
           ui.appendChild(panel);
-          [[0, "10:20"], [Pn.ticks.length - 1, "10:50"]].forEach(function (x) {
-            Pn.ticks[x[0]].textContent = x[1];
-            Pn.ticks[x[0]].classList.add("is-hour");
+          // C. the 90-px end labels are centred on the 46-px inset, so their outer glyphs sat 1 px from the ruler's rounded
+          //    ends; nudge both inward (6 / 8 px: the component's minToX scale ignores the panel's 2 px border, so the
+          //    ruler is 596 px wide, 2 px short of its scale at the right end). Chips mark time by their LEFT edge at
+          //    minToX(), so a label nudge changes nothing else — both end labels now sit 7 px inside the ruler's ends,
+          //    18 px clear of the "25" / "45" ticks.
+          [[0, "10:20", 6], [Pn.ticks.length - 1, "10:50", -8]].forEach(function (x) {
+            var tk = Pn.ticks[x[0]];
+            tk.textContent = x[1];
+            tk.classList.add("is-hour");
+            tk.style.left = (parseFloat(tk.style.left) + x[2]) + "px";
           });
           // chip relabels as motion: [id][ext] with the CTOT / ✓ texts stacked inside ext (see .c3-chip-ext). The mono
           // font advances 18 px per glyph at 30 px — space and ✓ included — so " 10:30" = 108 px and " ✓" = 36 px, and the
@@ -293,15 +302,19 @@
           chipExt(Pn.chips[0], [" ✓"]);
           chipExt(Pn.chips[1], [" 10:30", " ✓"]);
           chipExt(Pn.chips[2], [" 10:40"]);
-          /** wipe text k into chip c's ext over dur: ext width → its text width, text k fades in (the previous one out) */
+          /** wipe text k into chip c's ext over dur: the box (ext width) opens / shrinks to the text's width while text k
+           *  fades in behind its edge and the previous text fades out ahead of it. The edge must not cut a glyph that is
+           *  still legible: the outgoing text is gone after 0.35·dur, before the box (delayed 0.06 s) has moved 3 px, and
+           *  the incoming text fades 0.45·dur → 1.15·dur, so it is ≤ 6 % opaque while the edge crosses the inner glyphs
+           *  and the box is ≥ 96 % open by the time it passes half opacity. */
           function chipLabel(c, k, t, dur) {
             var w = c.txt[k].textContent.length * CH;
             if (c.lab < 0) tl.fromTo(c.ext, { width: 0 }, { width: w, duration: dur, ease: "power2.inOut" }, t);
             else {
-              tl.to(c.ext, { width: w, duration: dur, ease: "power2.inOut" }, t);
-              tl.to(c.txt[c.lab], { opacity: 0, duration: dur * 0.6, ease: "power2.in" }, t);
+              tl.to(c.txt[c.lab], { opacity: 0, duration: dur * 0.35, ease: "power2.in" }, t);
+              tl.to(c.ext, { width: w, duration: dur, ease: "power2.inOut" }, t + 0.06);
             }
-            tl.fromTo(c.txt[k], { opacity: 0 }, { opacity: 1, duration: dur * 0.8, ease: "power2.inOut" }, t + dur * 0.2);
+            tl.fromTo(c.txt[k], { opacity: 0 }, { opacity: 1, duration: dur * 0.7, ease: "power2.inOut" }, t + dur * 0.45);
             c.lab = k;
           }
 
@@ -314,9 +327,12 @@
           ui.appendChild(chipLim);
           var envar = K.el("div", { class: "c3-envar", text: "ENVAR" });
           ui.appendChild(envar);
-          // 3 · DEP chip 已接收新起飛時間 above the airport, aligned to its left edge (x 124–478, y 480–556). §0C's y 520
-          //     would sit on D's 10:20 time tag (top 582 at LU); 480 keeps 26 px between them.
-          var chipNew = K.chip("已接收新起飛時間", { x: AX, y: 480 });
+          // 3 · DEP chip 已接收新起飛時間 above the airport (x 112–466, y 480–556). §0C's y 520 would sit on D's 10:20
+          //     time tag (top 582 at LU); 480 keeps 26 px between them. x 112 (not the airport's 124): the chip heads the
+          //     stack chip / 10:20 / 10:30 / 10:40, and F's tag (stage x 124–236) sits at screen x ≈ 112–113 while the
+          //     tags are up (31.7–32.5, breathe ≈ 1.013), so the UI-layer chip lines up with the stack's left edge instead
+          //     of standing 12 px proud of it. 112 stays inside the 110 margin.
+          var chipNew = K.chip("已接收新起飛時間", { x: AX - 12, y: 480 });
           ui.appendChild(chipNew);
 
           // ================= TIMELINE (local times via G(global)) =================
@@ -327,8 +343,10 @@
 
           // --- handoff in: c2's frame → glide/morph into the Taipei FIR zone ---
           tl.fromTo(panel, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: "none" }, 0);
-          // c2's identical frame still casts its shadow until it hides at 23.80; take the shadow over on that exact frame
-          tl.fromTo(panel, { boxShadow: PANEL_SHADOW0 }, { boxShadow: PANEL_SHADOW, duration: 0.001, ease: "none" }, G(23.8));
+          // c2's identical frame still casts its shadow until it hides (tl.set) at 23.80; take the shadow over with a
+          // zero-duration set on that exact instant, so it is on for every seek ≥ 23.80 (a 0.001-s fromTo was still at
+          // progress 0 at exactly 23.80 — one shadowless instant between the two scenes)
+          tl.set(panel, { boxShadow: PANEL_SHADOW }, G(23.8));
           // (x as a transform offset from the final left 990; the width morph is a layout tween, content is hidden meanwhile)
           tl.fromTo(panel, { x: PANEL0.x - PANEL.x, width: PANEL0.w }, { x: 0, width: PANEL.w, duration: 1.0, ease: "power3.inOut" }, G(23.85));
 
@@ -357,8 +375,12 @@
           var T1BP = 24.56, T2BP = 25.26;
           K.inUp(tl, chipBP, G(24.65), { y: 12, dur: 0.6 });
           tl.fromTo(envar, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, G(24.75));
-          // panel content fades in (S0 監控中) once the frame has settled (24.85)
-          tl.fromTo(content, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.95));
+          // panel content. The nav column (tabs · clock box · ENVAR badge) is a fixed 150-px column pinned to the panel's
+          // left edge, independent of the width morph, so it fades in over the last third of the glide (24.55: the frame
+          // is 89 % settled, 57 px from its rect) — the biggest element on screen is not left as a blank box through VO7.
+          // The main column (AAR columns + strip) and the pill follow once the frame has settled (24.95, S0 監控中).
+          tl.fromTo(Pn.nav, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.55));
+          tl.fromTo([Pn.main, Pn.pill.el], { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, G(24.95));
           tl.fromTo(Pn.main, { y: 10 }, { y: 0, duration: 0.5, ease: "power3.out" }, G(24.95));
           tl.fromTo(led, { backgroundColor: LED_MINT, boxShadow: LED_GLOW }, { backgroundColor: LED_MINT, boxShadow: LED_GLOW, duration: 0.22, ease: "none" }, 0);
           // one clock tween to the window end: 09:30 → 11:01 at 7.143 min/s (10:20 @31.90, 10:30 @33.30, 10:40 @34.70)
@@ -458,7 +480,7 @@
           chipDone(Pn.chips[0], 0, XD);
           chipDone(Pn.chips[1], 1, XE);
           tl.fromTo(tintL, { clipPath: "inset(0% 0% 0% 100%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.2, ease: "power3.inOut" }, G(35.0));
-          // TintL's edge sweeps the DEP chip (x 124–478) 35.63–36.01: the chip turns card (cream + 1 px line) as the mint arrives
+          // TintL's edge sweeps the DEP chip (x 112–466) 35.64–36.10: the chip turns card (cream + 1 px line) as the mint arrives
           tl.fromTo(chipNew, { backgroundColor: "#E1EEE8", boxShadow: "inset 0 0 0 1px rgba(230,221,210,0), 0 10px 24px -18px rgba(60,48,36,0.35)" },
             { backgroundColor: CARD, boxShadow: "inset 0 0 0 1px rgba(230,221,210,1), 0 10px 24px -18px rgba(60,48,36,0.35)", duration: 0.35, ease: "power2.inOut", immediateRender: false }, G(35.65));
           tl.to(bnd, { opacity: 0.4, duration: 1.0, ease: "power2.inOut" }, G(35.0));
