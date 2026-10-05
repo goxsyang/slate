@@ -64,6 +64,7 @@ Visual rules live in DESIGN.md; the plan lives in STORYBOARD.md. This file is th
   `K.slots(["on","off","empty"])` (+ `row.__slots`), `K.slotTo(tl, slot, "on"|"off"|"teal2", t)`, `K.panel({...})`, `K.tag(text, ok)`,
   `K.roll("10:05",{h})` + `K.rollTo(tl, el, "10:25", t)`, `K.node(x,y,{r,color})` (SVG), `K.airport({x,y,w})`, `K.img({src,x,y,w})`,
   `K.cones({n,h})`, `K.rain(tl, svg, {...})`.
+- System panel (real-UI style, STORYBOARD §0C): `K.sysPanel({...})` → `P.el`, `P.cols[i]`, `P.chips[i]`, `P.clock`, `P.pill.set(tl, "S1", t)`, `P.setAAR(tl, i, value, restricted, t)`, `P.moveChip(tl, i, min, t, dur, label)` (assets/atfm-sys.js).
 - Geometry: `K.arc(x0,y0,x1,y1,bulge)`, `K.smooth(points)`, `K.AIRPORT` (runway/stands/squash), `K.airportPt(ax,ay,aw,px,py)`.
 - Aircraft: `K.plane({len, alt, squash, x, y, angle})` → SVG `<g>`; `K.fly(tl, plane, pathEl, t, dur, {from,to,alt0,alt1,squash0,squash1,trail,trailLen,ease})`;
   `K.placePlane(g,x,y,angle,alt,squash)` for static placement. Planes and their paths must live in the SAME svg coordinate space.

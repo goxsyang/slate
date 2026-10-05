@@ -82,6 +82,13 @@ no pure white backgrounds, no saturated blues, no neon glows.
 - Airports: isometric raster `assets/img/airport.png` (cut-out of the v4 airport, upscaled), with
   CSS contact shadow. Never distort its aspect ratio.
 
+## 5b. System panel (real ATFM UI)
+
+`K.sysPanel` mirrors the client's AAR Setting Tool: dark slate `#2B313B` panel, left nav AIRPORT / FIXES / SECTOR (active blue `#3A8DDE`),
+clock box, yellow location badge `#FFE600`, hourly AAR columns (restricted = pink `#E6399B` + red `#C8323C` ATFM tag), flight timeline
+chips (blue on time / pink regulated / grey done). It is the only dark surface in the film and the only place the system's own
+colours appear; everything else stays on the cream/teal palette.
+
 ## 6. Motion language
 
 - Eases: entrances `power3.out` (0.6–0.9 s) / `expo.out` for line draws; exits `power2.in` (0.35–0.5 s);

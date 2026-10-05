@@ -206,6 +206,64 @@ Every scene must also scale its **own** inline sizes ×1.5 and **re-fit its layo
 
 Lint's layout audit and the QA critics must treat **any text < 30 px as a HIGH defect**.
 
+## 0C. REAL-SYSTEM PANEL (client recording of the AAR Setting Tool — supersedes §0.3 and the slot cards in Frames 2–3)
+
+The client supplied a screen recording of the actual ATFM system (dark slate UI). The film's system panel is now
+**`K.sysPanel`** (`assets/atfm-sys.js`, CSS `.ks-*` in atfm.css), modelled on it: left nav **AIRPORT / FIXES / SECTOR**
+(stacked, active = blue), a **clock box** and a **yellow location badge** (RCTP / ENVAR), **hourly capacity (AAR) columns**
+(value box · striped bar · hour · ATFM tag; restricted hours turn **pink** with a **red ATFM** tag), and a **flight timeline
+strip** (one-hour minute ruler, flight chips: **blue** = on time, **pink** = regulated/re-timed, **grey** = done). A status
+pill (監控中 / 已偵測 / 計算中 / ✓ 已派發) sits in the title bar. Reference frames (do not publish — client material):
+`/tmp/claude-0/-home-user-slate/24d7b024-93d3-5c9d-afd5-aa5100195b80/scratchpad/sys/left_window.png`, `crop_aar_bars.png`,
+`crop_nav_grid.png`, `crop_timeline.png`; component sample `/tmp/claude-0/…/scratchpad/sys/harness.png`.
+
+API: `var P = K.sysPanel({x, y, w, h: 340, active, badge, clock, hours:[{h, aar, fill, state}], ruler:{start:0, minutes:60, step:10, label:"10"}, flights:[{id, min, tone}]})`
+→ `P.el` (append to the UI layer), `P.cols[i].{aar,bar,stripes,hour,tag}`, `P.chips[i].el`, `P.clock`, `P.badge`, `P.tabs[name]`,
+`P.pill.set(tl, "S1", t)`, `P.setAAR(tl, i, value, restricted, t, dur)`, `P.moveChip(tl, i, min, t, dur, "B 10:10")`,
+`P.minToX(min)`. Min width for 6 hour columns is **1000**; **820** fits 5 columns. All text in it is ≥ 30 px.
+The former `.k-panel` rows, the slot card (`到場容量 / 通過時段` + slot bars + letters + ticks) and the `k-tag` status
+tags are **removed** from c2 and c3 — the AAR columns show the capacity, the chips show the flights and their CTOTs.
+
+### c2 — AIRPORT view, badge RCTP (replaces §0.3 + the slot card)
+
+- Panel `K.sysPanel({x:460, y:228, w:1000, h:340, active:"AIRPORT", badge:"RCTP", clock:"10:01"})`, hours **0900 1000 1100 1200 1300 1400**
+  all `aar 25` (fills 0.9/0.8/0.95/0.7/0.75/0.6), ruler hour 10 (`label:"10"`), flights `A min 0 blue`, `B min 5 pink`, `C min 10 pink`, `N2 min 35 grey`.
+  It is on screen from **8.40** (where the slot card used to appear), status **S0 監控中**, entering with `K.inUp` y 16.
+- Layout re-fit: airports **w 400** — DEP `K.airport({x:110, y:630, w:400})`, DST mirrored `({x:1410, y:630, w:400})` (bottoms 846).
+  Recompute every runway/taxiway/stand point with `K.airportPt(ax, ay, 400, px, py)` (k = 0.25); FLT2 arc between the two runway
+  ends with **apex y ≥ 606** so planes (±30 px) clear the panel bottom (568). Labels `起飛機場` / `目的地機場` (38/700) float **beside**
+  the airports at y ≈ 790 (DEP label right of DEP at x ≈ 540; DST label left of DST at x ≈ 1380, right-aligned), not under them.
+  DEP chips (`地面等待` → `已接收新起飛時間`, h 76) at **(110, 500)**; if `已接收新起飛時間` exceeds x 458 use `已接收新時間`.
+  Cause chips `天氣` / `跑道維護` at the right (x 1480–1810, y 420–560), cloud + rain over the DST runway (y ≈ 560–660), hatch + cones on the DST runway.
+  Signal links: INLINK from the DST constraint (hatch/cloud) **into the panel's right edge** (terra packet); SIG2 from the panel's left edge to the DEP chip (teal packet) — both start ≥ 30 px inside the panel.
+- Beats (global; the Frame 2 table's times stay):
+  - **15.85 (VO5 「降低」)**: `P.setAAR(tl, 1, 23, true, 15.85)` and `P.setAAR(tl, 2, 23, true, 16.00)` (hours 1000 and 1100 go pink, red ATFM); `目的地機場` turns terra (11.05) as before; B and C chips pulse pink (hold rings on the planes as before).
+  - **18.30**: A lands → chip A → grey `tone` (backgroundColor tween) and label `A ✓`.
+  - **18.76 (VO6 「系統」)**: title-bar LED + pill S0; INLINK packet arrives 18.98 → `P.pill.set(tl,"S1",18.98)`; `P.pill.set(tl,"S2",19.50)`; SIG2 draws 19.58, packet 19.60–19.86;
+    **19.88** `P.moveChip(tl, 1, 10, 19.88, 0.6, "B 10:10")`, **20.00** `P.moveChip(tl, 2, 20, 20.00, 0.6, "C 10:20")`; `P.pill.set(tl,"S3",20.24)`;
+    B released 19.95, C released 21.35 (unchanged); **23.12** B lands → chip B grey `B ✓`.
+  - Clock: `count` 601 → 634 (10:01 → 10:34) from 18.76 as before, on `P.clock`.
+- Handoff out (23.35–24.30): rows/strip content fades 23.35; the **panel frame** (el) glides/morphs to c3's rect (x 990, w 820) 23.85–24.85 — c3 shows the same frame from 23.60, c2 hides its frame at 23.80 (as §Frame 2 Transition out, with the new rects).
+
+### c3 — FIXES view, badge ENVAR (replaces §0.3 + the slot card)
+
+- Panel `K.sysPanel({x:990, y:228, w:820, h:340, active:"FIXES", badge:"ENVAR", clock:"09:30"})`, hours **0900 1000 1100 1200 1300** all `aar 12`
+  (per-hour passage capacity through ENVAR, illustrative), ruler hour 10, flights `D min 20 blue`, `E min 25 pink`, `F min 30 pink`. It enters as the
+  glided frame (23.60–24.85 from x 690/w 1000 → x 990/w 820), content fades in 24.95 (S0).
+- Layout re-fit: panel inside the Taipei FIR zone (x 980–1810); **ROUTE3 at y 660** (clear of the panel bottom 568 + planes); DEP `K.airport({x:110, y:600, w:380})`,
+  LU/Q1/Q2 recomputed; `外區起飛機場` label beside it (x ≈ 520, y 790); BP node at (980, 660); chips `邊境點` (card) and `流管限制` (warn) flank the boundary at **y 700**;
+  `ENVAR` mono 30/600 under the 邊境點 chip, `M750` mono 30/600 above ROUTE3 left of the boundary (x ≈ 700); region labels **香港飛航情報區** (soft 30, right edge ≤ 956, top 238)
+  and **臺北飛航情報區** (30/700, left 1004, top 238) — the panel starts at y 228, so put the Taipei label **below the panel** at (1004, 586) instead.
+  DEP chip `已接收新起飛時間` at (110, 520). BPLINK: BP → panel bottom edge (terra packet); DISP3: panel left edge → crosses the boundary at (980, 600) → DEP chip (teal packet).
+- Beats (global; Frame 3 table times stay): **27.55 / 27.70** `P.setAAR(tl, 1, 9, true, …)`, `P.setAAR(tl, 2, 9, true, …)` (VO8); gate capsule + BP terra as before;
+  **29.05** S1; **30.20** S2; **31.55 / 31.67** `P.moveChip(tl, 1, 30, …, "E 10:30")`, `P.moveChip(tl, 2, 40, …, "F 10:40")`; **31.95** S3; D crosses BP 34.90 → chip D grey `D ✓`; E crosses 36.30 → chip E grey `E ✓`.
+  Clock `count` 570 → 661 from 24.95 (unchanged).
+- Handoff out (37.25–37.70): panel K.out; zone morph into c4's column unchanged.
+
+### Guardrails for the panel
+No real airline callsigns (the recording shows CAL/EVA/…; the film uses the neutral letters A–F). No IP addresses, URLs or
+internal names from the recording. Dark panel is the only dark surface in the film — keep everything else on the cream palette.
+
 ---
 
 ## Frame 1 — c1-map-intro
