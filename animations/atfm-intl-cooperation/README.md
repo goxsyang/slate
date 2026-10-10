@@ -13,7 +13,7 @@ It uses the design language of the *ATFM APAC orgs* reference animation:
 
 The story is carried by the land shapes of Taiwan and of each partner, which lift off the map as each country is named.
 
-**Deliverable:** `out/atfm-intl-cooperation.mp4`. A native 4K version (3840×2160, same timing) renders with `--scale 2`. It is 1920×1080 at 59.94 fps (the same as the narration master), 1044 frames, H.264 with no audio. Lay it under the VO starting at the clip's first frame.
+**Deliverable:** `out/atfm-intl-cooperation.mp4`. It is 1920×1080 at 59.94 fps (the same as the narration master), 1044 frames, H.264 with no audio. Lay it under the VO starting at the clip's first frame. A native 4K version (3840×2160, same timing) renders with `--scale 2`.
 
 ## Storyboard: In → Absorb → Out → Together
 
