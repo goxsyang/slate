@@ -31,11 +31,14 @@ Colours carry meaning:
 | 9.00–9.60 | (breath) | The PARTNERS card collapses into a **\|PARTNERS** wordmark, as in the reference. |
 | 9.45–13.6 | 與日本 韓國 菲律賓 泰國 新加坡 | On each spoken name, an arc leaves the FIR through a gold handoff diamond. The partner's land shape floods periwinkle and lifts, and its pin and glyph card land. Singapore also gets a locator ring. |
 | 13.9–14.8 | 等國家 | A highlight sweeps around the ellipse's ruler ticks and an echo ripple goes out. No unnamed countries are lit. |
-| 14.85–17.42 | 一同執行 ATFM 措施 | All six shapes rise together and particles flow both ways on every arc. The navy **ATFM / 與各國一同執行 / 飛航流量管理措施** card appears. The camera settles to a stop, so the last frame can be held. |
+| 14.85–17.42 | 一同執行 ATFM 措施 | All six shapes rise together and particles flow both ways on every arc. The navy **ATFM / 與各國一同執行 / 飛航流量管理措施** card appears. The camera comes to rest at 15.45 s, so the last ~2 s are a static hold that can be extended in the edit. |
 
 Sensitivity choices:
-- Mainland China is never labelled, filled or tinted. The ellipse wash is painted under the land layer, so it tints the sea only.
+- Mainland China is never labelled, filled or tinted. The ellipse wash and Taiwan's gold glow are painted under the land layer, so they tint the sea only.
+- Taiwan lights up with Penghu, Kinmen, Matsu, Green Island and Lanyu. Natural Earth has no Matsu, so `engine.js` adds it by hand.
+- Crimea is shown with Ukraine.
 - The Taiwan card always sits east of the FIR, over the Pacific.
+- No national flags: the cooperation is between ATFM units, and the series identifies countries by their land shapes.
 
 Layout choices:
 - No text goes below y = 914, so burned-in subtitles stay clear.
@@ -62,6 +65,6 @@ To scrub interactively, open `index.html` through any static server (for example
   - HTML label cards.
 - The camera interpolates `{center, px per degree}` keyframes with `d3.interpolateZoom`, and the map's detail level switches with the zoom.
 - `timeline.js` holds the whole choreography. Word onsets are listed at its top. To retime a beat, edit its `on` / `t0` values.
-- `scripts/render.mjs` drives headless Chromium through Playwright and captures each frame over CDP. The frames are encoded with ffmpeg (x264, CRF 14, BT.709).
+- `scripts/render.mjs` drives headless Chromium through Playwright and captures each frame over CDP. The frames are encoded with ffmpeg (x264, CRF 14, BT.709 matrix and tags). After rendering it re-renders sample frames on a fresh page and fails if they differ beyond anti-aliasing noise.
 
 Map data is from Natural Earth (public domain) via `world-atlas`. Fonts are Noto Sans TC (SIL OFL).
