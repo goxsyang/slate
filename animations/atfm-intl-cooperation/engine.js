@@ -1,43 +1,87 @@
 // Time-driven map animation engine. Everything on screen is a pure function of t (seconds),
 // so the page can be scrubbed in a browser and rendered frame-exactly by scripts/render.mjs.
+//
+// Layers, bottom to top:
+//   #base   canvas  sea, land (embossed), flat country fills, borders, coast, paper grain
+//   #under  svg     ellipses, glows, ripples (screen space, recomputed per frame)
+//   #lift   canvas  lifted / extruded country silhouettes
+//   #over   svg     arcs, particles, rings, pins, leader lines
+//   #labels html    label cards and big title cards
 (() => {
 const W = 1920, H = 1080;
 const svgNS = 'http://www.w3.org/2000/svg';
 const $ = id => document.getElementById(id);
+const DEG = 1000 * Math.PI / 180; // plane units per degree of longitude (projection scale 1000)
 
 // ---------- easing / timing ----------
 const EASE = {
   linear: x => x,
   in: d3.easeCubicIn, out: d3.easeCubicOut, inOut: d3.easeCubicInOut,
   sineInOut: d3.easeSinInOut, quartOut: d3.easePolyOut.exponent(4), quintInOut: d3.easePolyInOut.exponent(5),
-  expOut: d3.easeExpOut, backOut: d3.easeBackOut.overshoot(1.25),
+  expOut: d3.easeExpOut, backOut: d3.easeBackOut.overshoot(1.4), backOutSoft: d3.easeBackOut.overshoot(1.1),
+  hold: () => 0,
 };
 const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+const easeFn = e => typeof e === 'function' ? e : EASE[e];
 // eased 0..1 progress of t through [a, b]
 function seg(t, a, b, e = 'inOut') {
   if (b <= a) return t >= a ? 1 : 0;
-  const f = typeof e === 'function' ? e : EASE[e];
-  return f(clamp01((t - a) / (b - a)));
+  return easeFn(e)(clamp01((t - a) / (b - a)));
 }
 // fade in over [a, a+din], hold, fade out over [b-dout, b]
 function env(t, a, din, b = Infinity, dout = 0.4, e = 'out') {
   return Math.min(seg(t, a, a + din, e), b === Infinity ? 1 : 1 - seg(t, b - dout, b, 'in'));
 }
+// 0 -> peak -> 0 bump over [a, b]
+const bump = (t, a, b) => (t <= a || t >= b) ? 0 : Math.sin(Math.PI * (t - a) / (b - a));
 const lerp = (a, b, p) => a + (b - a) * p;
+const keyed = (t, keys, e = 'inOut') => { // piecewise [[t, v], ...]
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) if (t <= keys[i][0]) return lerp(keys[i - 1][1], keys[i][1], seg(t, keys[i - 1][0], keys[i][0], keys[i][2] || e));
+  return keys[keys.length - 1][1];
+};
 
 // ---------- geography ----------
-// Three detail levels of the same countries (coarse -> fine); drawing picks one from the zoom.
+// Several detail levels of the same countries (coarse -> fine); drawing picks one from the zoom.
+const keyOf = g => g.id && g.id !== '-99' ? g.id : 'n:' + g.properties.name;
 const LEVELS = window.WORLD_LEVELS.map(topo => ({
   topo,
+  geoms: new Map(topo.objects.countries.geometries.map(g => [keyOf(g), g])),
   // keyed by ISO 3166 numeric id; features without one (e.g. Kosovo) by 'n:' + name
-  features: new Map(topojson.feature(topo, topo.objects.countries).features.map(f => [f.id && f.id !== '-99' ? f.id : 'n:' + f.properties.name, f])),
+  features: new Map(topojson.feature(topo, topo.objects.countries).features.map(f => [keyOf(f), f])),
   land: topojson.merge(topo, topo.objects.countries.geometries),
   borders: topojson.mesh(topo, topo.objects.countries, (a, b) => a !== b),
   coast: topojson.mesh(topo, topo.objects.countries, (a, b) => a === b),
 }));
-const FINE = LEVELS[LEVELS.length - 1];
-// plane units per degree are ~17.45 at scale 1000; pick the level by screen px per degree
-const levelFor = k => { const ppd = k * 17.45; return ppd < 9 ? 0 : ppd < 22 ? 1 : ppd < 55 ? 2 : 3; };
+const NL = LEVELS.length, FINE = NL - 1;
+// pick the level by screen px per degree
+const levelFor = k => { const ppd = k * DEG; return ppd < 9 ? 0 : ppd < 22 ? 1 : ppd < 55 ? 2 : 3; };
+
+// Keep only polygons of a (Multi)Polygon feature that pass keep(polygonCoords).
+function filterPolys(f, keep) {
+  const polys = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates];
+  return { type: 'Feature', id: f.id, properties: f.properties, geometry: { type: 'MultiPolygon', coordinates: polys.filter(keep) } };
+}
+// Composite features: several countries merged (e.g. "Europe"), optionally dropping polygons (overseas territories).
+const groups = new Map();
+function defineGroup(key, ids, polyFilter) { groups.set(key, { ids, polyFilter }); }
+const featureCache = new Map();
+function feature(key, level = FINE) {
+  const ck = key + '@' + level;
+  if (featureCache.has(ck)) return featureCache.get(ck);
+  let f = null;
+  if (groups.has(key)) {
+    const { ids, polyFilter } = groups.get(key), L = LEVELS[level];
+    const geoms = ids.map(id => L.geoms.get(id)).filter(Boolean);
+    f = { type: 'Feature', id: key, properties: { name: key }, geometry: topojson.merge(L.topo, geoms) };
+    if (polyFilter) f = filterPolys(f, p => polyFilter(d3.geoCentroid({ type: 'Polygon', coordinates: p })));
+  } else {
+    for (let i = level; i < NL && !f; i++) f = LEVELS[i].features.get(key); // tiny islands only exist at finer levels
+    if (!f) throw new Error('no country ' + key);
+  }
+  featureCache.set(ck, f);
+  return f;
+}
 
 let projection, planePath;
 const base = { land: [], borders: [], coast: [] };
@@ -49,29 +93,28 @@ function setProjection(proj) {
     base.borders[i] = new Path2D(planePath(L.borders));
     base.coast[i] = new Path2D(planePath(L.coast));
   });
-  featurePathCache.clear();
+  pathCache.clear();
 }
-const featurePathCache = new Map();
-// SVG path string (plane units) of a country at the finest level
-function featurePath(id) {
-  const f = FINE.features.get(id);
-  if (!f) throw new Error('no country ' + id);
-  return planePath(f);
+const pathCache = new Map();
+function path2D(key, level) {
+  const ck = key + '@' + level;
+  if (!pathCache.has(ck)) pathCache.set(ck, new Path2D(planePath(feature(key, level))));
+  return pathCache.get(ck);
 }
-// Path2D of a country at a given level (falls back to finer levels for tiny islands)
-function featurePath2D(id, level) {
-  const key = id + '@' + level;
-  if (!featurePathCache.has(key)) {
-    let f = null;
-    for (let i = level; i < LEVELS.length && !f; i++) f = LEVELS[i].features.get(id);
-    if (!f) throw new Error('no country ' + id);
-    featurePathCache.set(key, new Path2D(planePath(f)));
+// projected length (plane units) of a feature's rings, for stroke-trace dashes
+const lengthCache = new Map();
+function planeLength(key) {
+  if (!lengthCache.has(key)) {
+    let L = 0;
+    const ctx = { moveTo(x, y) { this.p = [x, y]; }, lineTo(x, y) { L += Math.hypot(x - this.p[0], y - this.p[1]); this.p = [x, y]; }, closePath() {} };
+    d3.geoPath(projection, ctx)(feature(key, 2));
+    lengthCache.set(key, L);
   }
-  return featurePathCache.get(key);
+  return lengthCache.get(key);
 }
 // plane-space centroid of the largest polygon (so e.g. Japan's anchor is on Honshu, not the sea)
-function mainCentroid(id) {
-  const f = FINE.features.get(id);
+function mainCentroid(key) {
+  const f = feature(key);
   if (f.geometry.type !== 'MultiPolygon') return planePath.centroid(f);
   let best = null, bestA = -1;
   for (const coords of f.geometry.coordinates) {
@@ -82,7 +125,8 @@ function mainCentroid(id) {
 }
 
 // ---------- camera ----------
-// A view is [cx, cy, w] in plane units (w = visible plane width). Keyframes come as lon/lat boxes.
+// A view is [cx, cy, w] in plane units (w = visible plane width).
+// Keyframes: {t, box:[lon0,lat0,lon1,lat1]} (fit) or {t, center:[lon,lat], ppd} (px per degree), plus ease.
 let cam = { cx: 0, cy: 0, k: 1 };
 function viewFromBox([lon0, lat0, lon1, lat1], pad = 0) {
   const pts = [];
@@ -92,9 +136,10 @@ function viewFromBox([lon0, lat0, lon1, lat1], pad = 0) {
   const w = Math.max(x1 - x0, (y1 - y0) * W / H) * (1 + pad);
   return [(x0 + x1) / 2, (y0 + y1) / 2, w];
 }
+function viewFromCenter(center, ppd) { const c = projection(center); return [c[0], c[1], W / (ppd / DEG)]; }
 let camKeys = [];
 function setCamera(keys) {
-  camKeys = keys.map(k => ({ ...k, view: k.view || viewFromBox(k.box, k.pad || 0) }));
+  camKeys = keys.map(k => ({ ...k, view: k.view || (k.center ? viewFromCenter(k.center, k.ppd) : viewFromBox(k.box, k.pad || 0)) }));
 }
 function cameraAt(t) {
   let v;
@@ -110,6 +155,7 @@ function cameraAt(t) {
 const planeToScreen = ([x, y]) => [(x - cam.cx) * cam.k + W / 2, (y - cam.cy) * cam.k + H / 2];
 const toScreen = lonlat => planeToScreen(projection(lonlat));
 const camMatrix = () => [cam.k, 0, 0, cam.k, W / 2 - cam.cx * cam.k, H / 2 - cam.cy * cam.k];
+const ppd = () => cam.k * DEG;
 
 // ---------- base map (canvas) ----------
 const COLORS = { land: '#f3ede3', coast: '#cbc2b1', border: '#ddd4c4', halo: '#e2e8e2', shadow: 'rgba(96,112,104,0.42)' };
@@ -121,8 +167,8 @@ let seaImg, grainPattern;
 function makeStatics() {
   // sea: pale sage with a warm light falloff from the top-left, like the reference
   const sea = new OffscreenCanvas(W, H), g = sea.getContext('2d');
-  const grad = g.createRadialGradient(W * 0.22, H * 0.1, 0, W * 0.22, H * 0.1, W * 1.15);
-  grad.addColorStop(0, '#e3e4dc'); grad.addColorStop(0.45, '#cfd9d3'); grad.addColorStop(1, '#c3cec8');
+  const grad = g.createRadialGradient(W * 0.16, H * 0.12, 0, W * 0.16, H * 0.12, W * 1.1);
+  grad.addColorStop(0, '#e6e5dd'); grad.addColorStop(0.42, '#d0d9d3'); grad.addColorStop(1, '#c4cfc9');
   g.fillStyle = grad; g.fillRect(0, 0, W, H);
   seaImg = sea;
   // paper grain (seeded, so every render is identical)
@@ -130,7 +176,7 @@ function makeStatics() {
   let s = 1234567;
   const rnd = () => (s = (s * 1103515245 + 12345) >>> 0) / 4294967296;
   for (let i = 0; i < 512 * 512; i++) {
-    const v = 242 + rnd() * 13;
+    const v = 243 + rnd() * 12;
     img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v; img.data[i * 4 + 3] = 255;
   }
   gc.putImageData(img, 0, 0);
@@ -142,8 +188,21 @@ function makeStatics() {
   grainPattern = baseCtx.createPattern(c, 'repeat');
 }
 
-const fillLayers = [];   // country fills drawn on the base canvas, in registration order
-const liftLayers = [];   // lifted silhouettes drawn on the lift canvas
+const underLandHooks = []; // (ctx, t) => draw in screen space between the sea and the land
+const fillLayers = [];   // flat country fills on the base canvas, in registration order
+const liftLayers = [];   // lifted silhouettes on the lift canvas, in registration order
+
+// circle clip that grows from `origin` until it covers the whole feature (radial "flood" reveal)
+function revealClip(ctx, key, s) {
+  if (s.reveal == null || s.reveal >= 1) return false;
+  const o = toScreen(s.origin || d3.geoCentroid(feature(key)));
+  const b = planePath.bounds(feature(key, 2)).map(planeToScreen);
+  const R = Math.max(...[[b[0][0], b[0][1]], [b[1][0], b[0][1]], [b[0][0], b[1][1]], [b[1][0], b[1][1]]].map(p => Math.hypot(p[0] - o[0], p[1] - o[1]))) + 10;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.beginPath(); ctx.arc(o[0], o[1], Math.max(0.01, R * s.reveal), 0, 2 * Math.PI); ctx.clip();
+  return true;
+}
 
 function drawBase(t) {
   const ctx = baseCtx, m = camMatrix(), L = levelFor(cam.k), k = cam.k;
@@ -164,57 +223,88 @@ function drawBase(t) {
   halfCtx.fillStyle = COLORS.shadow; halfCtx.fill(base.land[L]);
   halfCtx.filter = 'none';
   ctx.drawImage(half, 0, 0, W, H);
+  // sea-only tints (e.g. an ellipse's wash) go under the land so they never colour a country
+  for (const h of underLandHooks) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); h(ctx, t); ctx.restore(); }
   // land, highlighted countries, borders, coastline
   ctx.setTransform(...m);
   ctx.fillStyle = COLORS.land; ctx.fill(base.land[L]);
   ctx.lineJoin = 'round';
-  for (const f of fillLayers) {
-    const s = f.style(t), op = s.opacity ?? 1;
-    if (op <= 0.001) continue;
-    const p = featurePath2D(f.id, L);
-    ctx.globalAlpha = op; ctx.fillStyle = s.color; ctx.fill(p);
-    f.lastStyle = s;
-  }
+  const styles = fillLayers.map(f => f.style(t));
+  fillLayers.forEach((f, i) => {
+    const s = styles[i], op = s.opacity ?? 1;
+    if (op <= 0.001 || s.reveal === 0) return;
+    const clipped = revealClip(ctx, f.key, s);
+    ctx.setTransform(...m);
+    ctx.globalAlpha = op; ctx.fillStyle = s.color; ctx.fill(path2D(f.key, L));
+    if (clipped) ctx.restore();
+  });
+  ctx.setTransform(...m);
   ctx.globalAlpha = 1;
   ctx.strokeStyle = COLORS.border; ctx.lineWidth = 0.9 / k; ctx.stroke(base.borders[L]);
-  for (const f of fillLayers) {   // white hairlines between highlighted countries
-    const s = f.style(t), op = s.opacity ?? 1;
-    if (op <= 0.001 || s.stroke === 'none') continue;
-    ctx.globalAlpha = op; ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = (s.strokeWidth ?? 1.2) / k; ctx.stroke(featurePath2D(f.id, L));
-  }
+  fillLayers.forEach((f, i) => {   // white hairlines between highlighted countries
+    const s = styles[i], op = s.opacity ?? 1;
+    if (op <= 0.001 || s.reveal === 0 || s.stroke === 'none') return;
+    const clipped = revealClip(ctx, f.key, s);
+    ctx.setTransform(...m);
+    ctx.globalAlpha = op; ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = (s.strokeWidth ?? 1) / k; ctx.stroke(path2D(f.key, L));
+    if (clipped) ctx.restore();
+  });
+  ctx.setTransform(...m);
   ctx.globalAlpha = 1;
   ctx.strokeStyle = COLORS.coast; ctx.lineWidth = 1 / k; ctx.stroke(base.coast[L]);
-  // paper grain over everything on the map
+  // paper grain over the map
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.5;
   ctx.fillStyle = grainPattern; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
 }
 
+const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+
+// Extruded silhouette: side-tone copies stacked from the map surface up to `lift` px, a soft
+// shadow below, the top face in `color`, and an optional white coast trace.
 function drawLifts(t) {
   const ctx = liftCtx;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
-  const L = levelFor(cam.k);
+  const L = Math.max(levelFor(cam.k), 2);
   for (const f of liftLayers) {
     const s = f.style(t), op = s.opacity ?? 1;
-    if (op <= 0.001) continue;
-    const c = planeToScreen(f.cPlane), sc = s.scale ?? 1, k = cam.k * sc;
-    const X = sc * (W / 2 - cam.cx * cam.k) + c[0] * (1 - sc), Y = sc * (H / 2 - cam.cy * cam.k) + c[1] * (1 - sc) - (s.lift ?? 0);
-    const p = featurePath2D(f.id, Math.max(L, 2));
-    ctx.setTransform(k, 0, 0, k, X, Y);
+    if (op <= 0.001 || s.reveal === 0) continue;
+    const p = path2D(f.key, L), lift = s.lift ?? 0, sc = s.scale ?? 1;
+    const c = planeToScreen(f.cPlane), k = cam.k * sc;
+    const X = sc * (W / 2 - cam.cx * cam.k) + c[0] * (1 - sc), Y = sc * (H / 2 - cam.cy * cam.k) + c[1] * (1 - sc);
+    const clipped = revealClip(ctx, f.key, s);
     ctx.globalAlpha = op;
-    const sh = (s.shadow ?? 1);
-    if (sh > 0.001) {
-      ctx.shadowColor = `rgba(51,67,60,${0.38 * sh})`; ctx.shadowBlur = 18 * sh; ctx.shadowOffsetY = (4 + (s.lift ?? 0) * 0.6) * sh;
+    // shadow cast by the slab
+    const sa = s.shadowAlpha ?? 0.3;
+    if (sa > 0.001 && lift > 0.2) {
+      ctx.setTransform(k, 0, 0, k, X, Y);
+      ctx.shadowColor = hexA(s.shadowColor || '#24365e', sa);
+      ctx.shadowBlur = Math.max(2, 1.6 * lift); ctx.shadowOffsetY = lift * 0.9; ctx.shadowOffsetX = 0;
+      ctx.fillStyle = s.side || s.color; ctx.fill(p);
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     }
+    // side walls
+    ctx.fillStyle = s.side || s.color;
+    for (let y = 0; y < lift; y += 1) { ctx.setTransform(k, 0, 0, k, X, Y - y); ctx.fill(p); }
+    // top face
+    ctx.setTransform(k, 0, 0, k, X, Y - lift);
     ctx.fillStyle = s.color; ctx.fill(p);
-    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-    ctx.lineJoin = 'round'; ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = (s.strokeWidth ?? 1.5) / k; ctx.stroke(p);
+    if ((s.strokeWidth ?? 1.25) > 0 && s.stroke !== 'none') {
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = (s.strokeWidth ?? 1.25) / k;
+      const tr = s.strokeDraw ?? 1;
+      if (tr < 1) { const len = planeLength(f.key); ctx.setLineDash([len * tr, len]); }
+      if (tr > 0) ctx.stroke(p);
+      ctx.setLineDash([]);
+    }
+    if (clipped) ctx.restore();
   }
   ctx.globalAlpha = 1;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
-// ---------- element pools (created once, updated every frame) ----------
+// ---------- SVG helpers ----------
 function el(tag, attrs = {}, parent) {
   const e = document.createElementNS(svgNS, tag);
   for (const k in attrs) e.setAttribute(k, attrs[k]);
@@ -222,145 +312,221 @@ function el(tag, attrs = {}, parent) {
   return e;
 }
 const setA = (e, attrs) => { for (const k in attrs) e.setAttribute(k, attrs[k]); };
+const show = (e, op) => { const vis = op > 0.001; e.style.display = vis ? '' : 'none'; if (vis) e.setAttribute('opacity', op); return vis; };
 const updaters = [];
 const onFrame = fn => updaters.push(fn);
+const val = (v, t, d) => v == null ? d : typeof v === 'function' ? v(t) : v;
+const pts2d = pts => 'M' + pts.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join('L');
+const layer = name => $(name || 'over');
 
-// Country fill in map space (base canvas). style(t) -> {color, opacity, stroke, strokeWidth}
-function fill(id, style) { featurePath2D(id, 2); fillLayers.push({ id, style }); }
+// Flat country fill (base canvas). style(t) -> {color, opacity, reveal, origin, stroke, strokeWidth}
+function fill(key, style) { feature(key); fillLayers.push({ key, style }); }
+// Lifted silhouette (lift canvas). style(t) -> {color, side, lift, opacity, reveal, origin, shadowColor, shadowAlpha, stroke, strokeWidth, strokeDraw, scale}
+function lift(key, style) { feature(key); liftLayers.push({ key, style, cPlane: mainCentroid(key) }); }
 
-// Lifted silhouette (lift canvas): the country rises off the map with a soft shadow.
-// style(t) -> {lift: px, scale, opacity, color, stroke, strokeWidth, shadow}
-function lift(id, style) { featurePath2D(id, 2); liftLayers.push({ id, style, cPlane: mainCentroid(id) }); }
-
-// Quadratic arc between two lon/lat points, drawn on over [t0, t1]. Screen space.
+// ---------- arcs ----------
 function bez(a, c, b, u) { const v = 1 - u; return [v * v * a[0] + 2 * v * u * c[0] + u * u * b[0], v * v * a[1] + 2 * v * u * c[1] + u * u * b[1]]; }
+// Quadratic arc between two lon/lat points (screen space).
+// o: {from, to, color, width, opacity(t), draw(t) 0..1, bulge, bend:'left'|'up', maskFrom(t) px, maskTo(t) px,
+//     head: bool, particles: [{t0, dur, dir: 1 (from->to) | -1, color, r, ease}]}
 function arc(o) {
-  const g = el('g', {}, $(o.layer || 'over'));
-  const glow = el('path', { fill: 'none', stroke: o.glow || '#ffffff', 'stroke-width': (o.width || 3) + 5, 'stroke-linecap': 'round', opacity: 0.55 }, g);
-  const line = el('path', { fill: 'none', stroke: o.color, 'stroke-width': o.width || 3, 'stroke-linecap': 'round' }, g);
-  const head = el('circle', { r: o.headR || 6, fill: o.color, stroke: '#fff', 'stroke-width': 2 }, g);
-  const dots = Array.from({ length: o.particles || 0 }, () => el('circle', { r: o.particleR || 3.5, fill: '#fff', stroke: o.color, 'stroke-width': 1.5 }, g));
+  const g = el('g', {}, layer(o.layer));
+  const under = el('path', { fill: 'none', stroke: '#ffffff', 'stroke-linecap': 'round' }, g);
+  const line = el('path', { fill: 'none', stroke: o.color, 'stroke-linecap': 'round' }, g);
+  const head = el('circle', { fill: o.color, stroke: '#fff', 'stroke-width': 1.5 }, g);
+  const dots = (o.particles || []).map(p => el('circle', { r: p.r || 4.5, fill: p.color || o.color, stroke: '#fff', 'stroke-width': 1.5 }, g));
+  const N = 64;
+  const geom = t => {
+    const A = toScreen(o.from), B = toScreen(o.to);
+    const dx = B[0] - A[0], dy = B[1] - A[1], Lc = Math.hypot(dx, dy) || 1, k = val(o.bulge, t, 0.2);
+    const M = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+    const C = o.bend === 'up' ? [M[0], M[1] - k * Lc] : [M[0] + dy / Lc * k * Lc, M[1] - dx / Lc * k * Lc];
+    // trim the ends inside the masking discs (e.g. Taiwan's hub ring)
+    const r0 = val(o.maskFrom, t, 0), r1 = val(o.maskTo, t, 0);
+    let u0 = 0, u1 = 1;
+    if (r0 > 0) { while (u0 < 1 && Math.hypot(...[0, 1].map(i => bez(A, C, B, u0)[i] - A[i])) < r0) u0 += 0.002; }
+    if (r1 > 0) { while (u1 > u0 && Math.hypot(...[0, 1].map(i => bez(A, C, B, u1)[i] - B[i])) < r1) u1 -= 0.002; }
+    return { A, B, C, u0, u1 };
+  };
   onFrame(t => {
-    const op = o.opacity ? o.opacity(t) : env(t, o.t0, 0.15, o.tOut ?? Infinity, 0.5);
-    g.style.display = op <= 0.001 ? 'none' : '';
-    if (op <= 0.001) return;
-    g.setAttribute('opacity', op);
-    let A = toScreen(o.from), B = toScreen(o.to);
-    if (o.reverse) [A, B] = [B, A];
-    const dx = B[0] - A[0], dy = B[1] - A[1], d = Math.hypot(dx, dy);
-    const C = [(A[0] + B[0]) / 2 - dy / d * d * (o.bulge ?? 0.25), (A[1] + B[1]) / 2 + dx / d * d * (o.bulge ?? 0.25)];
-    const p = seg(t, o.t0, o.t1, o.ease || 'inOut');
-    const n = 48, pts = [];
-    for (let i = 0; i <= n; i++) pts.push(bez(A, C, B, (i / n) * p));
-    const dStr = 'M' + pts.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join('L');
-    line.setAttribute('d', dStr); glow.setAttribute('d', dStr);
-    if (o.dash) { line.setAttribute('stroke-dasharray', o.dash); line.setAttribute('stroke-dashoffset', -(t * (o.dashSpeed ?? 40))); }
+    if (!show(g, val(o.opacity, t, 1))) return;
+    const { A, B, C, u0, u1 } = geom(t);
+    const p = clamp01(val(o.draw, t, 1)), w = val(o.width, t, 2.5);
+    const uEnd = u0 + (u1 - u0) * p, pts = [];
+    for (let i = 0; i <= N; i++) pts.push(bez(A, C, B, u0 + (uEnd - u0) * i / N));
+    const d = p > 0 ? pts2d(pts) : '';
+    setA(line, { d, 'stroke-width': w });
+    setA(under, { d, 'stroke-width': w + 3, opacity: 0.45 });
     const tip = pts[pts.length - 1];
-    setA(head, { cx: tip[0], cy: tip[1], opacity: p > 0 && p < 1 ? 1 : (o.keepHead && p >= 1 ? 1 : 0) });
-    dots.forEach((dot, i) => {
-      const u = ((t * (o.particleSpeed ?? 0.45) + i / dots.length) % 1);
-      const q = bez(A, C, B, u), vis = p >= 1 ? env(t, o.t1, 0.3) * Math.sin(Math.PI * u) : 0;
-      setA(dot, { cx: q[0], cy: q[1], opacity: vis });
+    setA(head, { cx: tip[0], cy: tip[1], r: o.headR || 4.5, opacity: o.head !== false && p > 0.02 && p < 0.995 ? 1 : 0 });
+    (o.particles || []).forEach((pa, i) => {
+      const x = (t - pa.t0) / pa.dur;
+      if (x <= 0 || x >= 1) { dots[i].setAttribute('opacity', 0); return; }
+      let u = easeFn(pa.ease || 'sineInOut')(x);
+      if (pa.dir === -1) u = 1 - u;
+      const q = bez(A, C, B, u0 + (u1 - u0) * u);
+      const fade = Math.min(1, x * pa.dur / 0.1, (1 - x) * pa.dur / 0.12);
+      setA(dots[i], { cx: q[0], cy: q[1], opacity: fade });
+    });
+  });
+  return o;
+}
+
+// ---------- ellipse with ruler ticks ----------
+// Map-space ellipse centred on a lon/lat: semi-axes a, b in plane units (projection scale 1000),
+// rotation in screen degrees (y down). Param angle 0 = the +a end.
+// o: {center, a, b, rot, color, width, scale(t), draw(t), start (deg), fillOpacity(t), opacity(t),
+//     ticks: {n, long (every nth), lenLong, lenShort, gap, opacity, alpha(i,t), boost(i,t) -> extra len}, outer: {d (px), opacity(t)},
+//     ripples: [{t0, t1, s1, o0}]}
+function ellipse(o) {
+  const rot = (o.rot || 0) * Math.PI / 180, a0 = (o.start || 0) * Math.PI / 180;
+  const ptAt = (ang, s, c, extra = 0) => { // screen point; extra = px outward along the axes
+    const ax = (o.a * s) * cam.k + extra, bx = (o.b * s) * cam.k + extra;
+    const x = ax * Math.cos(ang), y = bx * Math.sin(ang);
+    return [c[0] + x * Math.cos(rot) - y * Math.sin(rot), c[1] + x * Math.sin(rot) + y * Math.cos(rot)];
+  };
+  const loop = (s, c, extra, from, sweep, n = 240) => { const pts = []; for (let i = 0; i <= n; i++) pts.push(ptAt(from + sweep * i / n, s, c, extra)); return pts; };
+  const g = el('g', {}, layer(o.layer || 'under'));
+  const fillE = el('path', { fill: o.color, stroke: 'none' }, g);
+  const outer = el('path', { fill: 'none', stroke: o.color, 'stroke-width': 1 }, g);
+  const ticks = el('path', { fill: 'none', stroke: o.color, 'stroke-width': 1, 'stroke-linecap': 'round' }, g);
+  const boosted = el('path', { fill: 'none', stroke: o.color, 'stroke-width': 1.3, 'stroke-linecap': 'round' }, g);
+  const halo = el('path', { fill: 'none', stroke: '#ffffff', 'stroke-linecap': 'round' }, g);
+  const line = el('path', { fill: 'none', stroke: o.color, 'stroke-linecap': 'round' }, g);
+  const rip = (o.ripples || []).map(() => el('path', { fill: 'none', stroke: o.color, 'stroke-width': 2 }, g));
+  if (o.seaOnly) underLandHooks.push((ctx, t) => {   // wash painted under the land layer: tints the sea only
+    const op = val(o.opacity, t, 1) * val(o.fillOpacity, t, 0.06);
+    if (op <= 0.001) return;
+    const pts = loop(val(o.scale, t, 1), toScreen(o.center), 0, a0, 2 * Math.PI, 160);
+    ctx.globalAlpha = op; ctx.fillStyle = o.color;
+    ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.fill();
+  });
+  onFrame(t => {
+    if (!show(g, val(o.opacity, t, 1))) return;
+    const c = toScreen(o.center), s = val(o.scale, t, 1), p = clamp01(val(o.draw, t, 1)), w = val(o.width, t, 2.5);
+    const full = loop(s, c, 0, a0, 2 * Math.PI);
+    const d = p > 0 ? pts2d(loop(s, c, 0, a0, 2 * Math.PI * p)) : '';
+    setA(line, { d, 'stroke-width': w }); setA(halo, { d, 'stroke-width': w + 3.5, opacity: 0.5 });
+    if (o.seaOnly) fillE.setAttribute('d', ''); else setA(fillE, { d: pts2d(full) + 'Z', 'fill-opacity': val(o.fillOpacity, t, 0.06) });
+    if (o.outer) setA(outer, { d: pts2d(loop(s, c, o.outer.d || 6, a0, 2 * Math.PI)) + 'Z', opacity: val(o.outer.opacity, t, 0.3) });
+    if (o.ticks) {
+      const T = o.ticks, n = T.n || 120;
+      let td = '', bd = '';
+      for (let i = 0; i < n; i++) {
+        const al = T.alpha ? T.alpha(i, t) : 1;
+        if (al <= 0.01) continue;
+        const ang = a0 + 2 * Math.PI * i / n;
+        const q = ptAt(ang, s, c, 0), q2 = ptAt(ang, s, c, 1); // outward direction
+        let nx = q2[0] - q[0], ny = q2[1] - q[1]; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+        const ext = T.boost ? T.boost(i, t) : 0;
+        const len = (i % (T.long || 10) === 0 ? (T.lenLong || 11) : (T.lenShort || 6)) + ext, gap = (T.gap ?? 9);
+        const seg_ = `M${(q[0] + nx * gap).toFixed(1)},${(q[1] + ny * gap).toFixed(1)}l${(nx * len).toFixed(1)},${(ny * len).toFixed(1)}`;
+        if (ext > 0.3) bd += seg_; else if (al >= 0.99) td += seg_; else bd += seg_;
+      }
+      setA(ticks, { d: td, opacity: T.opacity ?? 0.45 });
+      setA(boosted, { d: bd, opacity: Math.min(0.9, (T.opacity ?? 0.45) * 1.8) });
+    }
+    (o.ripples || []).forEach((r, i) => {
+      const x = seg(t, r.t0, r.t1, 'out');
+      if (t <= r.t0 || t >= r.t1) { rip[i].setAttribute('opacity', 0); return; }
+      setA(rip[i], { d: pts2d(loop(s * lerp(1, r.s1 || 1.1, x), c, 0, a0, 2 * Math.PI)) + 'Z', opacity: (r.o0 ?? 0.55) * (1 - x) });
     });
   });
 }
 
-// Ellipse in map space with outer ruler ticks, drawn on as a sweep. Centre lon/lat, semi-axes in degrees.
-function ruler(o) {
-  const g = el('g', {}, $(o.layer || 'under'));
-  const fillE = el('path', { fill: o.fill || o.color, 'fill-opacity': o.fillOpacity ?? 0.12, stroke: 'none' }, g);
-  const ticks = el('path', { fill: 'none', stroke: o.color, 'stroke-width': 1.2, opacity: 0.55 }, g);
-  const halo = el('path', { fill: 'none', stroke: '#ffffff', 'stroke-width': (o.width || 2.5) + 4, opacity: 0.5 }, g);
-  const line = el('path', { fill: 'none', stroke: o.color, 'stroke-width': o.width || 2.5 }, g);
-  const c = projection(o.center);
-  const rx = Math.abs(projection([o.center[0] + o.rx, o.center[1]])[0] - c[0]);
-  const ry = Math.abs(projection([o.center[0], o.center[1] + o.ry])[1] - c[1]);
-  const rot = (o.rotate || 0) * Math.PI / 180;
-  const ptAt = a => { const x = rx * Math.cos(a), y = ry * Math.sin(a); return [c[0] + x * Math.cos(rot) - y * Math.sin(rot), c[1] + x * Math.sin(rot) + y * Math.cos(rot)]; };
-  onFrame(t => {
-    const op = o.opacity ? o.opacity(t) : env(t, o.t0, 0.2, o.tOut ?? Infinity, 0.6);
-    g.style.display = op <= 0.001 ? 'none' : '';
-    if (op <= 0.001) return;
-    g.setAttribute('opacity', op);
-    const p = seg(t, o.t0, o.t1, o.ease || 'inOut');
-    const a0 = (o.startAngle ?? -90) * Math.PI / 180, sweep = 2 * Math.PI * p * (o.dir ?? 1);
-    const N = 220, pts = [];
-    for (let i = 0; i <= N; i++) pts.push(planeToScreen(ptAt(a0 + sweep * i / N)));
-    const d = 'M' + pts.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join('L');
-    line.setAttribute('d', d); halo.setAttribute('d', d);
-    fillE.setAttribute('d', p >= 1 ? d + 'Z' : '');
-    fillE.setAttribute('fill-opacity', (o.fillOpacity ?? 0.12) * seg(t, o.t1 - 0.2, o.t1 + 0.6, 'out'));
-    // ruler ticks just outside the line, every 2.5 deg of parameter, every 4th one longer
-    let td = '';
-    const nT = Math.floor(144 * p);
-    for (let i = 0; i < nT; i++) {
-      const a = a0 + (o.dir ?? 1) * i * 2 * Math.PI / 144;
-      const q = planeToScreen(ptAt(a)), q2 = planeToScreen(ptAt(a + 0.001 * (o.dir ?? 1)));
-      let nx = q2[1] - q[1], ny = -(q2[0] - q[0]); const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
-      // make normal point outward
-      const cs = planeToScreen(c); if ((q[0] - cs[0]) * nx + (q[1] - cs[1]) * ny < 0) { nx = -nx; ny = -ny; }
-      const len = i % 4 === 0 ? 11 : 6;
-      td += `M${(q[0] + nx * 5).toFixed(1)},${(q[1] + ny * 5).toFixed(1)}l${(nx * len).toFixed(1)},${(ny * len).toFixed(1)}`;
-    }
-    ticks.setAttribute('d', td);
-  });
-}
-
-// Polyline / polygon in lon/lat drawn along its perimeter, with diamond nodes at vertices.
+// Polygon / polyline in lon/lat (great-circle densified), drawn along its perimeter, with diamond nodes.
+// o: {coords, closed, color, width, draw(t), opacity(t), fill, fillOpacity(t), nodes: [[lon,lat],...], nodeScale(i, t)}
 function poly(o) {
-  const g = el('g', {}, $(o.layer || 'over'));
-  const halo = el('path', { fill: 'none', stroke: '#fff', 'stroke-width': (o.width || 3) + 4, opacity: 0.55, 'stroke-linejoin': 'round' }, g);
-  const fillP = el('path', { fill: o.fill || 'none', 'fill-opacity': o.fillOpacity ?? 0, stroke: 'none' }, g);
-  const line = el('path', { fill: 'none', stroke: o.color, 'stroke-width': o.width || 3, 'stroke-linejoin': 'round' }, g);
-  const nodes = (o.nodes || []).map(() => el('rect', { width: 10, height: 10, fill: o.nodeFill || '#fff', stroke: o.color, 'stroke-width': 2 }, g));
-  // densify along great circles so edges bend correctly
-  const ring = o.closed ? [...o.coords, o.coords[0]] : o.coords;
-  const dense = [];
-  for (let i = 0; i < ring.length - 1; i++) {
-    const it = d3.geoInterpolate(ring[i], ring[i + 1]);
-    for (let j = 0; j < 20; j++) dense.push(it(j / 20));
-  }
-  dense.push(ring[ring.length - 1]);
+  const g = el('g', {}, layer(o.layer));
+  const fillP = el('path', { fill: o.fill || o.color, stroke: 'none' }, g);
+  const halo = el('path', { fill: 'none', stroke: '#fff', 'stroke-linejoin': 'round', opacity: 0.55 }, g);
+  const line = el('path', { fill: 'none', stroke: o.color, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, g);
+  const nodes = (o.nodes || []).map(() => el('rect', { x: -5, y: -5, width: 10, height: 10, fill: '#fff', stroke: o.color, 'stroke-width': 2 }, g));
+  const ringC = o.closed ? [...o.coords, o.coords[0]] : o.coords, dense = [];
+  for (let i = 0; i < ringC.length - 1; i++) { const it = d3.geoInterpolate(ringC[i], ringC[i + 1]); for (let j = 0; j < 24; j++) dense.push(it(j / 24)); }
+  dense.push(ringC[ringC.length - 1]);
   onFrame(t => {
-    const op = o.opacity ? o.opacity(t) : env(t, o.t0, 0.2, o.tOut ?? Infinity, 0.5);
-    g.style.display = op <= 0.001 ? 'none' : '';
-    if (op <= 0.001) return;
-    g.setAttribute('opacity', op);
-    const pts = dense.map(toScreen);
-    const lens = [0]; for (let i = 1; i < pts.length; i++) lens.push(lens[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-    const total = lens[lens.length - 1], target = total * seg(t, o.t0, o.t1, o.ease || 'inOut');
-    const out = [pts[0]];
+    if (!show(g, val(o.opacity, t, 1))) return;
+    const pts = dense.map(toScreen), lens = [0];
+    for (let i = 1; i < pts.length; i++) lens.push(lens[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const total = lens[lens.length - 1], target = total * clamp01(val(o.draw, t, 1)), out = [pts[0]];
     for (let i = 1; i < pts.length; i++) {
       if (lens[i] <= target) out.push(pts[i]);
       else { const u = (target - lens[i - 1]) / (lens[i] - lens[i - 1]); out.push([lerp(pts[i - 1][0], pts[i][0], u), lerp(pts[i - 1][1], pts[i][1], u)]); break; }
     }
-    const d = 'M' + out.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join('L');
-    line.setAttribute('d', d); halo.setAttribute('d', d);
-    fillP.setAttribute('d', target >= total ? d + 'Z' : '');
-    if (o.fillOpacity) fillP.setAttribute('fill-opacity', o.fillOpacity * seg(t, o.t1, o.t1 + 0.5, 'out'));
+    const d = target > 0 ? pts2d(out) : '', w = val(o.width, t, 3);
+    setA(line, { d, 'stroke-width': w }); setA(halo, { d, 'stroke-width': w + 4 });
+    setA(fillP, { d: pts2d(pts) + 'Z', 'fill-opacity': val(o.fillOpacity, t, 0) });
     (o.nodes || []).forEach((ll, i) => {
-      const q = toScreen(ll), vis = seg(t, o.t0 + (o.t1 - o.t0) * (o.nodeAt?.[i] ?? 1), o.t0 + (o.t1 - o.t0) * (o.nodeAt?.[i] ?? 1) + 0.25, 'backOut');
-      setA(nodes[i], { x: -5, y: -5, transform: `translate(${q[0]},${q[1]}) rotate(45) scale(${vis})`, opacity: vis > 0 ? 1 : 0 });
+      const q = toScreen(ll), sc = o.nodeScale ? o.nodeScale(i, t) : 1;
+      setA(nodes[i], { transform: `translate(${q[0].toFixed(1)},${q[1].toFixed(1)}) rotate(45) scale(${Math.max(0, sc)})`, opacity: sc > 0.01 ? 1 : 0 });
     });
   });
 }
 
-// Pin: ring + dot at a lon/lat (screen space, constant size), pops in at t0.
-function pin(o) {
-  const g = el('g', {}, $(o.layer || 'over'));
-  const pulse = el('circle', { fill: 'none', stroke: o.color, 'stroke-width': 2 }, g);
-  const ring = el('circle', { r: 11, fill: '#fff', stroke: o.color, 'stroke-width': 2.5 }, g);
-  const dot = el('circle', { r: 4.5, fill: o.color }, g);
+// ---------- rings, ripples, glows, pins ----------
+// Screen-space ring around a lon/lat with optional ruler ticks and diamond nodes (Taiwan hub, Singapore locator).
+// o: {at, r(t), color, width, draw(t), opacity(t), ticks: {n, len, gap, opacity(t)}, diamonds: {angles, size, scale(t)}}
+function ring(o) {
+  const g = el('g', {}, layer(o.layer));
+  const halo = el('circle', { fill: 'none', stroke: '#fff' }, g);
+  const c = el('circle', { fill: 'none', stroke: o.color, pathLength: 1, transform: 'rotate(-90)' }, g);
+  const ticks = el('path', { fill: 'none', stroke: o.color, 'stroke-width': 1 }, g);
+  const dia = (o.diamonds?.angles || []).map(() => el('rect', { x: -5, y: -5, width: 10, height: 10, fill: o.color, stroke: '#fff', 'stroke-width': 1.2 }, g));
   onFrame(t => {
-    const op = o.opacity ? o.opacity(t) : env(t, o.t0, 0.25, o.tOut ?? Infinity, 0.4);
-    g.style.display = op <= 0.001 ? 'none' : '';
-    if (op <= 0.001) return;
-    const q = toScreen(o.at), s = seg(t, o.t0, o.t0 + 0.4, 'backOut');
-    g.setAttribute('transform', `translate(${q[0]},${q[1]}) scale(${(o.scale || 1) * s})`);
-    g.setAttribute('opacity', op);
-    // repeating sonar pulse
-    const period = o.pulsePeriod || 1.6, u = ((t - o.t0) % period) / period;
-    if (o.pulse && t > o.t0) setA(pulse, { r: 11 + u * (o.pulseR || 34), opacity: (1 - u) * 0.8 });
+    if (!show(g, val(o.opacity, t, 1))) return;
+    const q = toScreen(o.at), r = val(o.r, t, 30), p = clamp01(val(o.draw, t, 1)), w = val(o.width, t, 2);
+    g.setAttribute('transform', `translate(${q[0].toFixed(2)},${q[1].toFixed(2)})`);
+    setA(c, { r, 'stroke-width': w, 'stroke-dasharray': `${p} 1`, opacity: p > 0 ? 1 : 0 });
+    setA(halo, { r, 'stroke-width': w + 3, opacity: p >= 1 ? 0.45 : 0 });
+    if (o.ticks) {
+      const n = o.ticks.n || 72, len = o.ticks.len || 5, gap = o.ticks.gap ?? 4;
+      let d = '';
+      for (let i = 0; i < n; i++) { const a = 2 * Math.PI * i / n - Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a); d += `M${((r + gap) * ca).toFixed(1)},${((r + gap) * sa).toFixed(1)}l${(len * ca).toFixed(1)},${(len * sa).toFixed(1)}`; }
+      setA(ticks, { d, opacity: val(o.ticks.opacity, t, 0.5) });
+    }
+    (o.diamonds?.angles || []).forEach((ang, i) => {
+      const a = (ang - 90) * Math.PI / 180, sc = val(o.diamonds.scale, t, 1) * (o.diamonds.size || 7) / 10;
+      setA(dia[i], { transform: `translate(${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}) rotate(45) scale(${Math.max(0, sc)})`, opacity: sc > 0.01 ? 1 : 0 });
+    });
+  });
+}
+// Expanding ring: radius r0(t) -> r1(t) over [t0, t1], fading from o0.
+function ripple(o) {
+  const c = el('circle', { fill: 'none', stroke: o.color, 'stroke-width': o.width || 2 }, layer(o.layer));
+  onFrame(t => {
+    if (t <= o.t0 || t >= o.t1) { c.style.display = 'none'; return; }
+    c.style.display = '';
+    const x = seg(t, o.t0, o.t1, o.ease || 'out'), q = toScreen(o.at);
+    setA(c, { cx: q[0], cy: q[1], r: lerp(val(o.r0, t, 10), val(o.r1, t, 40), x), opacity: (o.o0 ?? 0.6) * (1 - x) });
+  });
+}
+// Soft radial glow behind a point. o: {at, r(t), color, opacity(t)}
+let glowN = 0;
+function glow(o) {
+  const id = 'glow' + (glowN++);
+  const defs = el('defs', {}, layer(o.layer || 'under'));
+  const rg = el('radialGradient', { id }, defs);
+  el('stop', { offset: 0, 'stop-color': o.color, 'stop-opacity': 1 }, rg);
+  el('stop', { offset: 1, 'stop-color': o.color, 'stop-opacity': 0 }, rg);
+  const c = el('circle', { fill: `url(#${id})` }, layer(o.layer || 'under'));
+  onFrame(t => { if (!show(c, val(o.opacity, t, 0.35))) return; const q = toScreen(o.at); setA(c, { cx: q[0], cy: q[1], r: val(o.r, t, 60) }); });
+}
+// Pin: white ring + dot (constant screen size); pops with overshoot at t0; optional one-shot pulse.
+function pin(o) {
+  const g = el('g', {}, layer(o.layer));
+  const pulse = el('circle', { fill: 'none', stroke: o.color, 'stroke-width': 2 }, g);
+  const ringC = el('circle', { r: 10, fill: '#fff', stroke: o.color, 'stroke-width': 3 }, g);
+  el('circle', { r: 4.5, fill: o.color }, g);
+  onFrame(t => {
+    const op = val(o.opacity, t, t >= o.t0 ? 1 : 0);
+    if (!show(g, op)) return;
+    const q = toScreen(o.at), s = seg(t, o.t0, o.t0 + (o.popDur || 0.3), 'backOut');
+    g.setAttribute('transform', `translate(${q[0].toFixed(2)},${q[1].toFixed(2)})`);
+    ringC.setAttribute('transform', `scale(${s})`);
+    g.lastChild.setAttribute('transform', `scale(${s})`);
+    const pt0 = o.pulseT0 ?? o.t0, pd = o.pulseDur ?? 0.7, x = (t - pt0) / pd;
+    if (o.pulse !== false && x > 0 && x < 1) setA(pulse, { r: lerp(10, o.pulseR || 36, EASE.out(x)), opacity: 0.55 * (1 - x) });
     else pulse.setAttribute('opacity', 0);
   });
 }
@@ -369,75 +535,124 @@ function pin(o) {
 const labelsRoot = $('labels');
 function div(cls, parent, html) { const d = document.createElement('div'); d.className = cls; if (html != null) d.innerHTML = html; parent.appendChild(d); return d; }
 
-// Bilingual country card with a coloured left bar and an optional leader line to its pin.
-// o: {zh, en, color, at:[lon,lat], dx, dy, t0, tOut, anchor:'left'|'right', size}
+// Country silhouette icon, fitted into size x size; keeps polygons >= minFrac of the largest.
+function glyphSVG(key, size, { fill = '#a4c0d9', stroke = '#354e99', minFrac = 0.01, pad = 6, drop = [] } = {}) {
+  let f = feature(key);
+  const area = p => d3.geoArea({ type: 'Polygon', coordinates: p });
+  const polys = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates];
+  const maxA = Math.max(...polys.map(area));
+  f = filterPolys(f, p => area(p) >= maxA * minFrac && !drop.some(([x0, y0, x1, y1]) => { const c = d3.geoCentroid({ type: 'Polygon', coordinates: p }); return c[0] >= x0 && c[0] <= x1 && c[1] >= y0 && c[1] <= y1; }));
+  const proj = d3.geoMercator().fitExtent([[pad, pad], [size - pad, size - pad]], f);
+  const d = d3.geoPath(proj).digits(1)(f);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><path class="gfill" d="${d}" fill="${fill}"/><path class="gline" d="${d}" fill="none" stroke="${stroke}" stroke-width="1.25" stroke-linejoin="round" pathLength="1"/></svg>`;
+}
+
+// Bilingual card with coloured left bar, optional silhouette glyph, leader line to its pin.
+// o: {zh, en, color, at, pos(q, w, h, t) -> [x, y] top-left, t0, inDur, enter: [dx, dy], opacity(t),
+//     leader: {t0, t1, pinR} | false, glyph: {key, fill, stroke, bg, draw:[t0,t1], fillIn:[t0,t1], ...glyphSVG opts}}
 function card(o) {
-  const d = div('card', labelsRoot, `<div class="zh">${o.zh}</div><div class="en">${o.en}</div>`);
+  const d = div('card' + (o.glyph ? ' has-glyph' : ''), labelsRoot,
+    (o.glyph ? `<div class="glyph" style="background:${o.glyph.bg || '#eef1f4'}">${glyphSVG(o.glyph.key, 60, o.glyph)}</div>` : '')
+    + `<div class="txt"><div class="zh">${o.zh}</div><div class="en">${o.en}</div></div>`);
   d.style.borderLeftColor = o.color;
-  if (o.size) d.style.fontSize = o.size + 'px';
-  const leader = o.leader === false ? null : el('path', { fill: 'none', stroke: '#7d847f', 'stroke-width': 1.3, opacity: 0.8 }, $('over'));
+  const gline = d.querySelector('.gline'), gfill = d.querySelector('.gfill');
+  const leader = o.leader === false ? null : el('path', { fill: 'none', stroke: '#8c908c', 'stroke-width': 1.25 }, $('over'));
+  let size = null;
   onFrame(t => {
-    const op = o.opacity ? o.opacity(t) : env(t, o.t0, 0.45, o.tOut ?? Infinity, 0.4);
-    d.style.display = op <= 0.001 ? 'none' : '';
-    if (leader) leader.style.display = d.style.display;
-    if (op <= 0.001) return;
-    const q = toScreen(o.at);
-    const slide = (1 - seg(t, o.t0, o.t0 + 0.55, 'quartOut')) * 18;
-    const w = d.offsetWidth, h = d.offsetHeight;
-    let x = q[0] + (o.dx ?? 24), y = q[1] + (o.dy ?? 0) - h / 2;
-    if (o.anchor === 'right') x = q[0] + (o.dx ?? -24) - w;
-    d.style.transform = `translate(${x - slide * (o.anchor === 'right' ? -1 : 1)}px,${y}px)`;
+    const inDur = o.inDur || 0.35;
+    const op = val(o.opacity, t, seg(t, o.t0, o.t0 + inDur, 'out'));
+    const vis = op > 0.001;
+    d.style.display = vis ? '' : 'none';
+    if (leader) leader.style.display = vis ? '' : 'none';
+    if (!vis) return;
+    if (!size) size = [d.offsetWidth, d.offsetHeight];
+    const [w, h] = size, q = toScreen(o.at);
+    const [x, y] = o.pos(q, w, h, t);
+    const e = 1 - seg(t, o.t0, o.t0 + inDur, 'out'), en = o.enter || [-14, 0];
+    d.style.transform = `translate(${(x + en[0] * e).toFixed(2)}px,${(y + en[1] * e).toFixed(2)}px)`;
     d.style.opacity = op;
+    if (o.glyph) {
+      const gd = o.glyph.draw || [o.t0 + 0.1, o.t0 + 0.45], gf = o.glyph.fillIn || [gd[1] - 0.1, gd[1] + 0.15];
+      gline.setAttribute('stroke-dasharray', `${seg(t, gd[0], gd[1], 'inOut')} 1`);
+      gfill.setAttribute('opacity', seg(t, gf[0], gf[1], 'out'));
+    }
     if (leader) {
-      const ex = o.anchor === 'right' ? x + w : x, ey = y + h / 2;
-      leader.setAttribute('d', `M${q[0]},${q[1]}L${ex},${ey}`);
-      leader.setAttribute('opacity', 0.8 * op * seg(t, o.t0 + 0.1, o.t0 + 0.4));
+      // from the pin edge to the midpoint of the card edge facing the pin
+      const cands = [[x, y + h / 2], [x + w, y + h / 2], [x + w / 2, y], [x + w / 2, y + h]];
+      const tgt = cands.reduce((b, c) => Math.hypot(c[0] - q[0], c[1] - q[1]) < Math.hypot(b[0] - q[0], b[1] - q[1]) ? c : b);
+      const L = o.leader || {}, lp = seg(t, L.t0 ?? o.t0 - 0.05, L.t1 ?? o.t0 + 0.12, 'out');
+      const dx = tgt[0] - q[0], dy = tgt[1] - q[1], dl = Math.hypot(dx, dy) || 1, pr = val(L.pinR, t, 11);
+      const s0 = [q[0] + dx / dl * pr, q[1] + dy / dl * pr], s1 = [lerp(s0[0], tgt[0], lp), lerp(s0[1], tgt[1], lp)];
+      setA(leader, { d: `M${s0[0].toFixed(1)},${s0[1].toFixed(1)}L${s1[0].toFixed(1)},${s1[1].toFixed(1)}`, opacity: 0.7 * op * (lp > 0 ? 1 : 0) });
     }
   });
   return d;
 }
 
-// Big header card (coloured band + white panel) that can collapse into a "|WORD" wordmark.
-// o: {title, sub (html), color, x, y (screen px, top-left), t0, tOut, collapseAt, collapseTo:[x,y], scale}
+// Big header card: coloured band with a large Latin title, white panel with Chinese lines.
+// o: {title, lines[], color, width, pos(t) -> [x, y], enter: {t0, t1, dx, dy}, panel: [t0, t1], lineIn: [[t0,t1],...],
+//     absorb: {t0, t1, to(t) -> [x, y]}, collapse: {t0, t1, to: [x, y], size}, opacity(t)}
 function bigCard(o) {
-  const d = div('big', labelsRoot, `<div class="band">${o.title}</div><div class="panel">${o.sub || ''}</div>`);
+  const d = div('big', labelsRoot, `<div class="band">${o.title}</div><div class="panel">${o.lines.map(l => `<div class="ln">${l}</div>`).join('')}</div>`);
   d.style.setProperty('--c', o.color);
-  const mark = div('mark', labelsRoot, o.title);
-  mark.style.setProperty('--c', o.color);
+  if (o.width) d.style.width = o.width + 'px';
+  const band = d.querySelector('.band'), panel = d.querySelector('.panel'), lns = [...d.querySelectorAll('.ln')];
+  let size = null;
   onFrame(t => {
-    const op = o.opacity ? o.opacity(t) : env(t, o.t0, 0.5, o.tOut ?? Infinity, 0.5);
-    const pos = typeof o.pos === 'function' ? o.pos(t) : [o.x, o.y];
-    const coll = o.collapseAt != null ? seg(t, o.collapseAt, o.collapseAt + 0.6, 'inOut') : 0;
-    const bandIn = seg(t, o.t0, o.t0 + 0.55, 'quartOut'), panelIn = seg(t, o.t0 + 0.2, o.t0 + 0.8, 'quartOut');
-    d.style.display = op * (1 - coll) <= 0.001 ? 'none' : '';
-    d.style.opacity = op * (1 - coll);
-    d.style.transform = `translate(${pos[0]}px,${pos[1] + (1 - bandIn) * 24}px) scale(${(o.scale || 1) * (1 - 0.15 * coll)})`;
-    d.firstChild.style.clipPath = `inset(0 ${(1 - bandIn) * 100}% 0 0)`;
-    d.lastChild.style.clipPath = `inset(0 0 ${(1 - panelIn) * 100}% 0)`;
-    const mOp = op * coll;
-    mark.style.display = mOp <= 0.001 ? 'none' : '';
-    if (mOp > 0.001) {
-      const mp = typeof o.collapseTo === 'function' ? o.collapseTo(t) : o.collapseTo;
-      mark.style.opacity = mOp;
-      mark.style.transform = `translate(${mp[0]}px,${mp[1] + (1 - coll) * 16}px) scale(${o.markScale || 1})`;
+    const E0 = o.enter, pe = seg(t, E0.t0, E0.t1, 'out');
+    const ab = o.absorb ? seg(t, o.absorb.t0, o.absorb.t1, 'in') : 0;
+    const op = val(o.opacity, t, pe) * (1 - ab);
+    d.style.display = op > 0.001 ? '' : 'none';
+    if (op <= 0.001) return;
+    if (!size) size = [d.offsetWidth, d.offsetHeight];
+    let [x, y] = val(o.pos, t);
+    x += (E0.dx || 0) * (1 - pe); y += (E0.dy || 0) * (1 - pe);
+    let tr = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;
+    if (ab > 0) { // shrink toward the target point
+      const to = o.absorb.to(t), s = lerp(1, 0.04, ab);
+      tr = `translate(${(lerp(x, to[0], ab)).toFixed(2)}px,${(lerp(y, to[1], ab)).toFixed(2)}px) scale(${s})`;
+    }
+    d.style.transform = tr;
+    d.style.opacity = op;
+    const pp = seg(t, o.panel[0], o.panel[1], 'inOut');
+    panel.style.clipPath = `inset(0 0 ${((1 - pp) * 100).toFixed(2)}% 0)`;
+    panel.style.visibility = pp > 0 ? 'visible' : 'hidden';
+    lns.forEach((ln, i) => { const lp = seg(t, o.lineIn[i][0], o.lineIn[i][1], 'out'); ln.style.opacity = lp; ln.style.transform = `translateY(${((1 - lp) * 8).toFixed(2)}px)`; });
+    if (o.collapse) { // morph into "|TITLE": panel clips up, band fill fades, title recolours/shrinks, bar grows
+      const C0 = o.collapse, cp = seg(t, C0.t0, C0.t1, 'inOut');
+      const panelUp = seg(t, C0.t0, C0.t0 + 0.25 * (C0.t1 - C0.t0) / 0.6, 'in');
+      if (cp > 0) {
+        panel.style.clipPath = `inset(0 0 ${(Math.max(1 - pp, panelUp) * 100).toFixed(2)}% 0)`;
+        d.style.boxShadow = `0 6px 16px rgba(40,50,60,${(0.22 * (1 - cp)).toFixed(3)})`;
+        d.style.overflow = 'visible';
+        band.style.background = `color-mix(in srgb, var(--c) ${((1 - cp) * 100).toFixed(1)}%, transparent)`;
+        band.style.color = `color-mix(in srgb, #ffffff ${((1 - cp) * 100).toFixed(1)}%, var(--c))`;
+        band.style.fontSize = lerp(104, C0.size || 80, cp) + 'px';
+        band.style.borderLeft = `5px solid color-mix(in srgb, var(--c) ${(seg(t, C0.t0 + 0.2, C0.t1, 'out') * 100).toFixed(1)}%, transparent)`;
+        band.style.paddingLeft = lerp(28, 16, cp) + 'px';
+        const [x0, y0] = val(o.pos, t), to = C0.to;
+        d.style.transform = `translate(${lerp(x0, to[0], cp).toFixed(2)}px,${lerp(y0, to[1], cp).toFixed(2)}px)`;
+      } else {
+        d.style.overflow = ''; d.style.boxShadow = ''; band.style.background = ''; band.style.color = ''; band.style.fontSize = ''; band.style.borderLeft = ''; band.style.paddingLeft = '';
+      }
     }
   });
   return d;
 }
 
-// Free text / custom DOM driven by a callback.
 function custom(fn) { onFrame(fn); }
 
 // ---------- frame loop ----------
 function renderAt(t) {
   cam = cameraAt(t);
   drawBase(t);
-  drawLifts(t);
   for (const u of updaters) u(t);
+  drawLifts(t);
 }
 
-window.E = { W, H, EASE, seg, env, lerp, clamp01, setProjection, setCamera, cameraAt, toScreen, planeToScreen, featurePath, mainCentroid,
-  fill, lift, arc, ruler, poly, pin, card, bigCard, custom, div, el, setA, labelsRoot, onFrame, renderAt, levelFor,
+window.E = { W, H, DEG, EASE, seg, env, bump, keyed, lerp, clamp01, setProjection, setCamera, cameraAt, toScreen, planeToScreen,
+  feature, defineGroup, mainCentroid, fill, lift, arc, ellipse, poly, ring, ripple, glow, pin, card, bigCard, glyphSVG, custom, div, el, setA, underLandHooks,
+  labelsRoot, onFrame, renderAt, levelFor, ppd,
   get cam() { return cam; }, get projection() { return projection; } };
 
 // ---------- boot ----------
@@ -445,9 +660,7 @@ window.READY = false;
 window.renderAt = t => { renderAt(t); return new Promise(r => requestAnimationFrame(() => r(true))); };
 window.boot = async (duration) => {
   makeStatics();
-  await document.fonts.load('900 40px "Noto Sans TC"');
-  await document.fonts.load('700 40px "Noto Sans TC"');
-  await document.fonts.load('500 40px "Noto Sans TC"');
+  await Promise.all(['900', '700', '500'].map(w => document.fonts.load(`${w} 40px "Noto Sans TC"`)));
   await document.fonts.ready;
   const render = new URLSearchParams(location.search).has('render');
   document.body.classList.toggle('render', render);
@@ -456,14 +669,14 @@ window.boot = async (duration) => {
     fit(); addEventListener('resize', fit);
     const scrub = $('scrub'), tc = $('tc'), play = $('play');
     scrub.max = duration;
-    let playing = false, t0 = 0, base = 0;
-    const show = t => { renderAt(t); scrub.value = t; tc.textContent = t.toFixed(2) + ' s'; };
-    scrub.oninput = () => { playing = false; play.textContent = '▶'; show(+scrub.value); };
-    play.onclick = () => { playing = !playing; play.textContent = playing ? '❚❚' : '▶'; base = +scrub.value >= duration ? 0 : +scrub.value; t0 = performance.now(); };
-    const tick = () => { if (playing) { const t = base + (performance.now() - t0) / 1000; show(Math.min(t, duration)); if (t >= duration) { playing = false; play.textContent = '▶'; } } requestAnimationFrame(tick); };
+    let playing = false, t0 = 0, from = 0;
+    const showT = t => { renderAt(t); scrub.value = t; tc.textContent = t.toFixed(2) + ' s'; };
+    scrub.oninput = () => { playing = false; play.textContent = '▶'; showT(+scrub.value); };
+    play.onclick = () => { playing = !playing; play.textContent = playing ? '❚❚' : '▶'; from = +scrub.value >= duration ? 0 : +scrub.value; t0 = performance.now(); };
+    const tick = () => { if (playing) { const t = from + (performance.now() - t0) / 1000; showT(Math.min(t, duration)); if (t >= duration) { playing = false; play.textContent = '▶'; } } requestAnimationFrame(tick); };
     tick();
     const q = new URLSearchParams(location.search).get('t');
-    show(q ? +q : 0);
+    showT(q ? +q : 0);
   } else {
     renderAt(0);
   }
