@@ -1,5 +1,6 @@
 // Shot choreography: "In -> Absorb -> Out -> Together", opening and closing on the Taipei FIR.
-// Word onsets in the narration (s): 對外 0.05 · 我們 1.12 · 汲 1.65 · 歐 2.12 · 美 2.50 · ATFM 4.12 · 並 6.60 · 拓展 6.82
+// Word onsets in the narration (s): 對外 0.05 · 我們 1.14 · 汲 1.54 · 歐 1.93 · 美 2.14 · 國際 2.51 · ATFM 3.58–4.35 · 觀念 4.40
+//   並 6.60 · 拓展 6.82
 //   版圖 ends 8.35 · 與 9.72 · 日本 9.90 · 韓國 10.70 · 菲律賓 11.50 · 泰國 12.40 · 新加坡 13.22 · 等國家 13.88
 //   一同 14.85 · 執行 15.22 · ATFM 15.78 · 措施 16.92
 // Colours carry meaning: green = Europe/US (sources of ATFM know-how), gold = Taiwan / Taipei FIR,
@@ -18,7 +19,7 @@ E.setProjection(d3.geoMercator().rotate([-135, 0]));
 const K = [
   { t: 0.00, center: [121.3, 24.6], ppd: 74 },
   { t: 0.70, center: [121.3, 24.6], ppd: 77, ease: 'sineInOut' },      // 4% breath on the Taipei FIR
-  { t: 2.30, center: [136.0, 19.35], ppd: 5.7, ease: 'sineInOut' },    // pull-out to the world (Europe..US whole)
+  { t: 2.20, center: [136.0, 19.35], ppd: 5.7, ease: 'sineInOut' },    // pull-out to the world (Europe..US whole)
   { t: 6.45, center: [136.0, 19.6], ppd: 5.86, ease: 'sineInOut' },    // slow world drift
   { t: 8.60, center: [122.0, 16.8], ppd: 14.5, ease: 'inOut' },        // dive to the Asia-Pacific (Hokkaido in frame)
   { t: 15.45, center: [122.0, 16.8], ppd: 14.75, ease: 'sineInOut' },   // slow push, at rest for the final ~2 s hold
@@ -51,19 +52,19 @@ function firExit(from, to, k, hubIsFrom) {
 E.defineGroup('EUR', ['040','056','100','191','196','203','208','233','246','250','276','300','348','372','380','428','440','442','470','528','616','620','642','703','705','724','752','826','578','756','352','008','070','499','807','688','n:Kosovo','crimea','n:N. Cyprus','498','804','438','020','492','674'],
   c => c[0] > -25 && c[0] < 45 && c[1] > 34.5 && c[1] < 72);
 const srcOut = t => 1 - seg(t, 6.45, 6.80);
-E.fill('EUR', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.12, 2.92)), opacity: t >= 2.10 ? 1 : 0, reveal: seg(t, 2.10, 2.55, 'inOut'), origin: EU, stroke: '#ffffff', strokeWidth: 1 }));
-E.fill('840', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.50, 3.30)), opacity: t >= 2.48 ? 1 : 0, reveal: seg(t, 2.48, 2.98, 'inOut'), origin: US, stroke: '#ffffff', strokeWidth: 1 }));
-E.pin({ at: EU, color: C.green, t0: 2.12, pulseR: 40, opacity: t => (t >= 2.12 ? 1 : 0) * (1 - seg(t, 6.45, 6.95)) });
-E.pin({ at: US, color: C.green, t0: 2.50, pulseR: 40, opacity: t => (t >= 2.50 ? 1 : 0) * (1 - seg(t, 6.45, 6.95)) });
-E.card({ zh: '歐洲', en: 'Europe', color: C.green, at: EU, t0: 2.18, enter: [0, -12], pos: q => [q[0] - 20, q[1] + 105],
-  opacity: t => seg(t, 2.18, 2.53, 'out') * srcOut(t) });
-E.card({ zh: '美國', en: 'United States', color: C.green, at: US, t0: 2.56, enter: [0, -12], pos: (q, w) => [q[0] + 20 - w, q[1] + 80],
-  opacity: t => seg(t, 2.56, 2.91, 'out') * srcOut(t) });
-const inOp = t => (t >= 2.85 ? 1 : 0) * (1 - seg(t, 6.45, 7.00));
+E.fill('EUR', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 1.92, 2.72)), opacity: t >= 1.80 ? 1 : 0, reveal: seg(t, 1.80, 2.25, 'inOut'), origin: EU, stroke: '#ffffff', strokeWidth: 1 }));
+E.fill('840', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.14, 2.94)), opacity: t >= 2.02 ? 1 : 0, reveal: seg(t, 2.02, 2.52, 'inOut'), origin: US, stroke: '#ffffff', strokeWidth: 1 }));
+E.pin({ at: EU, color: C.green, t0: 1.94, pulseR: 40, opacity: t => (t >= 1.94 ? 1 : 0) * (1 - seg(t, 6.45, 6.95)) });
+E.pin({ at: US, color: C.green, t0: 2.14, pulseR: 40, opacity: t => (t >= 2.14 ? 1 : 0) * (1 - seg(t, 6.45, 6.95)) });
+E.card({ zh: '歐洲', en: 'Europe', color: C.green, at: EU, t0: 2.00, enter: [0, -12], pos: q => [q[0] - 20, q[1] + 105],
+  opacity: t => seg(t, 2.00, 2.35, 'out') * srcOut(t) });
+E.card({ zh: '美國', en: 'United States', color: C.green, at: US, t0: 2.20, enter: [0, -12], pos: (q, w) => [q[0] + 20 - w, q[1] + 80],
+  opacity: t => seg(t, 2.20, 2.55, 'out') * srcOut(t) });
+const inOp = t => (t >= 2.45 ? 1 : 0) * (1 - seg(t, 6.45, 7.00));
 const pEU = [0, 1, 2, 3].map(i => ({ t0: 4.40 + 0.40 * i, dur: 1.10, dir: 1, ease: 'linear', r: 5 }));
 const pUS = [0, 1, 2, 3].map(i => ({ t0: 4.55 + 0.40 * i, dur: 1.20, dir: 1, ease: 'linear', r: 5 }));
-E.arc({ from: EU, to: TW, color: C.green, width: 3, bulge: 0.22, draw: t => seg(t, 2.85, 4.35), opacity: inOp, maskFrom: 13, maskTo: () => firExit(EU, TW, 0.22, false).d, particles: pEU });
-E.arc({ from: US, to: TW, color: C.green, width: 3, bulge: -0.22, draw: t => seg(t, 3.00, 4.45), opacity: inOp, maskFrom: 13, maskTo: () => firExit(US, TW, -0.22, false).d, particles: pUS });
+E.arc({ from: EU, to: TW, color: C.green, width: 3, bulge: 0.22, draw: t => seg(t, 2.45, 3.75), opacity: inOp, maskFrom: 13, maskTo: () => firExit(EU, TW, 0.22, false).d, particles: pEU });
+E.arc({ from: US, to: TW, color: C.green, width: 3, bulge: -0.22, draw: t => seg(t, 2.60, 3.85), opacity: inOp, maskFrom: 13, maskTo: () => firExit(US, TW, -0.22, false).d, particles: pUS });
 
 // ---------- cooperation ellipse (sea-only wash) ----------
 const ELL = { center: [118.31, 21.2], a: 525.1, b: 247.7, rot: -47.5 };
@@ -120,7 +121,7 @@ E.custom(t => P.forEach((p, i) => {
   const q = firExit(TW, p.at, p.bulge, true).q;
   E.setA(dias[i], { opacity: 1, transform: `translate(${q[0].toFixed(1)},${q[1].toFixed(1)}) rotate(45) scale(${sc})` });
 }));
-const twPinScale = t => lerp(1, 0.5, seg(t, 0.70, 2.30)); // small on the world map so the gold island still shows
+const twPinScale = t => lerp(1, 0.5, seg(t, 0.70, 2.20)); // small on the world map so the gold island still shows
 E.pin({ at: TW, color: C.gold, t0: 0.10, pulseR: 46, pulseDur: 0.8, scale: twPinScale });
 
 // Taiwan card: right of the FIR in the close-up, glides to its world and Asia spots
@@ -129,7 +130,7 @@ const firE = () => toScreen([124, 23.5])[0];
 const TWPOS = { close: [34, 0], world: [22, 50], asia: [24, 34] };
 const twCard = E.card({ zh: '臺灣', en: 'Taiwan', color: C.gold, at: TW, t0: 0.25, glyph: twGlyph, leader: { t0: 0.20, t1: 0.35, pinR: t => 11 * twPinScale(t) },
   pos: (q, w, h, t) => {
-    const a = seg(t, 0.70, 2.30, 'sineInOut'), b = seg(t, 6.45, 8.60, 'inOut');
+    const a = seg(t, 0.70, 2.20, 'sineInOut'), b = seg(t, 6.45, 8.60, 'inOut');
     const gx = lerp(lerp(TWPOS.close[0], TWPOS.world[0], a), TWPOS.asia[0], b), gy = lerp(lerp(TWPOS.close[1], TWPOS.world[1], a), TWPOS.asia[1], b);
     return [firE() + gx, q[1] - h / 2 + gy];
   } });
@@ -138,7 +139,7 @@ twCard.style.zIndex = 3; // the green card flies into Taiwan underneath this car
 // green big card, stacked under Taiwan's card, absorbed into Taiwan
 E.bigCard({ title: 'ATFM', lines: ['汲取歐美先進', '觀念與實務經驗'], color: C.green,
   pos: t => { const q = twS(); return [firE() + 22, q[1] + 128]; },
-  enter: { t0: 4.15, t1: 4.65, dx: 0, dy: 24 }, panel: [4.40, 4.95], lineIn: [[4.55, 4.95], [4.95, 5.35]],
+  enter: { t0: 3.50, t1: 4.00, dx: 0, dy: 24 }, panel: [3.75, 4.30], lineIn: [[3.90, 4.30], [4.38, 4.78]], // title on 'ATFM', 觀念與實務經驗 on 觀
   absorb: { t0: 6.35, t1: 6.90, ease: 'inOut', fadeAt: 6.72, to: twS } }); // flies into Taiwan, fades only at the end
 
 // PARTNERS card -> |PARTNERS wordmark

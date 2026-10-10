@@ -24,9 +24,9 @@ Colours carry meaning:
 
 | Time (s) | Narration | Picture |
 |---|---|---|
-| 0.00–2.40 | 對外 · 我們汲取 | Close-up on Taiwan. The island floods gold and lifts, the TAIPEI FIR outline draws on and the 臺灣 card lands. The camera then pulls out to a Pacific-centred world map. |
-| 2.10–4.45 | 歐美國際先進的 | Europe floods green on 歐 and the US on 美, each with a card. Green arcs draw from both into the FIR. |
-| 4.12–6.45 | ATFM 觀念與實務經驗 | Particles stream into Taiwan. The green card **ATFM / 汲取歐美先進 / 觀念與實務經驗** appears. |
+| 0.00–2.20 | 對外 · 我們汲取 | Close-up on Taiwan. The island floods gold and lifts, the TAIPEI FIR outline draws on and the 臺灣 card lands. The camera then pulls out to a Pacific-centred world map. |
+| 1.80–3.85 | 歐美國際先進的 | Europe floods green on 歐 (1.93 s) and the US on 美 (2.14 s), each with a card. Green arcs draw from both into the FIR. |
+| 3.50–6.45 | ATFM 觀念與實務經驗 | The green card **ATFM / 汲取歐美先進 / 觀念與實務經驗** lands as "ATFM" is said (3.58–4.35 s), its last line on 觀. Particles stream into Taiwan. |
 | 6.40–8.85 | 並拓展國際合作版圖 | The green card is absorbed into Taiwan, and a navy ripple goes out. The camera dives to the Asia-Pacific. The **PARTNERS / 拓展國際 / 合作版圖** card appears, and the ruler ellipse draws around the region with a sea-only wash. |
 | 9.00–9.60 | (breath) | The PARTNERS card collapses into a **\|PARTNERS** wordmark, as in the reference. |
 | 9.45–13.6 | 與日本 韓國 菲律賓 泰國 新加坡 | On each spoken name, an arc leaves the FIR through a gold handoff diamond. The partner's land shape floods periwinkle and lifts, and its pin and glyph card land. Singapore also gets a locator ring. |
