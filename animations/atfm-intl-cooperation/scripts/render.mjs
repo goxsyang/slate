@@ -22,7 +22,7 @@ const OUT = path.resolve(root, opt('out', 'out/atfm-intl-cooperation.mp4'));
 const AUDIO = opt('audio', null);
 const STILLS = opt('stills', null);
 const SCALE = Number(opt('scale', 1));   // device pixels per CSS px: 2 renders 3840x2160
-const CRF = opt('crf', SCALE > 1 ? '16' : '14');
+const CRF = opt('crf', SCALE > 1 ? '17' : '14'); // 4K at CRF 17: PSNR ~50.9 dB vs lossless, ~28 MB
 const FRAMES_DIR = path.join(root, SCALE > 1 ? `out/frames_x${SCALE}` : 'out/frames');
 const pageUrl = pathToFileURL(path.join(root, 'index.html')).href + '?render=1';
 
