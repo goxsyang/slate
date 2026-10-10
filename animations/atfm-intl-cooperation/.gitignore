@@ -1,0 +1,7 @@
+node_modules/
+fonts/*.ttf
+data/world.js
+# renders: only the final deliverable is versioned
+out/*
+!out/atfm-intl-cooperation.mp4
+!out/atfm-intl-cooperation_4K.mp4
