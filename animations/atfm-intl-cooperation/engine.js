@@ -53,6 +53,27 @@ const LEVELS = window.WORLD_LEVELS.map(topo => ({
   borders: topojson.mesh(topo, topo.objects.countries, (a, b) => a !== b),
   coast: topojson.mesh(topo, topo.objects.countries, (a, b) => a === b),
 }));
+// Natural Earth 1:10m has no Matsu (馬祖). Add the ROC-administered islands to Taiwan (158) and to the
+// base land and coastline at every level, so they light up gold with Kinmen and Penghu.
+const MATSU = [
+  [[119.905, 26.155], [119.930, 26.172], [119.962, 26.163], [119.955, 26.143], [119.920, 26.140], [119.905, 26.155]], // Nangan
+  [[119.972, 26.222], [119.995, 26.240], [120.030, 26.232], [120.028, 26.212], [119.995, 26.205], [119.972, 26.222]], // Beigan
+  [[120.472, 26.368], [120.490, 26.382], [120.512, 26.372], [120.497, 26.358], [120.472, 26.368]],                     // Dongyin
+  [[119.925, 25.965], [119.945, 25.978], [119.990, 25.972], [119.985, 25.955], [119.940, 25.955], [119.925, 25.965]],  // Juguang
+];
+LEVELS.forEach(L => {
+  const tw = L.features.get('158').geometry;
+  if (tw.type === 'Polygon') { tw.type = 'MultiPolygon'; tw.coordinates = [tw.coordinates]; }
+  tw.coordinates.push(...MATSU.map(r => [r]));
+  L.land.coordinates.push(...MATSU.map(r => [r]));
+  L.coast.coordinates.push(...MATSU);
+  // Crimea as its own geometry (Natural Earth puts it in Russia), so it can be grouped with Ukraine
+  const ru = L.geoms.get('643'), arcs = ru.type === 'MultiPolygon' ? ru.arcs : [ru.arcs];
+  const polys = topojson.feature(L.topo, ru).geometry;
+  const coords = polys.type === 'MultiPolygon' ? polys.coordinates : [polys.coordinates];
+  const i = coords.findIndex(p => { const c = d3.geoCentroid({ type: 'Polygon', coordinates: p }); return c[0] > 32 && c[0] < 37 && c[1] > 44 && c[1] < 46.5; });
+  if (i >= 0) L.geoms.set('crimea', { type: 'Polygon', arcs: arcs[i] });
+});
 const NL = LEVELS.length, FINE = NL - 1;
 // pick the level by screen px per degree
 const levelFor = k => { const ppd = k * DEG; return ppd < 9 ? 0 : ppd < 22 ? 1 : ppd < 55 ? 2 : 3; };
@@ -96,6 +117,19 @@ function setProjection(proj) {
   pathCache.clear();
 }
 const pathCache = new Map();
+// Path2Ds of a feature's main land masses (>= 2% of its largest polygon) and of its islets
+function splitPaths(key, level) {
+  const ck = 'split:' + key + '@' + level;
+  if (!pathCache.has(ck)) {
+    const f = feature(key, level);
+    const polys = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates];
+    const areas = polys.map(p => d3.geoArea({ type: 'Polygon', coordinates: p })), maxA = Math.max(...areas);
+    const part = keep => ({ type: 'MultiPolygon', coordinates: polys.filter((_, i) => keep(areas[i] >= maxA * 0.02)) });
+    const small = part(b => !b);
+    pathCache.set(ck, { big: new Path2D(planePath(part(b => b))), small: small.coordinates.length ? new Path2D(planePath(small)) : null });
+  }
+  return pathCache.get(ck);
+}
 function path2D(key, level) {
   const ck = key + '@' + level;
   if (!pathCache.has(ck)) pathCache.set(ck, new Path2D(planePath(feature(key, level))));
@@ -158,7 +192,7 @@ const camMatrix = () => [cam.k, 0, 0, cam.k, W / 2 - cam.cx * cam.k, H / 2 - cam
 const ppd = () => cam.k * DEG;
 
 // ---------- base map (canvas) ----------
-const COLORS = { land: '#f3ede3', coast: '#cbc2b1', border: '#ddd4c4', halo: '#e2e8e2', shadow: 'rgba(96,112,104,0.42)' };
+const COLORS = { land: '#f3ede3', coast: '#b4ab9e', border: '#ddd4c4', halo: '#e3e9e4', wallTop: '#d6cbbb', wallBottom: '#bdb3a3', rim: 'rgba(255,252,246,0.9)' };
 const baseCtx = $('base').getContext('2d');
 const liftCtx = $('lift').getContext('2d');
 const half = new OffscreenCanvas(W / 2, H / 2), halfCtx = half.getContext('2d');
@@ -205,29 +239,32 @@ function revealClip(ctx, key, s) {
 }
 
 function drawBase(t) {
-  const ctx = baseCtx, m = camMatrix(), L = levelFor(cam.k), k = cam.k;
+  // level 1 at least: level 0 would pop dozens of islands in and out at the switch
+  const ctx = baseCtx, m = camMatrix(), L = Math.max(levelFor(cam.k), 1), k = cam.k;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
   ctx.drawImage(seaImg, 0, 0);
-  // shallow-water halo and soft land shadow, blurred at half resolution (cheap) then upscaled
+  // pale shallow-water halo, blurred at half resolution (cheap) then upscaled
   halfCtx.setTransform(1, 0, 0, 1, 0, 0); halfCtx.clearRect(0, 0, W / 2, H / 2);
   halfCtx.filter = 'blur(3px)';
   halfCtx.setTransform(m[0] / 2, 0, 0, m[3] / 2, m[4] / 2, m[5] / 2);
   halfCtx.lineJoin = 'round';
-  halfCtx.strokeStyle = COLORS.halo; halfCtx.lineWidth = 9 / k; halfCtx.stroke(base.coast[L]);
+  halfCtx.strokeStyle = COLORS.halo; halfCtx.lineWidth = 18 / k; halfCtx.stroke(base.coast[L]);
   halfCtx.filter = 'none';
   ctx.globalAlpha = 0.9; ctx.drawImage(half, 0, 0, W, H); ctx.globalAlpha = 1;
-  halfCtx.setTransform(1, 0, 0, 1, 0, 0); halfCtx.clearRect(0, 0, W / 2, H / 2);
-  halfCtx.filter = 'blur(1.5px)';
-  halfCtx.setTransform(m[0] / 2, 0, 0, m[3] / 2, m[4] / 2, m[5] / 2 + 1.25);
-  halfCtx.fillStyle = COLORS.shadow; halfCtx.fill(base.land[L]);
-  halfCtx.filter = 'none';
-  ctx.drawImage(half, 0, 0, W, H);
   // sea-only tints (e.g. an ellipse's wash) go under the land so they never colour a country
   for (const h of underLandHooks) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); h(ctx, t); ctx.restore(); }
-  // land, highlighted countries, borders, coastline
+  // raised paper: a tan wall under every coast (2 px at world scale, 6 px from the Asia view in)
+  const wall = Math.max(2, Math.min(6, Math.round(k * DEG / 3)));
+  for (let y = wall; y >= 1; y--) {
+    ctx.setTransform(m[0], 0, 0, m[3], m[4], m[5] + y);
+    ctx.fillStyle = d3.interpolateRgb(COLORS.wallTop, COLORS.wallBottom)(y / wall); ctx.fill(base.land[L]);
+  }
+  // land with a light bevel rim just inside the coast, then highlighted countries, borders, coastline
   ctx.setTransform(...m);
   ctx.fillStyle = COLORS.land; ctx.fill(base.land[L]);
+  ctx.save(); ctx.clip(base.land[L]); ctx.strokeStyle = COLORS.rim; ctx.lineWidth = 5 / k; ctx.stroke(base.coast[L]); ctx.restore();
+  ctx.setTransform(...m);
   ctx.lineJoin = 'round';
   const styles = fillLayers.map(f => f.style(t));
   fillLayers.forEach((f, i) => {
@@ -266,11 +303,11 @@ const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${
 function drawLifts(t) {
   const ctx = liftCtx;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
-  const L = Math.max(levelFor(cam.k), 2);
   for (const f of liftLayers) {
     const s = f.style(t), op = s.opacity ?? 1;
     if (op <= 0.001 || s.reveal === 0) continue;
-    const p = path2D(f.key, L), lift = s.lift ?? 0, sc = s.scale ?? 1;
+    const { big: p, small } = splitPaths(f.key, Math.max(levelFor(cam.k), s.minLevel ?? 2));
+    const lift = s.lift ?? 0, sc = s.scale ?? 1;
     const c = planeToScreen(f.cPlane), k = cam.k * sc;
     const X = sc * (W / 2 - cam.cx * cam.k) + c[0] * (1 - sc), Y = sc * (H / 2 - cam.cy * cam.k) + c[1] * (1 - sc);
     const clipped = revealClip(ctx, f.key, s);
@@ -290,13 +327,20 @@ function drawLifts(t) {
     // top face
     ctx.setTransform(k, 0, 0, k, X, Y - lift);
     ctx.fillStyle = s.color; ctx.fill(p);
-    if ((s.strokeWidth ?? 1.25) > 0 && s.stroke !== 'none') {
+    const stroked = (s.strokeWidth ?? 1.25) > 0 && s.stroke !== 'none';
+    if (stroked) {
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = (s.strokeWidth ?? 1.25) / k;
       const tr = s.strokeDraw ?? 1;
       if (tr < 1) { const len = planeLength(f.key); ctx.setLineDash([len * tr, len]); }
       if (tr > 0) ctx.stroke(p);
       ctx.setLineDash([]);
+    }
+    // islets stay flat on the map, highlighted but not extruded (they would read as pillars)
+    if (small) {
+      ctx.setTransform(k, 0, 0, k, X, Y);
+      ctx.fillStyle = s.color; ctx.fill(small);
+      if (stroked) ctx.stroke(small);
     }
     if (clipped) ctx.restore();
   }
@@ -441,6 +485,7 @@ function poly(o) {
   const fillP = el('path', { fill: o.fill || o.color, stroke: 'none' }, g);
   const halo = el('path', { fill: 'none', stroke: '#fff', 'stroke-linejoin': 'round', opacity: 0.55 }, g);
   const line = el('path', { fill: 'none', stroke: o.color, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, g);
+  const inner = o.inner ? el('path', { fill: 'none', stroke: o.inner.color, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, g) : null;
   const nodes = (o.nodes || []).map(() => el('rect', { x: -5, y: -5, width: 10, height: 10, fill: '#fff', stroke: o.color, 'stroke-width': 2 }, g));
   const ringC = o.closed ? [...o.coords, o.coords[0]] : o.coords, dense = [];
   for (let i = 0; i < ringC.length - 1; i++) { const it = d3.geoInterpolate(ringC[i], ringC[i + 1]); for (let j = 0; j < 24; j++) dense.push(it(j / 24)); }
@@ -456,6 +501,16 @@ function poly(o) {
     }
     const d = target > 0 ? pts2d(out) : '', w = val(o.width, t, 3);
     setA(line, { d, 'stroke-width': w }); setA(halo, { d, 'stroke-width': w + 4 });
+    if (inner) { // pale inner rule offset towards the centre, drawn on with the outline
+      const cx = d3.mean(pts, q => q[0]), cy = d3.mean(pts, q => q[1]), off = val(o.inner.d, t, 6);
+      const ip = out.map((q, i) => {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+        let nx = -(b[1] - a[1]), ny = b[0] - a[0]; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+        if ((cx - q[0]) * nx + (cy - q[1]) * ny < 0) { nx = -nx; ny = -ny; }
+        return [q[0] + nx * off, q[1] + ny * off];
+      });
+      setA(inner, { d: target > 0 ? pts2d(ip) : '', 'stroke-width': val(o.inner.width, t, 1.6), opacity: val(o.inner.opacity, t, 1) });
+    }
     setA(fillP, { d: pts2d(pts) + 'Z', 'fill-opacity': val(o.fillOpacity, t, 0) });
     (o.nodes || []).forEach((ll, i) => {
       const q = toScreen(ll), sc = o.nodeScale ? o.nodeScale(i, t) : 1;
@@ -600,8 +655,8 @@ function bigCard(o) {
   let size = null;
   onFrame(t => {
     const E0 = o.enter, pe = seg(t, E0.t0, E0.t1, 'out');
-    const ab = o.absorb ? seg(t, o.absorb.t0, o.absorb.t1, 'in') : 0;
-    const op = val(o.opacity, t, pe) * (1 - ab);
+    const A = o.absorb, ab = A ? seg(t, A.t0, A.t1, A.ease || 'inOut') : 0;
+    const op = val(o.opacity, t, pe) * (A ? 1 - seg(t, A.fadeAt ?? A.t0, A.t1, 'in') : 1);
     d.style.display = op > 0.001 ? '' : 'none';
     if (op <= 0.001) return;
     if (!size) size = [d.offsetWidth, d.offsetHeight];
@@ -610,7 +665,7 @@ function bigCard(o) {
     let tr = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;
     if (ab > 0) { // shrink toward the target point
       const to = o.absorb.to(t), s = lerp(1, 0.04, ab);
-      tr = `translate(${(lerp(x, to[0], ab)).toFixed(2)}px,${(lerp(y, to[1], ab)).toFixed(2)}px) scale(${s})`;
+      tr = `translate(${lerp(x, to[0] - size[0] * s / 2, ab).toFixed(2)}px,${lerp(y, to[1] - size[1] * s / 2, ab).toFixed(2)}px) scale(${s})`;
     }
     d.style.transform = tr;
     d.style.opacity = op;
@@ -624,16 +679,21 @@ function bigCard(o) {
       if (cp > 0) {
         panel.style.clipPath = `inset(0 0 ${(Math.max(1 - pp, panelUp) * 100).toFixed(2)}% 0)`;
         d.style.filter = `drop-shadow(0 6px 8px rgba(40,50,60,${(0.22 * (1 - cp)).toFixed(3)}))`;
-        d.style.overflow = 'visible';
-        band.style.background = `color-mix(in srgb, var(--c) ${((1 - cp) * 100).toFixed(1)}%, transparent)`;
-        band.style.color = `color-mix(in srgb, #ffffff ${((1 - cp) * 100).toFixed(1)}%, var(--c))`;
+        d.style.borderRadius = lerp(8, 0, cp) + 'px';
+        // band clears while the title switches white -> series colour at band alpha ~0.4 (never low contrast)
+        const bandA = 1 - seg(cp, 0, 0.6, 'linear'), txtW = 1 - seg(cp, 0.33, 0.39, 'linear');
+        band.style.background = `color-mix(in srgb, var(--c) ${(bandA * 100).toFixed(1)}%, transparent)`;
+        band.style.color = `color-mix(in srgb, #ffffff ${(txtW * 100).toFixed(1)}%, var(--c))`;
         band.style.fontSize = lerp(104, C0.size || 80, cp) + 'px';
-        band.style.borderLeft = `5px solid color-mix(in srgb, var(--c) ${(seg(t, C0.t0 + 0.2, C0.t1, 'out') * 100).toFixed(1)}%, transparent)`;
-        band.style.paddingLeft = lerp(28, 16, cp) + 'px';
+        band.style.height = band.style.lineHeight = lerp(112, C0.lineH || 104, cp) + 'px';
+        // the |bar is an inset shadow, so it never changes layout (no jump on the first frame)
+        band.style.boxShadow = `inset 6px 0 0 color-mix(in srgb, var(--c) ${(seg(t, C0.t0 + 0.2, C0.t1, 'out') * 100).toFixed(1)}%, transparent)`;
+        band.style.paddingLeft = lerp(28, 22, cp) + 'px';
         const [x0, y0] = val(o.pos, t), to = C0.to;
         d.style.transform = `translate(${lerp(x0, to[0], cp).toFixed(2)}px,${lerp(y0, to[1], cp).toFixed(2)}px)`;
       } else {
-        d.style.overflow = ''; d.style.filter = ''; band.style.background = ''; band.style.color = ''; band.style.fontSize = ''; band.style.borderLeft = ''; band.style.paddingLeft = '';
+        d.style.filter = ''; d.style.borderRadius = ''; band.style.background = ''; band.style.color = ''; band.style.fontSize = '';
+        band.style.height = ''; band.style.lineHeight = ''; band.style.boxShadow = ''; band.style.paddingLeft = '';
       }
     }
   });

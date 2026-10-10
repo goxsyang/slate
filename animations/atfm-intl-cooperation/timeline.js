@@ -9,22 +9,22 @@ const { seg, env, bump, keyed, lerp, clamp01, ppd, toScreen } = E;
 const DURATION = 17.4174;
 const C = {
   gold: '#996a0c', goldLine: '#c2a76f', twFace: '#e3cc94', twFlash: '#d9b25e', twSide: '#b8933f', twShadow: '#5c4208', twGlow: '#e8c56a',
-  green: '#1f6e5c', jade: '#b4cfc3', jadeFlash: '#8fbfae',
-  navy: '#354e99', peri: '#a4c0d9', periFlash: '#7fabdc', periSide: '#7d99bf', periShadow: '#24365e',
+  green: '#1f6e5c', jade: '#93bfae', jadeFlash: '#6fae96',
+  navy: '#354e99', peri: '#a4c0d9', periFlash: '#7fabdc', periSide: '#c9bdaa', periLine: '#5f7499', periShadow: '#5a4e3c',
 };
 const mix = (a, b, p) => d3.interpolateRgb(a, b)(p);
 
 E.setProjection(d3.geoMercator().rotate([-135, 0]));
 const K = [
   { t: 0.00, center: [121.3, 24.6], ppd: 74 },
-  { t: 0.80, center: [121.3, 24.6], ppd: 77, ease: 'sineInOut' },
-  { t: 2.40, center: [135.0, 19.35], ppd: 6.27, ease: 'inOut' },
-  { t: 6.45, center: [133.6, 19.6], ppd: 6.45, ease: 'sineInOut' },
-  { t: 8.60, center: [122.0, 15.85], ppd: 16.6, ease: 'inOut' },
-  { t: DURATION, center: [122.0, 15.85], ppd: 16.85, ease: 'sineInOut' },
+  { t: 0.70, center: [121.3, 24.6], ppd: 77, ease: 'sineInOut' },      // 4% breath on the Taipei FIR
+  { t: 2.30, center: [136.0, 19.35], ppd: 5.7, ease: 'sineInOut' },    // pull-out to the world (Europe..US whole)
+  { t: 6.45, center: [136.0, 19.6], ppd: 5.86, ease: 'sineInOut' },    // slow world drift
+  { t: 8.60, center: [122.0, 16.8], ppd: 14.5, ease: 'inOut' },        // dive to the Asia-Pacific (Hokkaido in frame)
+  { t: DURATION, center: [122.0, 16.8], ppd: 14.75, ease: 'sineInOut' }, // slow push, lands at rest for the hold
 ];
 E.setCamera(K);
-const zf = () => Math.max(0.5, Math.min(1, ppd() / 17.6));
+const zf = () => Math.max(0.5, Math.min(1, ppd() / 30));
 
 const TW = [120.95, 23.75], EU = [10.4, 50.6], US = [-98.5, 39.5];
 const FIR = [[124, 23.5], [121.5, 21], [117.5, 21], [117.5, 29], [124, 29]];
@@ -48,11 +48,11 @@ function firExit(from, to, k, hubIsFrom) {
 }
 
 // ---------- Europe + USA (knowledge sources, flat jade) ----------
-E.defineGroup('EUR', ['040','056','100','191','196','203','208','233','246','250','276','300','348','372','380','428','440','442','470','528','616','620','642','703','705','724','752','826','578','756','352','008','070','499','807','688','n:Kosovo','498','804','438','020','492','674'],
+E.defineGroup('EUR', ['040','056','100','191','196','203','208','233','246','250','276','300','348','372','380','428','440','442','470','528','616','620','642','703','705','724','752','826','578','756','352','008','070','499','807','688','n:Kosovo','crimea','n:N. Cyprus','498','804','438','020','492','674'],
   c => c[0] > -25 && c[0] < 45 && c[1] > 34.5 && c[1] < 72);
 const srcOut = t => 1 - seg(t, 6.45, 6.80);
-E.fill('EUR', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.12, 2.92)), opacity: t >= 2.10 ? 1 : 0, reveal: seg(t, 2.10, 2.50, 'out'), origin: EU, stroke: '#ffffff', strokeWidth: 1 }));
-E.fill('840', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.50, 3.30)), opacity: t >= 2.48 ? 1 : 0, reveal: seg(t, 2.48, 2.88, 'out'), origin: US, stroke: '#ffffff', strokeWidth: 1 }));
+E.fill('EUR', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.12, 2.92)), opacity: t >= 2.10 ? 1 : 0, reveal: seg(t, 2.10, 2.55, 'inOut'), origin: EU, stroke: '#ffffff', strokeWidth: 1 }));
+E.fill('840', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.50, 3.30)), opacity: t >= 2.48 ? 1 : 0, reveal: seg(t, 2.48, 2.98, 'inOut'), origin: US, stroke: '#ffffff', strokeWidth: 1 }));
 E.pin({ at: EU, color: C.green, t0: 2.12, pulseR: 40, opacity: t => (t >= 2.12 ? 1 : 0) * (1 - seg(t, 6.45, 6.95)) });
 E.pin({ at: US, color: C.green, t0: 2.50, pulseR: 40, opacity: t => (t >= 2.50 ? 1 : 0) * (1 - seg(t, 6.45, 6.95)) });
 E.card({ zh: '歐洲', en: 'Europe', color: C.green, at: EU, t0: 2.18, enter: [0, -12], pos: q => [q[0] - 20, q[1] + 105],
@@ -71,16 +71,17 @@ const ellDraw = t => seg(t, 7.35, 8.85, 'inOut');
 E.ellipse({ ...ELL, color: C.navy, width: 2.5, start: 180, draw: ellDraw, seaOnly: true,
   opacity: t => t >= 7.35 ? 1 : 0, scale: t => lerp(0.92, 1, seg(t, 7.35, 8.85, 'out')),
   fillOpacity: t => 0.08 * seg(t, 8.40, 9.00) + 0.05 * bump(t, 13.95, 14.60) + 0.02 * seg(t, 14.85, 15.30),
-  outer: { d: 7, opacity: t => 0.3 * seg(t, 8.50, 9.00) },
-  ticks: { n: 160, long: 8, lenLong: 12, lenShort: 6, gap: 9, opacity: 0.45,
-    alpha: (i, t) => (i / 160 <= ellDraw(t) ? 1 : 0),
-    boost: (i, t) => { const x = seg(t, 13.95, 14.75, 'linear'); if (x <= 0 || x >= 1) return 0; const d = Math.abs(((i / 160 - x) % 1 + 1.5) % 1 - 0.5); return d < 0.06 ? 8 * (1 - d / 0.06) : 0; } },
+  outer: { d: 10, opacity: t => 0.45 * seg(t, 8.50, 9.00) },
+  ticks: { n: 64, long: 8, lenLong: 13, lenShort: 7, gap: 15, opacity: 0.5,
+    alpha: (i, t) => (i / 64 <= ellDraw(t) ? 1 : 0),
+    boost: (i, t) => { const x = seg(t, 13.95, 14.75, 'linear'); if (x <= 0 || x >= 1) return 0; const d = Math.abs(((i / 64 - x) % 1 + 1.5) % 1 - 0.5); return d < 0.06 ? 8 * (1 - d / 0.06) : 0; } },
   ripples: [{ t0: 13.95, t1: 14.80, s1: 1.10, o0: 0.6 }] });
 
 // ---------- Taiwan ----------
 E.glow({ at: TW, color: C.twGlow, r: t => 50 + 30 * seg(t, 6.75, 7.4), opacity: t => 0.45 * Math.max(bump(t, 4.35, 5.15), bump(t, 6.75, 7.55)) });
 E.lift('158', t => ({
   color: mix(C.twFlash, C.twFace, seg(t, 0.05, 0.85)), side: C.twSide, stroke: C.gold, strokeWidth: 1.4, shadowColor: C.twShadow, shadowAlpha: 0.3,
+  minLevel: 3, // full detail, so Penghu, Green Island, Lanyu, Kinmen and Matsu never drop out
   opacity: seg(t, 0.05, 0.20, 'out'), reveal: seg(t, 0.05, 0.50, 'out'), origin: TW,
   lift: zf() * (keyed(t, [[0.05, 0], [0.55, 8, 'backOutSoft']]) + 5 * bump(t, 4.35, 4.95) + 6 * bump(t, 6.75, 7.30) + 6 * bump(t, 14.85, 15.40)),
 }));
@@ -99,57 +100,60 @@ const P = [
   { id: '702', zh: '新加坡', en: 'Singapore', at: [103.82, 1.35], on: 13.22, bulge: 0.10 },
 ];
 P.forEach(p => { p.a0 = p.on - 0.45; });
-E.poly({ coords: FIR, closed: true, color: C.gold, width: t => lerp(2, 3, clamp01((ppd() - 6.5) / 10)), draw: t => seg(t, 0.15, 1.05, 'inOut'), opacity: t => t >= 0.15 ? 1 : 0, fillOpacity: 0 });
+E.poly({ coords: FIR, closed: true, color: C.gold, width: t => lerp(2.5, 5.5, clamp01((ppd() - 6.5) / 35)), draw: t => seg(t, 0.15, 1.05, 'inOut'), opacity: t => t >= 0.15 ? 1 : 0, fillOpacity: 0,
+  inner: { d: 6, color: C.goldLine, width: 1.6, opacity: t => clamp01((ppd() - 12) / 20) } }); // heavy gold rule + pale inner rule, as in episode 1
 // handoff diamonds (custom: position recomputed per frame where each arc exits the FIR)
 const dGroup = E.el('g', {}, document.getElementById('over'));
-const dias = P.map(() => E.el('rect', { x: -5, y: -5, width: 10, height: 10, fill: '#fff', stroke: C.gold, 'stroke-width': 2 }, dGroup));
+const dias = P.map(() => E.el('rect', { x: -5, y: -5, width: 10, height: 10, fill: C.gold, stroke: '#fff', 'stroke-width': 1.5 }, dGroup));
 E.custom(t => P.forEach((p, i) => {
   const sc = seg(t, p.a0, p.a0 + 0.25, 'backOut') * (1 + 0.5 * bump(t, 14.85, 15.35));
   if (sc <= 0.01) { dias[i].setAttribute('opacity', 0); return; }
   const q = firExit(TW, p.at, p.bulge, true).q;
   E.setA(dias[i], { opacity: 1, transform: `translate(${q[0].toFixed(1)},${q[1].toFixed(1)}) rotate(45) scale(${sc})` });
 }));
-E.pin({ at: TW, color: C.gold, t0: 0.10, pulseR: 46, pulseDur: 0.8, scale: t => lerp(1, 0.55, seg(t, 6.45, 8.60)) });
+const twPinScale = t => lerp(1, 0.5, seg(t, 0.70, 2.30)); // small on the world map so the gold island still shows
+E.pin({ at: TW, color: C.gold, t0: 0.10, pulseR: 46, pulseDur: 0.8, scale: twPinScale });
 
 // Taiwan card: right of the FIR in the close-up, glides to its world and Asia spots
 const twGlyph = { key: '158', fill: C.twFace, stroke: C.gold, bg: 'transparent', drop: [[117, 23.5, 120.2, 27]], pad: 3 };
 const firE = () => toScreen([124, 23.5])[0];
 const TWPOS = { close: [34, 0], world: [22, 50], asia: [24, 34] };
-E.card({ zh: '臺灣', en: 'Taiwan', color: C.gold, at: TW, t0: 0.25, glyph: twGlyph, leader: { t0: 0.20, t1: 0.35, pinR: t => 11 * lerp(1, 0.55, seg(t, 6.45, 8.60)) },
+const twCard = E.card({ zh: '臺灣', en: 'Taiwan', color: C.gold, at: TW, t0: 0.25, glyph: twGlyph, leader: { t0: 0.20, t1: 0.35, pinR: t => 11 * twPinScale(t) },
   pos: (q, w, h, t) => {
-    const a = seg(t, 0.80, 2.40, 'inOut'), b = seg(t, 6.45, 8.60, 'inOut');
+    const a = seg(t, 0.70, 2.30, 'sineInOut'), b = seg(t, 6.45, 8.60, 'inOut');
     const gx = lerp(lerp(TWPOS.close[0], TWPOS.world[0], a), TWPOS.asia[0], b), gy = lerp(lerp(TWPOS.close[1], TWPOS.world[1], a), TWPOS.asia[1], b);
     return [firE() + gx, q[1] - h / 2 + gy];
   } });
+twCard.style.zIndex = 3; // the green card flies into Taiwan underneath this card, never over its text
 
 // green big card, stacked under Taiwan's card, absorbed into Taiwan
 E.bigCard({ title: 'ATFM', lines: ['汲取歐美先進', '觀念與實務經驗'], color: C.green,
   pos: t => { const q = twS(); return [firE() + 22, q[1] + 128]; },
   enter: { t0: 4.15, t1: 4.65, dx: 0, dy: 24 }, panel: [4.40, 4.95], lineIn: [[4.55, 4.95], [4.95, 5.35]],
-  absorb: { t0: 6.40, t1: 6.85, to: twS } });
+  absorb: { t0: 6.35, t1: 6.90, ease: 'inOut', fadeAt: 6.72, to: twS } }); // flies into Taiwan, fades only at the end
 
 // PARTNERS card -> |PARTNERS wordmark
-const SLOT = [1250, 652], MARK = [1340, 352];
-E.bigCard({ title: 'PARTNERS', lines: ['拓展國際', '合作版圖'], color: C.navy, pos: () => SLOT,
-  enter: { t0: 7.15, t1: 7.60, dx: 0, dy: 24 }, panel: [7.35, 7.85], lineIn: [[7.45, 7.80], [7.70, 8.10]],
-  collapse: { t0: 9.00, t1: 9.60, to: MARK, size: 80 } });
+const SLOT = [1350, 652], SLOT_P = [1206, 652], MARK = [1310, 376];
+E.bigCard({ title: 'PARTNERS', lines: ['拓展國際合作版圖'], color: C.navy, pos: () => SLOT_P,
+  enter: { t0: 7.15, t1: 7.60, dx: 0, dy: 24 }, panel: [7.35, 7.80], lineIn: [[7.45, 8.05]],
+  collapse: { t0: 9.00, t1: 9.60, to: MARK, size: 92, lineH: 100 } });
 E.bigCard({ title: 'ATFM', lines: ['與各國一同執行', '飛航流量管理措施'], color: C.navy, pos: () => SLOT,
   enter: { t0: 14.95, t1: 15.45, dx: 0, dy: 24 }, panel: [15.15, 15.70], lineIn: [[15.25, 15.60], [15.55, 15.95]] });
 
 // ---------- partners ----------
 const PPOS = {
-  '392': (q, w, h) => [q[0] + 44, q[1] + 36],
+  '392': (q, w, h) => [q[0] + 76, q[1] + 22],
   '410': (q, w, h) => [q[0] - 40 - w, q[1] - h / 2],
   '608': (q, w, h) => [q[0] + 92, q[1] - 10],
-  '764': (q, w, h) => [q[0] - 40 - w, q[1] - h / 2],
-  '702': (q, w, h) => [q[0] - 40 - w, q[1] - h / 2],
+  '764': (q, w, h) => [q[0] - 96 - w, q[1] - h / 2],
+  '702': (q, w, h) => [q[0] - 64 - w, q[1] - h / 2],
 };
 P.forEach((p, j) => {
   const parts = [0, 1, 2, 3].map(m => ({ t0: 14.90 + 0.05 * j + 0.45 * m, dur: 0.9, dir: m % 2 ? -1 : 1, ease: 'sineInOut', r: 4.5, color: m % 2 ? C.gold : C.navy }));
   E.arc({ from: TW, to: p.at, color: C.navy, width: t => 2.5 + 1.0 * seg(t, 14.85, 15.25), bulge: p.bulge, draw: t => seg(t, p.a0, p.on, 'inOut'), opacity: t => t >= p.a0 ? 1 : 0,
     maskFrom: () => firExit(TW, p.at, p.bulge, true).d, maskTo: p.id === '702' ? 12 : 12, particles: parts });
   E.lift(p.id, t => ({
-    color: mix(C.periFlash, C.peri, seg(t, p.on, p.on + 0.8)), side: C.periSide, stroke: '#ffffff', strokeWidth: 1.25, shadowColor: C.periShadow, shadowAlpha: 0.3,
+    color: mix(C.periFlash, C.peri, seg(t, p.on, p.on + 0.8)), side: C.periSide, stroke: C.periLine, strokeWidth: 1.0, shadowColor: C.periShadow, shadowAlpha: 0.3,
     opacity: t >= p.on ? 1 : 0, reveal: seg(t, p.on, p.on + 0.35, 'out'), origin: p.at,
     lift: keyed(t, [[p.on, 0], [p.on + 0.35, 10, 'backOutSoft'], [p.on + 0.95, 6]]) + 5 * bump(t, 14.85, 15.40),
   }));
@@ -158,6 +162,7 @@ P.forEach((p, j) => {
   E.card({ zh: p.zh, en: p.en, color: C.navy, at: p.at, t0: p.on + 0.05, pos: PPOS[p.id], enter: ['410', '764', '702'].includes(p.id) ? [14, 0] : [-14, 0], leader: { pinR: p.id === '702' ? 28 : 11 },
     glyph: { key: p.id, fill: C.peri, stroke: C.navy, bg: 'transparent', pad: 3, ...(p.glyph || {}) } });
 });
+document.getElementById('over').appendChild(dGroup); // handoff diamonds sit on top of the arc ends
 E.ring({ at: [103.82, 1.35], color: C.navy, r: 24, width: 2, draw: t => seg(t, 13.22, 13.57), opacity: t => t >= 13.22 ? 1 : 0,
   ticks: { n: 36, len: 4, gap: 3, opacity: t => 0.5 * seg(t, 13.42, 13.72) } });
 

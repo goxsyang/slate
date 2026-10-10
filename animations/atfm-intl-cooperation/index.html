@@ -10,7 +10,7 @@
 :root {
   --sea: #c9d4cf; --land: #f3ede3; --coast: #cbc2b1; --border: #ddd4c4;
   --navy: #354e99; --green: #1f6e5c; --gold: #996a0c; --gold-line: #c2a76f;
-  --card: #f7f4ef; --ink: #3f4543; --ink2: #8c908c;
+  --card: #f7f4ef; --ink: #343a37; --ink2: #5f655f;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { background: #111; }
@@ -18,14 +18,14 @@ html, body { background: #111; }
   font-family: 'Noto Sans TC', sans-serif; transform-origin: 0 0; }
 #stage > svg, #stage > canvas { position: absolute; inset: 0; }
 #labels { position: absolute; inset: 0; pointer-events: none; }
-#labels > div { position: absolute; left: 0; top: 0; transform-origin: 0 0; white-space: nowrap; will-change: transform, opacity; }
-.card { background: var(--card); border-left: 6px solid var(--navy); border-radius: 4px; padding: 9px 22px 10px 16px;
+#labels > div { position: absolute; left: 0; top: 0; transform-origin: 0 0; white-space: nowrap; }
+.card { background: var(--card); border-left: 6px solid var(--navy); border-radius: 7px; padding: 9px 22px 10px 16px;
   box-shadow: 0 4px 12px rgba(40, 50, 60, .20); display: flex; align-items: center; gap: 14px; }
 .card.has-glyph { height: 96px; padding: 0 22px 0 12px; }
 .card .glyph { width: 72px; height: 72px; border-radius: 3px; display: grid; place-items: center; flex: none; }
 .card .glyph svg { display: block; }
 .card .zh { font-weight: 700; color: var(--ink); font-size: 40px; line-height: 1.12; letter-spacing: .02em; }
-.card .en { font-weight: 500; color: var(--ink2); font-size: 26px; line-height: 1.2; letter-spacing: .01em; }
+.card .en { font-weight: 500; color: var(--ink2); font-size: 30px; line-height: 1.2; letter-spacing: .01em; }
 .big { border-radius: 8px; overflow: hidden; filter: drop-shadow(0 6px 8px rgba(40, 50, 60, .22)); transform-origin: 0 0; }
 .big .band, .big .panel { border-radius: 0; }
 .big .band { background: var(--c); color: #fff; font-weight: 900; font-size: 104px; line-height: 112px; height: 112px; padding: 0 28px; letter-spacing: .005em; }

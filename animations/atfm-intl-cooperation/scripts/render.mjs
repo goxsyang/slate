@@ -63,9 +63,38 @@ try {
         if (++done % 60 === 0) console.log(`${done}/${total} frames (${((performance.now() - started) / 1000).toFixed(0)} s)`);
       }
     }));
+    // Determinism check: re-render a few frames on a fresh page and compare with the workers' output.
+    // A fresh page's first raster can differ from a warm one by a few anti-aliasing levels on edge pixels,
+    // so allow that, but fail on anything bigger (e.g. labels landing on different sub-pixel phases per worker).
+    const chk = await openPage(browser);
+    for (const i of [total - 1, Math.floor(total / 2), WORKERS + 1]) {
+      const f = path.join(FRAMES_DIR, 'chk.png');
+      await shoot(chk, (i - WORKERS) / FPS, f);
+      await shoot(chk, i / FPS, f);
+      const pair = [f, path.join(FRAMES_DIR, `f_${String(i).padStart(5, '0')}.png`)].map(p => fs.readFileSync(p).toString('base64'));
+      const { any, big } = await chk.evaluate(async ([a, b]) => {
+        const px = async b64 => {
+          const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
+          const c = new OffscreenCanvas(bmp.width, bmp.height).getContext('2d');
+          c.drawImage(bmp, 0, 0); return c.getImageData(0, 0, bmp.width, bmp.height).data;
+        };
+        const [x, y] = await Promise.all([px(a), px(b)]);
+        let any = 0, big = 0;
+        for (let k = 0; k < x.length; k += 4) {
+          const d = Math.max(Math.abs(x[k] - y[k]), Math.abs(x[k + 1] - y[k + 1]), Math.abs(x[k + 2] - y[k + 2]));
+          if (d > 0) any++; if (d > 48) big++;
+        }
+        return { any, big };
+      }, pair);
+      fs.rmSync(f);
+      if (any > 2000 || big > 200) throw new Error(`frame ${i} differs between renders: ${any} px changed, ${big} by more than 48 levels`);
+    }
+    console.log('determinism check passed');
     fs.mkdirSync(path.dirname(OUT), { recursive: true });
     const ff = (args) => { const r = spawnSync('ffmpeg', ['-v', 'error', '-y', ...args], { stdio: 'inherit' }); if (r.status) throw new Error('ffmpeg failed'); };
     ff(['-framerate', `${FPS_NUM}/${FPS_DEN}`, '-i', path.join(FRAMES_DIR, 'f_%05d.png'),
+      // convert RGB with the BT.709 matrix the stream is tagged with (swscale defaults to BT.601)
+      '-vf', 'scale=out_color_matrix=bt709:out_range=tv:flags=accurate_rnd+full_chroma_int',
       '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', '-color_primaries', 'bt709',
       '-color_trc', 'bt709', '-colorspace', 'bt709', '-movflags', '+faststart', OUT]);
     console.log('wrote', OUT);
