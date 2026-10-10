@@ -2,6 +2,7 @@
 //   node scripts/render.mjs                         full render -> out/atfm-intl-cooperation.mp4
 //   node scripts/render.mjs --stills 1,4.5,10       PNG stills only -> out/stills/
 //   node scripts/render.mjs --audio narration.mp4   also mux a preview copy with that file's audio
+//   node scripts/render.mjs --scale 2 --out out/atfm-intl-cooperation_4K.mp4   native 3840x2160 (same layout, 2x pixels)
 // Each frame calls window.renderAt(t) and screenshots the page; no wall-clock timing is involved.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -20,11 +21,13 @@ const WORKERS = Number(opt('workers', 3));
 const OUT = path.resolve(root, opt('out', 'out/atfm-intl-cooperation.mp4'));
 const AUDIO = opt('audio', null);
 const STILLS = opt('stills', null);
-const FRAMES_DIR = path.join(root, 'out/frames');
+const SCALE = Number(opt('scale', 1));   // device pixels per CSS px: 2 renders 3840x2160
+const CRF = opt('crf', SCALE > 1 ? '16' : '14');
+const FRAMES_DIR = path.join(root, SCALE > 1 ? `out/frames_x${SCALE}` : 'out/frames');
 const pageUrl = pathToFileURL(path.join(root, 'index.html')).href + '?render=1';
 
 async function openPage(browser) {
-  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: SCALE });
   page.on('pageerror', e => { console.error('pageerror:', e); process.exitCode = 1; });
   await page.goto(pageUrl);
   await page.waitForFunction(() => window.READY === true, null, { timeout: 60000 });
@@ -35,14 +38,16 @@ async function openPage(browser) {
 
 async function shoot(page, t, file) {
   await page.evaluate(t => window.renderAt(t), t);
-  const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png', optimizeForSpeed: true });
+  // clip.scale = device scale: without it CDP returns CSS-px size even when deviceScaleFactor > 1
+  const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png', optimizeForSpeed: true,
+    clip: { x: 0, y: 0, width: 1920, height: 1080, scale: SCALE } });
   fs.writeFileSync(file, Buffer.from(data, 'base64'));
 }
 
 const browser = await chromium.launch({ args: ['--font-render-hinting=none', '--disable-lcd-text'] });
 try {
   if (STILLS) {
-    const dir = path.join(root, 'out/stills');
+    const dir = path.join(root, SCALE > 1 ? `out/stills_x${SCALE}` : 'out/stills');
     fs.mkdirSync(dir, { recursive: true });
     const page = await openPage(browser);
     for (const t of STILLS.split(',').map(Number)) {
@@ -95,7 +100,7 @@ try {
     ff(['-framerate', `${FPS_NUM}/${FPS_DEN}`, '-i', path.join(FRAMES_DIR, 'f_%05d.png'),
       // convert RGB with the BT.709 matrix the stream is tagged with (swscale defaults to BT.601)
       '-vf', 'scale=out_color_matrix=bt709:out_range=tv:flags=accurate_rnd+full_chroma_int',
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '14', '-pix_fmt', 'yuv420p', '-color_primaries', 'bt709',
+      '-c:v', 'libx264', '-preset', 'slow', '-crf', CRF, '-pix_fmt', 'yuv420p', '-color_primaries', 'bt709',
       '-color_trc', 'bt709', '-colorspace', 'bt709', '-movflags', '+faststart', OUT]);
     console.log('wrote', OUT);
     if (AUDIO) {

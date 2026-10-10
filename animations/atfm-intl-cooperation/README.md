@@ -13,7 +13,7 @@ It uses the design language of the *ATFM APAC orgs* reference animation:
 
 The story is carried by the land shapes of Taiwan and of each partner, which lift off the map as each country is named.
 
-**Deliverable:** `out/atfm-intl-cooperation.mp4`. It is 1920×1080 at 59.94 fps (the same as the narration master), 1044 frames, H.264 with no audio. Lay it under the VO starting at the clip's first frame.
+**Deliverable:** `out/atfm-intl-cooperation.mp4`. A native 4K version (3840×2160, same timing) renders with `--scale 2`. It is 1920×1080 at 59.94 fps (the same as the narration master), 1044 frames, H.264 with no audio. Lay it under the VO starting at the clip's first frame.
 
 ## Storyboard: In → Absorb → Out → Together
 
@@ -51,6 +51,7 @@ npm run setup        # builds data/world.js (Natural Earth 1:10m at 4 detail lev
 npm run render       # renders out/atfm-intl-cooperation.mp4 (about 3 min on 4 cores)
 node scripts/render.mjs --audio narration.mp4   # also writes *_with-narration.mp4 for a sync check
 node scripts/render.mjs --stills 2.5,9.9        # PNG stills to out/stills/
+node scripts/render.mjs --scale 2 --out out/atfm-intl-cooperation_4K.mp4   # native 3840x2160 (same layout, 2x pixels)
 scripts/contact-sheet.sh out/atfm-intl-cooperation.mp4 4   # timestamped review sheets
 ```
 

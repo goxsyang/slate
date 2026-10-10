@@ -193,14 +193,22 @@ const ppd = () => cam.k * DEG;
 
 // ---------- base map (canvas) ----------
 const COLORS = { land: '#f3ede3', coast: '#b4ab9e', border: '#ddd4c4', halo: '#e3e9e4', wallTop: '#d6cbbb', wallBottom: '#bdb3a3', rim: 'rgba(255,252,246,0.9)' };
+// The page is laid out at 1920x1080 CSS px; canvases get a device-pixel backing store so a render with
+// deviceScaleFactor 2 is a native 3840x2160 frame (SVG and HTML layers scale on their own).
+const DPR = window.devicePixelRatio || 1;
+for (const id of ['base', 'lift']) { const c = $(id); c.width = W * DPR; c.height = H * DPR; c.style.width = W + 'px'; c.style.height = H + 'px'; }
 const baseCtx = $('base').getContext('2d');
 const liftCtx = $('lift').getContext('2d');
-const half = new OffscreenCanvas(W / 2, H / 2), halfCtx = half.getContext('2d');
+const half = new OffscreenCanvas(W * DPR / 2, H * DPR / 2), halfCtx = half.getContext('2d');
+// setTransform in CSS px (scaled to the backing store)
+const T = (ctx, a, b, c, d, e, f) => ctx.setTransform(a * DPR, b * DPR, c * DPR, d * DPR, e * DPR, f * DPR);
+const TH = (a, b, c, d, e, f) => halfCtx.setTransform(a * DPR / 2, b * DPR / 2, c * DPR / 2, d * DPR / 2, e * DPR / 2, f * DPR / 2);
 let seaImg, grainPattern;
 
 function makeStatics() {
   // sea: pale sage with a warm light falloff from the top-left, like the reference
-  const sea = new OffscreenCanvas(W, H), g = sea.getContext('2d');
+  const sea = new OffscreenCanvas(W * DPR, H * DPR), g = sea.getContext('2d');
+  g.scale(DPR, DPR);
   const grad = g.createRadialGradient(W * 0.16, H * 0.12, 0, W * 0.16, H * 0.12, W * 1.1);
   grad.addColorStop(0, '#e6e5dd'); grad.addColorStop(0.42, '#d0d9d3'); grad.addColorStop(1, '#c4cfc9');
   g.fillStyle = grad; g.fillRect(0, 0, W, H);
@@ -233,7 +241,7 @@ function revealClip(ctx, key, s) {
   const b = planePath.bounds(feature(key, 2)).map(planeToScreen);
   const R = Math.max(...[[b[0][0], b[0][1]], [b[1][0], b[0][1]], [b[0][0], b[1][1]], [b[1][0], b[1][1]]].map(p => Math.hypot(p[0] - o[0], p[1] - o[1]))) + 10;
   ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  T(ctx, 1, 0, 0, 1, 0, 0);
   ctx.beginPath(); ctx.arc(o[0], o[1], Math.max(0.01, R * s.reveal), 0, 2 * Math.PI); ctx.clip();
   return true;
 }
@@ -241,56 +249,56 @@ function revealClip(ctx, key, s) {
 function drawBase(t) {
   // level 1 at least: level 0 would pop dozens of islands in and out at the switch
   const ctx = baseCtx, m = camMatrix(), L = Math.max(levelFor(cam.k), 1), k = cam.k;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  T(ctx, 1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
-  ctx.drawImage(seaImg, 0, 0);
+  ctx.drawImage(seaImg, 0, 0, W, H);
   // pale shallow-water halo, blurred at half resolution (cheap) then upscaled
-  halfCtx.setTransform(1, 0, 0, 1, 0, 0); halfCtx.clearRect(0, 0, W / 2, H / 2);
-  halfCtx.filter = 'blur(3px)';
-  halfCtx.setTransform(m[0] / 2, 0, 0, m[3] / 2, m[4] / 2, m[5] / 2);
+  halfCtx.setTransform(1, 0, 0, 1, 0, 0); halfCtx.clearRect(0, 0, half.width, half.height);
+  halfCtx.filter = `blur(${3 * DPR}px)`; // 6 CSS px either way
+  TH(...m);
   halfCtx.lineJoin = 'round';
   halfCtx.strokeStyle = COLORS.halo; halfCtx.lineWidth = 18 / k; halfCtx.stroke(base.coast[L]);
   halfCtx.filter = 'none';
   ctx.globalAlpha = 0.9; ctx.drawImage(half, 0, 0, W, H); ctx.globalAlpha = 1;
   // sea-only tints (e.g. an ellipse's wash) go under the land so they never colour a country
-  for (const h of underLandHooks) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); h(ctx, t); ctx.restore(); }
+  for (const h of underLandHooks) { ctx.save(); T(ctx, 1, 0, 0, 1, 0, 0); h(ctx, t); ctx.restore(); }
   // raised paper: a tan wall under every coast (2 px at world scale, 6 px from the Asia view in)
   const wall = Math.max(2, Math.min(6, k * DEG / 3)); // continuous, so it never steps by 1 px on one frame
   for (let y = wall; y > 0.05; y -= 1) {
-    ctx.setTransform(m[0], 0, 0, m[3], m[4], m[5] + y);
+    T(ctx, m[0], 0, 0, m[3], m[4], m[5] + y);
     ctx.fillStyle = d3.interpolateRgb(COLORS.wallTop, COLORS.wallBottom)(y / wall); ctx.fill(base.land[L]);
   }
   // land with a light bevel rim just inside the coast, then highlighted countries, borders, coastline
-  ctx.setTransform(...m);
+  T(ctx, ...m);
   ctx.fillStyle = COLORS.land; ctx.fill(base.land[L]);
   ctx.save(); ctx.clip(base.land[L]); ctx.strokeStyle = COLORS.rim; ctx.lineWidth = 5 / k; ctx.stroke(base.coast[L]); ctx.restore();
-  ctx.setTransform(...m);
+  T(ctx, ...m);
   ctx.lineJoin = 'round';
   const styles = fillLayers.map(f => f.style(t));
   fillLayers.forEach((f, i) => {
     const s = styles[i], op = s.opacity ?? 1;
     if (op <= 0.001 || s.reveal === 0) return;
     const clipped = revealClip(ctx, f.key, s);
-    ctx.setTransform(...m);
+    T(ctx, ...m);
     ctx.globalAlpha = op; ctx.fillStyle = s.color; ctx.fill(path2D(f.key, L));
     if (clipped) ctx.restore();
   });
-  ctx.setTransform(...m);
+  T(ctx, ...m);
   ctx.globalAlpha = 1;
   ctx.strokeStyle = COLORS.border; ctx.lineWidth = 0.9 / k; ctx.stroke(base.borders[L]);
   fillLayers.forEach((f, i) => {   // white hairlines between highlighted countries
     const s = styles[i], op = s.opacity ?? 1;
     if (op <= 0.001 || s.reveal === 0 || s.stroke === 'none') return;
     const clipped = revealClip(ctx, f.key, s);
-    ctx.setTransform(...m);
+    T(ctx, ...m);
     ctx.globalAlpha = op; ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = hairW(s.strokeWidth ?? 1) / k; ctx.stroke(path2D(f.key, L));
     if (clipped) ctx.restore();
   });
-  ctx.setTransform(...m);
+  T(ctx, ...m);
   ctx.globalAlpha = 1;
   ctx.strokeStyle = COLORS.coast; ctx.lineWidth = 0.98 / k; ctx.stroke(base.coast[L]);
   // paper grain over the map
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  T(ctx, 1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.5;
   ctx.fillStyle = grainPattern; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
@@ -305,7 +313,7 @@ const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${
 // shadow below, the top face in `color`, and an optional white coast trace.
 function drawLifts(t) {
   const ctx = liftCtx;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
+  T(ctx, 1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
   for (const f of liftLayers) {
     const s = f.style(t), op = s.opacity ?? 1;
     if (op <= 0.001 || s.reveal === 0) continue;
@@ -318,17 +326,17 @@ function drawLifts(t) {
     // shadow cast by the slab
     const sa = s.shadowAlpha ?? 0.3;
     if (sa > 0.001 && lift > 0.2) {
-      ctx.setTransform(k, 0, 0, k, X, Y);
+      T(ctx, k, 0, 0, k, X, Y);
       ctx.shadowColor = hexA(s.shadowColor || '#24365e', sa);
-      ctx.shadowBlur = Math.max(2, 1.6 * lift); ctx.shadowOffsetY = lift * 0.9; ctx.shadowOffsetX = 0;
+      ctx.shadowBlur = Math.max(2, 1.6 * lift) * DPR; ctx.shadowOffsetY = lift * 0.9 * DPR; ctx.shadowOffsetX = 0; // shadows ignore the transform
       ctx.fillStyle = s.side || s.color; ctx.fill(p);
       ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     }
     // side walls
     ctx.fillStyle = s.side || s.color;
-    for (let y = 0; y < lift; y += 1) { ctx.setTransform(k, 0, 0, k, X, Y - y); ctx.fill(p); }
+    for (let y = 0; y < lift; y += 1) { T(ctx, k, 0, 0, k, X, Y - y); ctx.fill(p); }
     // top face
-    ctx.setTransform(k, 0, 0, k, X, Y - lift);
+    T(ctx, k, 0, 0, k, X, Y - lift);
     ctx.fillStyle = s.color; ctx.fill(p);
     const stroked = (s.strokeWidth ?? 1.25) > 0 && s.stroke !== 'none';
     if (stroked) {
@@ -341,14 +349,14 @@ function drawLifts(t) {
     }
     // islets stay flat on the map, highlighted but not extruded (they would read as pillars)
     if (small) {
-      ctx.setTransform(k, 0, 0, k, X, Y);
+      T(ctx, k, 0, 0, k, X, Y);
       ctx.fillStyle = s.color; ctx.fill(small);
       if (stroked) ctx.stroke(small);
     }
     if (clipped) ctx.restore();
   }
   ctx.globalAlpha = 1;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  T(ctx, 1, 0, 0, 1, 0, 0);
 }
 
 // ---------- SVG helpers ----------
