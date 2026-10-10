@@ -255,8 +255,8 @@ function drawBase(t) {
   // sea-only tints (e.g. an ellipse's wash) go under the land so they never colour a country
   for (const h of underLandHooks) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); h(ctx, t); ctx.restore(); }
   // raised paper: a tan wall under every coast (2 px at world scale, 6 px from the Asia view in)
-  const wall = Math.max(2, Math.min(6, Math.round(k * DEG / 3)));
-  for (let y = wall; y >= 1; y--) {
+  const wall = Math.max(2, Math.min(6, k * DEG / 3)); // continuous, so it never steps by 1 px on one frame
+  for (let y = wall; y > 0.05; y -= 1) {
     ctx.setTransform(m[0], 0, 0, m[3], m[4], m[5] + y);
     ctx.fillStyle = d3.interpolateRgb(COLORS.wallTop, COLORS.wallBottom)(y / wall); ctx.fill(base.land[L]);
   }
@@ -283,12 +283,12 @@ function drawBase(t) {
     if (op <= 0.001 || s.reveal === 0 || s.stroke === 'none') return;
     const clipped = revealClip(ctx, f.key, s);
     ctx.setTransform(...m);
-    ctx.globalAlpha = op; ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = (s.strokeWidth ?? 1) / k; ctx.stroke(path2D(f.key, L));
+    ctx.globalAlpha = op; ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = hairW(s.strokeWidth ?? 1) / k; ctx.stroke(path2D(f.key, L));
     if (clipped) ctx.restore();
   });
   ctx.setTransform(...m);
   ctx.globalAlpha = 1;
-  ctx.strokeStyle = COLORS.coast; ctx.lineWidth = 1 / k; ctx.stroke(base.coast[L]);
+  ctx.strokeStyle = COLORS.coast; ctx.lineWidth = 0.98 / k; ctx.stroke(base.coast[L]);
   // paper grain over the map
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.5;
@@ -296,6 +296,9 @@ function drawBase(t) {
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
 }
 
+// A canvas stroke of exactly 1 device px flips between Skia's hairline and stroked-path rasterisers as
+// (1/k)*k rounds either side of 1, darkening every coast for single frames. Keep strokes clear of 1 px.
+const hairW = px => (Math.abs(px - 1) < 0.01 ? 0.98 : px);
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 
 // Extruded silhouette: side-tone copies stacked from the map surface up to `lift` px, a soft
@@ -330,7 +333,7 @@ function drawLifts(t) {
     const stroked = (s.strokeWidth ?? 1.25) > 0 && s.stroke !== 'none';
     if (stroked) {
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-      ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = (s.strokeWidth ?? 1.25) / k;
+      ctx.strokeStyle = s.stroke || '#ffffff'; ctx.lineWidth = hairW(s.strokeWidth ?? 1.25) / k;
       const tr = s.strokeDraw ?? 1;
       if (tr < 1) { const len = planeLength(f.key); ctx.setLineDash([len * tr, len]); }
       if (tr > 0) ctx.stroke(p);
@@ -387,9 +390,11 @@ function arc(o) {
     const C = o.bend === 'up' ? [M[0], M[1] - k * Lc] : [M[0] + dy / Lc * k * Lc, M[1] - dx / Lc * k * Lc];
     // trim the ends inside the masking discs (e.g. Taiwan's hub ring)
     const r0 = val(o.maskFrom, t, 0), r1 = val(o.maskTo, t, 0);
+    // bisection keeps the trimmed ends continuous in r0/r1 (a fixed u-grid made them toggle on rounding noise)
+    const dist = (u, P) => { const q = bez(A, C, B, u); return Math.hypot(q[0] - P[0], q[1] - P[1]); };
     let u0 = 0, u1 = 1;
-    if (r0 > 0) { while (u0 < 1 && Math.hypot(...[0, 1].map(i => bez(A, C, B, u0)[i] - A[i])) < r0) u0 += 0.002; }
-    if (r1 > 0) { while (u1 > u0 && Math.hypot(...[0, 1].map(i => bez(A, C, B, u1)[i] - B[i])) < r1) u1 -= 0.002; }
+    if (r0 > 0) { let lo = 0, hi = 1; for (let j = 0; j < 30; j++) { const m = (lo + hi) / 2; if (dist(m, A) < r0) lo = m; else hi = m; } u0 = hi; }
+    if (r1 > 0) { let lo = u0, hi = 1; for (let j = 0; j < 30; j++) { const m = (lo + hi) / 2; if (dist(m, B) < r1) hi = m; else lo = m; } u1 = lo; }
     return { A, B, C, u0, u1 };
   };
   onFrame(t => {
@@ -430,7 +435,7 @@ function ellipse(o) {
     return [c[0] + x * Math.cos(rot) - y * Math.sin(rot), c[1] + x * Math.sin(rot) + y * Math.cos(rot)];
   };
   const loop = (s, c, extra, from, sweep, n = 240) => { const pts = []; for (let i = 0; i <= n; i++) pts.push(ptAt(from + sweep * i / n, s, c, extra)); return pts; };
-  const g = el('g', {}, layer(o.layer || 'under'));
+  const host = layer(o.layer || 'under'), g = el('g', {}); host.insertBefore(g, host.firstChild); // bottom of its layer: arcs, pins, leaders and diamonds stay above
   const fillE = el('path', { fill: o.color, stroke: 'none' }, g);
   const outer = el('path', { fill: 'none', stroke: o.color, 'stroke-width': 1 }, g);
   const ticks = el('path', { fill: 'none', stroke: o.color, 'stroke-width': 1, 'stroke-linecap': 'round' }, g);
@@ -624,7 +629,8 @@ function card(o) {
     const [w, h] = size, q = toScreen(o.at);
     const [x, y] = o.pos(q, w, h, t);
     const e = 1 - seg(t, o.t0, o.t0 + inDur, 'out'), en = o.enter || [-14, 0];
-    d.style.transform = `translate(${(x + en[0] * e).toFixed(2)}px,${(y + en[1] * e).toFixed(2)}px)`;
+    // whole pixels: Chromium snaps text to the pixel grid, so a fractional box makes the text tick 1 px inside it
+    d.style.transform = `translate(${Math.round(x + en[0] * e)}px,${Math.round(y + en[1] * e)}px)`;
     d.style.opacity = op;
     if (o.glyph) {
       const gd = o.glyph.draw || [o.t0 + 0.1, o.t0 + 0.45], gf = o.glyph.fillIn || [gd[1] - 0.1, gd[1] + 0.15];
@@ -662,7 +668,7 @@ function bigCard(o) {
     if (!size) size = [d.offsetWidth, d.offsetHeight];
     let [x, y] = val(o.pos, t);
     x += (E0.dx || 0) * (1 - pe); y += (E0.dy || 0) * (1 - pe);
-    let tr = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;
+    let tr = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
     if (ab > 0) { // shrink toward the target point
       const to = o.absorb.to(t), s = lerp(1, 0.04, ab);
       tr = `translate(${lerp(x, to[0] - size[0] * s / 2, ab).toFixed(2)}px,${lerp(y, to[1] - size[1] * s / 2, ab).toFixed(2)}px) scale(${s})`;

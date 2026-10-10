@@ -21,7 +21,7 @@ const K = [
   { t: 2.30, center: [136.0, 19.35], ppd: 5.7, ease: 'sineInOut' },    // pull-out to the world (Europe..US whole)
   { t: 6.45, center: [136.0, 19.6], ppd: 5.86, ease: 'sineInOut' },    // slow world drift
   { t: 8.60, center: [122.0, 16.8], ppd: 14.5, ease: 'inOut' },        // dive to the Asia-Pacific (Hokkaido in frame)
-  { t: DURATION, center: [122.0, 16.8], ppd: 14.75, ease: 'sineInOut' }, // slow push, lands at rest for the hold
+  { t: 15.45, center: [122.0, 16.8], ppd: 14.75, ease: 'sineInOut' },   // slow push, at rest for the final ~2 s hold
 ];
 E.setCamera(K);
 const zf = () => Math.max(0.5, Math.min(1, ppd() / 30));
@@ -68,7 +68,8 @@ E.arc({ from: US, to: TW, color: C.green, width: 3, bulge: -0.22, draw: t => seg
 // ---------- cooperation ellipse (sea-only wash) ----------
 const ELL = { center: [118.31, 21.2], a: 525.1, b: 247.7, rot: -47.5 };
 const ellDraw = t => seg(t, 7.35, 8.85, 'inOut');
-E.ellipse({ ...ELL, color: C.navy, width: 2.5, start: 180, draw: ellDraw, seaOnly: true,
+// layer 'over': above the lifted slabs, so the ring is never broken; the wash stays sea-only under the land
+E.ellipse({ ...ELL, layer: 'over', color: C.navy, width: 2.5, start: 180, draw: ellDraw, seaOnly: true,
   opacity: t => t >= 7.35 ? 1 : 0, scale: t => lerp(0.92, 1, seg(t, 7.35, 8.85, 'out')),
   fillOpacity: t => 0.08 * seg(t, 8.40, 9.00) + 0.05 * bump(t, 13.95, 14.60) + 0.02 * seg(t, 14.85, 15.30),
   outer: { d: 10, opacity: t => 0.45 * seg(t, 8.50, 9.00) },
@@ -78,7 +79,15 @@ E.ellipse({ ...ELL, color: C.navy, width: 2.5, start: 180, draw: ellDraw, seaOnl
   ripples: [{ t0: 13.95, t1: 14.80, s1: 1.10, o0: 0.6 }] });
 
 // ---------- Taiwan ----------
-E.glow({ at: TW, color: C.twGlow, r: t => 50 + 30 * seg(t, 6.75, 7.4), opacity: t => 0.45 * Math.max(bump(t, 4.35, 5.15), bump(t, 6.75, 7.55)) });
+// gold glow around Taiwan, painted under the land so it only tints the sea (never the mainland coast)
+E.underLandHooks.push((ctx, t) => {
+  const op = 0.45 * Math.max(bump(t, 4.35, 5.15), bump(t, 6.75, 7.55));
+  if (op <= 0.001) return;
+  const q = toScreen(TW), r = 50 + 30 * seg(t, 6.75, 7.4);
+  const g = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
+  g.addColorStop(0, C.twGlow); g.addColorStop(1, 'rgba(232,197,106,0)');
+  ctx.globalAlpha = op; ctx.fillStyle = g; ctx.fillRect(q[0] - r, q[1] - r, 2 * r, 2 * r);
+});
 E.lift('158', t => ({
   color: mix(C.twFlash, C.twFace, seg(t, 0.05, 0.85)), side: C.twSide, stroke: C.gold, strokeWidth: 1.4, shadowColor: C.twShadow, shadowAlpha: 0.3,
   minLevel: 3, // full detail, so Penghu, Green Island, Lanyu, Kinmen and Matsu never drop out
