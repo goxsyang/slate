@@ -1,7 +1,6 @@
 node_modules/
 fonts/*.ttf
-out/frames/
-out/stills/
-*_with-narration.mp4
 data/world.js
-out/sheets/
+# renders: only the final deliverable is versioned
+out/*
+!out/atfm-intl-cooperation.mp4
