@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<title>ATFM International Cooperation</title>
+<style>
+@font-face { font-family: 'Noto Sans TC'; font-weight: 500; src: url(fonts/NotoSansTC-500.ttf); }
+@font-face { font-family: 'Noto Sans TC'; font-weight: 700; src: url(fonts/NotoSansTC-700.ttf); }
+@font-face { font-family: 'Noto Sans TC'; font-weight: 900; src: url(fonts/NotoSansTC-900.ttf); }
+:root {
+  --sea: #c9d4cf; --land: #f3ede3; --coast: #cbc2b1; --border: #ddd4c4;
+  --navy: #354e99; --green: #1f6e5c; --gold: #996a0c; --gold-line: #c2a76f;
+  --card: #f7f4ef; --ink: #3f4543; --ink2: #8c908c;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: #111; }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--sea);
+  font-family: 'Noto Sans TC', sans-serif; transform-origin: 0 0; }
+#stage svg, #stage canvas { position: absolute; inset: 0; }
+#labels { position: absolute; inset: 0; pointer-events: none; }
+#labels > div { position: absolute; left: 0; top: 0; transform-origin: 0 0; white-space: nowrap; will-change: transform, opacity; }
+.card { background: var(--card); border-left: 6px solid var(--navy); border-radius: 4px; padding: 8px 22px 9px 16px;
+  box-shadow: 0 3px 10px rgba(52, 66, 60, .20), 0 0 0 1px rgba(255,255,255,.6) inset; font-size: 40px; }
+.card .zh { font-weight: 900; color: var(--ink); font-size: 1em; line-height: 1.15; letter-spacing: .02em; }
+.card .en { font-weight: 500; color: var(--ink2); font-size: .7em; line-height: 1.15; letter-spacing: .01em; }
+.big { border-radius: 9px; overflow: hidden; box-shadow: 0 6px 22px rgba(40, 52, 47, .28); background: var(--card); }
+.big .band { background: var(--c); color: #fff; font-weight: 900; font-size: 108px; line-height: 1.12; padding: 6px 34px 4px 30px; letter-spacing: .005em; }
+.big .panel { color: var(--c); font-weight: 900; font-size: 54px; line-height: 1.32; padding: 14px 34px 20px 30px; }
+.big .panel:empty { display: none; }
+.mark { color: var(--c); font-weight: 900; font-size: 92px; line-height: 1; border-left: 5px solid var(--c); padding-left: 16px; }
+#ui { position: fixed; left: 0; right: 0; bottom: 0; padding: 8px 12px; background: rgba(0,0,0,.75); color: #ddd;
+  font: 13px/1.4 system-ui, sans-serif; display: flex; gap: 10px; align-items: center; }
+#ui input[type=range] { flex: 1; }
+body.render #ui { display: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="base" width="1920" height="1080"></canvas>
+  <svg id="underSvg" width="1920" height="1080" viewBox="0 0 1920 1080"><g id="under"></g></svg>
+  <canvas id="lift" width="1920" height="1080"></canvas>
+  <svg id="overSvg" width="1920" height="1080" viewBox="0 0 1920 1080"><g id="over"></g></svg>
+  <div id="labels"></div>
+</div>
+<div id="ui">
+  <button id="play">▶</button>
+  <input id="scrub" type="range" min="0" max="17.4174" step="0.001" value="0">
+  <span id="tc">0.00</span>
+</div>
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/topojson-client.min.js"></script>
+<script src="data/world.js"></script>
+<script src="engine.js"></script>
+<script src="timeline.js"></script>
+</body>
+</html>

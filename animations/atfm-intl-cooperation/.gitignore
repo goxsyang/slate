@@ -1,0 +1,7 @@
+node_modules/
+fonts/*.ttf
+out/frames/
+out/stills/
+*_with-narration.mp4
+data/world.js
+out/sheets/
