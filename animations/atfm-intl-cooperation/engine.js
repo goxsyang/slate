@@ -521,7 +521,7 @@ function pin(o) {
   onFrame(t => {
     const op = val(o.opacity, t, t >= o.t0 ? 1 : 0);
     if (!show(g, op)) return;
-    const q = toScreen(o.at), s = seg(t, o.t0, o.t0 + (o.popDur || 0.3), 'backOut');
+    const q = toScreen(o.at), s = seg(t, o.t0, o.t0 + (o.popDur || 0.3), 'backOut') * val(o.scale, t, 1);
     g.setAttribute('transform', `translate(${q[0].toFixed(2)},${q[1].toFixed(2)})`);
     ringC.setAttribute('transform', `scale(${s})`);
     g.lastChild.setAttribute('transform', `scale(${s})`);
@@ -623,7 +623,7 @@ function bigCard(o) {
       const panelUp = seg(t, C0.t0, C0.t0 + 0.25 * (C0.t1 - C0.t0) / 0.6, 'in');
       if (cp > 0) {
         panel.style.clipPath = `inset(0 0 ${(Math.max(1 - pp, panelUp) * 100).toFixed(2)}% 0)`;
-        d.style.boxShadow = `0 6px 16px rgba(40,50,60,${(0.22 * (1 - cp)).toFixed(3)})`;
+        d.style.filter = `drop-shadow(0 6px 8px rgba(40,50,60,${(0.22 * (1 - cp)).toFixed(3)}))`;
         d.style.overflow = 'visible';
         band.style.background = `color-mix(in srgb, var(--c) ${((1 - cp) * 100).toFixed(1)}%, transparent)`;
         band.style.color = `color-mix(in srgb, #ffffff ${((1 - cp) * 100).toFixed(1)}%, var(--c))`;
@@ -633,7 +633,7 @@ function bigCard(o) {
         const [x0, y0] = val(o.pos, t), to = C0.to;
         d.style.transform = `translate(${lerp(x0, to[0], cp).toFixed(2)}px,${lerp(y0, to[1], cp).toFixed(2)}px)`;
       } else {
-        d.style.overflow = ''; d.style.boxShadow = ''; band.style.background = ''; band.style.color = ''; band.style.fontSize = ''; band.style.borderLeft = ''; band.style.paddingLeft = '';
+        d.style.overflow = ''; d.style.filter = ''; band.style.background = ''; band.style.color = ''; band.style.fontSize = ''; band.style.borderLeft = ''; band.style.paddingLeft = '';
       }
     }
   });

@@ -1,160 +1,165 @@
-// Shot choreography, synced to the narration (seconds):
-//   0.00 對外 · 1.20–3.90 我們汲取歐美國際先進的 · 4.20–6.00 ATFM 觀念與實務經驗 · 6.60–8.80 並拓展國際合作版圖
-//   9.80 與日本 · 10.80 韓國 · 11.60 菲律賓 · 12.40 泰國 · 13.20 新加坡 · 14.20 等國家 · 14.80–17.10 一同執行 ATFM 措施
+// Shot choreography: "In -> Absorb -> Out -> Together", opening and closing on the Taipei FIR.
+// Word onsets in the narration (s): 對外 0.05 · 我們 1.12 · 汲 1.65 · 歐 2.12 · 美 2.50 · ATFM 4.12 · 並 6.60 · 拓展 6.82
+//   版圖 ends 8.35 · 與 9.72 · 日本 9.90 · 韓國 10.70 · 菲律賓 11.50 · 泰國 12.40 · 新加坡 13.22 · 等國家 13.88
+//   一同 14.85 · 執行 15.22 · ATFM 15.78 · 措施 16.92
+// Colours carry meaning: green = Europe/US (sources of ATFM know-how), gold = Taiwan / Taipei FIR,
+// navy + periwinkle = cooperation partners. Mainland China is never labelled, filled or tinted.
 (() => {
 const { seg, env, bump, keyed, lerp, clamp01, ppd, toScreen } = E;
 const DURATION = 17.4174;
-
 const C = {
-  gold: '#996a0c', goldFill: '#e3cc94', goldSide: '#a8843a', goldShadow: '#5c4208', goldGlow: '#e8c77a', goldBg: '#f5eedc',
-  green: '#1f6e5c', greenFill: '#a9cbbf', greenSide: '#6f9c8d', greenShadow: '#1f4a3e',
-  navy: '#354e99', blue: '#a4c0d9', blueSide: '#8aa5c4', blueShadow: '#24365e', blueBg: '#eef1f4',
+  gold: '#996a0c', goldLine: '#c2a76f', twFace: '#e3cc94', twFlash: '#d9b25e', twSide: '#b8933f', twShadow: '#5c4208', twGlow: '#e8c56a',
+  green: '#1f6e5c', jade: '#b4cfc3', jadeFlash: '#8fbfae',
+  navy: '#354e99', peri: '#a4c0d9', periFlash: '#7fabdc', periSide: '#7d99bf', periShadow: '#24365e',
 };
+const mix = (a, b, p) => d3.interpolateRgb(a, b)(p);
 
-// Pacific-centred Mercator: Taiwan mid-frame, Europe left, the US right; the seam (40°W) is never on screen.
-E.setProjection(d3.geoMercator().rotate([-140, 0]));
-E.setCamera([
-  { t: 0.0, center: [123.4, 23.7], ppd: 58 },                   // K0 Taiwan close-up
-  { t: 0.4, center: [123.4, 23.7], ppd: 58 },
-  { t: 2.4, center: [142.0, 20.0], ppd: 5.90, ease: 'inOut' },  // K1 world
-  { t: 6.55, center: [141.5, 20.5], ppd: 6.05, ease: 'sineInOut' }, // K1b slow drift
-  { t: 8.9, center: [123.5, 21.6], ppd: 16.0, ease: 'inOut' },  // K2 Asia-Pacific
-  { t: DURATION, center: [123.3, 21.4], ppd: 16.3, ease: 'sineInOut' }, // K3 slow push, lands at rest
-]);
-
-const HUB = [120.96, 23.70];
-const hubR = () => Math.max(30, 2.2 * ppd());
-
-// ---------- Europe & the United States: where the ATFM know-how comes from ----------
-E.defineGroup('EUROPE',
-  ['008', '040', '056', '070', '100', '191', '196', '203', '208', '233', '246', '250', '276', '300', '348', '352', '372', '380', '428', '438', '440',
-   '442', '470', '498', '499', '528', '578', '616', '620', '642', '688', '703', '705', '724', '752', '756', '807', '826', '804', '020', 'n:Kosovo'],
-  ([lon, lat]) => lon > -25 && lon < 45 && lat > 34 && lat < 72); // drop overseas territories
-const EU_PIN = [12.0, 49.0], US_PIN = [-98.5, 39.5];
-const sourceOut = t => 1 - seg(t, 6.25, 6.60, 'in');
-for (const [key, pinAt, T] of [['EUROPE', EU_PIN, 2.05], ['840', US_PIN, 2.40]]) {
-  E.lift(key, t => ({
-    color: C.greenFill, side: C.greenSide, shadowColor: C.greenShadow, shadowAlpha: 0.25 * seg(t, T, T + 0.45),
-    lift: 2 * seg(t, T, T + 0.4, 'backOut'), reveal: seg(t, T, T + 0.45, 'out'), origin: pinAt, strokeWidth: 0.75,
-  }));
-}
-E.pin({ at: EU_PIN, color: C.green, t0: 2.10, opacity: t => (t >= 2.10 ? 1 : 0) * sourceOut(t) });
-E.pin({ at: US_PIN, color: C.green, t0: 2.45, opacity: t => (t >= 2.45 ? 1 : 0) * sourceOut(t) });
-E.card({ zh: '歐洲', en: 'Europe', color: C.green, at: EU_PIN, t0: 2.20, enter: [0, -14],
-  pos: (q) => [q[0] - 116, q[1] + 54], opacity: t => seg(t, 2.20, 2.55, 'out') * sourceOut(t), leader: { t0: 2.15, t1: 2.30 } });
-E.card({ zh: '美國', en: 'United States', color: C.green, at: US_PIN, t0: 2.55, enter: [0, -14],
-  pos: (q) => [q[0] - 126, q[1] + 49], opacity: t => seg(t, 2.55, 2.90, 'out') * sourceOut(t), leader: { t0: 2.50, t1: 2.65 } });
-
-// knowledge arcs into Taiwan, with green particles arriving on "ATFM"
-const arcsOut = t => 1 - seg(t, 6.25, 6.70, 'in');
-const inbound = (t0) => Array.from({ length: 7 }, (_, i) => ({ t0: t0 + 0.4 * i, dur: 0.95, color: C.green }));
-E.arc({ from: EU_PIN, to: HUB, color: C.green, width: 2.5, bend: 'up', bulge: 0.24, maskTo: hubR,
-  draw: t => seg(t, 2.60, 3.50), opacity: arcsOut, particles: inbound(3.10) });
-E.arc({ from: US_PIN, to: HUB, color: C.green, width: 2.5, bend: 'up', bulge: 0.24, maskTo: hubR,
-  draw: t => seg(t, 2.85, 3.75), opacity: arcsOut, particles: inbound(3.25) });
-
-// ---------- the cooperation ellipse, growing out of Taiwan ----------
-const NT = 120;
-E.ellipse({
-  center: HUB, a: 567.23, b: 316.34, rot: -50.7, color: C.navy, start: 0, seaOnly: true,
-  opacity: t => (t >= 6.85 ? 1 : 0),
-  scale: t => lerp(0.15, 1, seg(t, 6.85, 8.75, 'out')),
-  draw: t => seg(t, 6.85, 8.45, 'inOut'),
-  width: 2.5,
-  fillOpacity: t => 0.08 * seg(t, 6.85, 8.45) + 0.04 * seg(t, 13.95, 14.30),
-  ticks: { n: NT, long: 10, lenLong: 11, lenShort: 6, gap: 9, opacity: 0.45,
-    alpha: (i, t) => seg(t, 8.20 + 0.55 * i / NT, 8.35 + 0.55 * i / NT, 'out'),
-    boost: (i, t) => 4 * bump(t, 13.95 + 0.5 * i / NT, 14.20 + 0.5 * i / NT) },
-  outer: { d: 6, opacity: t => 0.3 * seg(t, 8.40, 8.90) },
-  ripples: [{ t0: 13.92, t1: 14.72, s1: 1.10, o0: 0.55 }, { t0: 14.22, t1: 15.02, s1: 1.10, o0: 0.55 }],
-});
-
-// ---------- Taiwan: the hub everything connects to ----------
-E.glow({ at: HUB, color: C.goldGlow, r: t => 1.15 * hubR(),
-  opacity: t => 0.35 * seg(t, 0.10, 0.50) + 0.25 * bump(t, 6.85, 7.55) + 0.2 * bump(t, 15.20, 15.60) + 0.1 * seg(t, 15.4, 15.6) });
-const twLift = t => {
-  const settled = clamp01((0.17 * ppd() - 4) / 6) * 6 + 4; // 4..10 px with zoom
-  return settled * seg(t, 0.05, 0.45, 'backOut') + finaleLift(t);
-};
-const finaleLift = t => t < 14.85 ? 0 : t < 15.15 ? 5 * seg(t, 14.85, 15.15, 'backOut') : lerp(5, 2, seg(t, 15.15, 15.35, 'sineInOut'));
-E.lift('158', t => ({
-  color: C.goldFill, side: C.goldSide, shadowColor: C.goldShadow, shadowAlpha: 0.30 * seg(t, 0.05, 0.45) + (t > 14.85 ? 0.08 : 0),
-  lift: twLift(t), reveal: seg(t, 0.05, 0.50, 'out'), origin: HUB, stroke: C.gold, strokeWidth: 1.25,
-}));
-const diamondFlash = t => 1 + 0.4 * bump(t, 4.05, 4.35) + 0.4 * bump(t, 15.20, 15.60);
-E.ring({ at: HUB, r: hubR, color: C.gold, width: 2, draw: t => seg(t, 0.10, 0.55),
-  ticks: { n: 72, len: 5, gap: 4, opacity: t => 0.5 * seg(t, 0.30, 0.60) },
-  diamonds: { angles: [45, 135, 225, 315], size: 7, scale: t => seg(t, 0.45, 0.60, 'backOut') * diamondFlash(t) } });
-E.ripple({ at: HUB, color: C.gold, t0: 2.20, t1: 2.90, r0: hubR, r1: t => hubR() + 40, o0: 0.6 });
-E.ripple({ at: HUB, color: C.gold, t0: 4.05, t1: 4.80, r0: hubR, r1: t => hubR() + 46, o0: 0.7 });
-E.ripple({ at: HUB, color: C.gold, t0: 6.85, t1: 7.55, r0: hubR, r1: t => hubR() + 46, o0: 0.7 });
-const twCardPos = (q) => [toScreen(HUB)[0] + hubR() + 55, toScreen(HUB)[1] - 16];
-E.card({ zh: '臺灣', en: 'Taiwan', color: C.gold, at: HUB, t0: 0.20, inDur: 0.35, pos: twCardPos,
-  leader: { t0: 0.15, t1: 0.30, pinR: hubR }, // drawn from the ring edge
-  glyph: { key: '158', fill: C.goldFill, stroke: C.gold, bg: C.goldBg, draw: [0.30, 0.55], fillIn: [0.45, 0.65] } });
-
-// green "learned from Europe & the US" card, stacked under Taiwan's card, then absorbed into Taiwan
-E.bigCard({ title: 'ATFM', lines: ['汲取歐美先進', '觀念與實務經驗'], color: C.green, width: 480,
-  pos: t => { const p = twCardPos(); return [p[0], p[1] + 122]; },
-  enter: { t0: 3.95, t1: 4.30, dy: 20 }, panel: [4.30, 4.70], lineIn: [[4.40, 4.75], [4.55, 4.90]],
-  absorb: { t0: 6.25, t1: 6.85, to: () => toScreen(HUB) } });
-
-// ---------- partners: each silhouette is the hero on its spoken name ----------
-const PARTNERS = [
-  { key: '392', zh: '日本', en: 'Japan', pin: [138.0, 36.2], T: 9.90, arc: [9.45, 9.95], bulge: 0.12, lift: 7, settle: 4,
-    pos: q => [q[0] + 98, q[1] - 50], enter: [-14, 0] },
-  { key: '410', zh: '韓國', en: 'Korea', pin: [127.8, 36.3], T: 10.70, arc: [10.30, 10.72], bulge: 0.15, lift: 5, settle: 3,
-    pos: q => [q[0] - 94, q[1] - 150], enter: [0, 14] },
-  { key: '608', zh: '菲律賓', en: 'Philippines', pin: [121.2, 15.2], T: 11.50, arc: [11.20, 11.52], bulge: 0.20, lift: 7, settle: 4,
-    pos: q => [q[0] + 127, q[1] - 8], enter: [-14, 0] },
-  { key: '764', zh: '泰國', en: 'Thailand', pin: [101.0, 15.5], T: 12.38, arc: [11.95, 12.40], bulge: 0.15, lift: 7, settle: 4,
-    pos: (q, w) => [q[0] - 78 - w, q[1] - 43], enter: [14, 0] },
-  { key: '702', zh: '新加坡', en: 'Singapore', pin: [103.82, 1.35], T: 13.20, arc: [12.75, 13.22], bulge: 0.12, lift: 0, settle: 0,
-    pos: (q, w) => [q[0] - 65 - w, q[1] - 72], enter: [14, 0] },
+E.setProjection(d3.geoMercator().rotate([-135, 0]));
+const K = [
+  { t: 0.00, center: [121.3, 24.6], ppd: 74 },
+  { t: 0.80, center: [121.3, 24.6], ppd: 77, ease: 'sineInOut' },
+  { t: 2.40, center: [135.0, 19.35], ppd: 6.27, ease: 'inOut' },
+  { t: 6.45, center: [133.6, 19.6], ppd: 6.45, ease: 'sineInOut' },
+  { t: 8.60, center: [122.0, 15.85], ppd: 16.6, ease: 'inOut' },
+  { t: DURATION, center: [122.0, 15.85], ppd: 16.85, ease: 'sineInOut' },
 ];
-// arc lengths at the final framing set the finale particle travel times
-const camAt16 = E.cameraAt(16);
-const arcLen = (a, b, bulge) => {
-  const pa = E.projection(a), pb = E.projection(b);
-  const L = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) * camAt16.k;
-  return L * (1 + 8 / 3 * bulge * bulge); // quadratic Bezier length, small-bulge approximation
-};
-PARTNERS.forEach((p, j) => {
-  const T = p.T;
-  const flow = [];
-  const travel = Math.min(1.3, Math.max(0.45, arcLen(HUB, p.pin, p.bulge) / 380));
-  for (let n = 0; 14.90 + 0.12 * j + 0.80 * n <= 16.40; n++) {
-    const t0 = 14.90 + 0.12 * j + 0.80 * n;
-    flow.push({ t0, dur: travel, dir: 1, color: C.navy });
-    if (t0 + 0.4 + travel < 17.25) flow.push({ t0: t0 + 0.40, dur: travel, dir: -1, color: C.gold });
-  }
-  E.arc({ from: HUB, to: p.pin, color: C.navy, bulge: p.bulge, maskFrom: hubR, maskTo: p.key === '702' ? 0 : 11,
-    width: t => lerp(2.25, 3, seg(t, 14.85, 15.05)), opacity: t => (t >= p.arc[0] ? 1 : 0) * lerp(0.9, 1, seg(t, 14.85, 15.05)),
-    draw: t => seg(t, p.arc[0], p.arc[1], 'inOut'), particles: flow, headR: 4 });
-  if (p.lift > 0) {
-    E.lift(p.key, t => {
-      const up = p.lift * seg(t, T, T + 0.40, 'backOut'), settle = (p.lift - p.settle) * seg(t, T + 0.40, T + 0.90, 'sineInOut');
-      return {
-        color: C.blue, side: C.blueSide, shadowColor: C.blueShadow,
-        shadowAlpha: 0.32 * seg(t, T, T + 0.4) - 0.10 * seg(t, T + 0.4, T + 0.9) + (t > 14.85 ? 0.08 : 0),
-        lift: up - settle + finaleLift(t), reveal: seg(t, T, T + 0.45, 'out'), origin: p.pin,
-        stroke: '#ffffff', strokeWidth: 1.25, strokeDraw: seg(t, T + 0.05, T + 0.55, 'inOut'),
-      };
-    });
-  } else {
-    E.fill(p.key, t => ({ color: C.blue, reveal: seg(t, T, T + 0.20, 'out'), origin: p.pin }));
-    E.ring({ at: p.pin, color: C.navy, width: 1.75, r: t => 26 * seg(t, T, T + 0.45, 'backOut'), opacity: t => (t >= T ? 1 : 0),
-      ticks: { n: 36, len: 5, gap: 3, opacity: t => 0.5 * seg(t, T + 0.20, T + 0.50) } });
-  }
-  E.pin({ at: p.pin, color: C.navy, t0: T, pulse: p.key !== '702' });
-  E.card({ zh: p.zh, en: p.en, color: C.navy, at: p.pin, t0: T + 0.15, pos: p.pos, enter: p.enter,
-    leader: { t0: T + 0.10, t1: T + 0.25, pinR: p.key === '702' ? 28 : 11 },
-    glyph: { key: p.key, fill: C.blue, stroke: C.navy, bg: C.blueBg, draw: [T + 0.25, T + 0.50], fillIn: [T + 0.40, T + 0.60] } });
-});
+E.setCamera(K);
+const zf = () => Math.max(0.5, Math.min(1, ppd() / 17.6));
 
-// ---------- finale: carrying out ATFM measures together ----------
-E.bigCard({ title: 'ATFM', lines: ['與各國一同執行', '飛航流量管理措施'], color: C.navy, width: 480,
-  pos: () => [1380, 590], enter: { t0: 15.25, t1: 15.60, dx: 40 }, panel: [15.60, 16.05], lineIn: [[15.75, 16.10], [15.90, 16.25]] });
+const TW = [120.95, 23.75], EU = [10.4, 50.6], US = [-98.5, 39.5];
+const FIR = [[124, 23.5], [121.5, 21], [117.5, 21], [117.5, 29], [124, 29]];
+const twS = () => toScreen(TW);
+
+// FIR outline in screen space (dense) + crossing helper
+const firDense = (() => { const r = [...FIR, FIR[0]], out = []; for (let i = 0; i < r.length - 1; i++) { const it = d3.geoInterpolate(r[i], r[i + 1]); for (let j = 0; j < 24; j++) out.push(it(j / 24)); } out.push(r[r.length - 1]); return out; })();
+const firScreen = () => firDense.map(toScreen);
+const inPoly = (p, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+const bez = (a, c, b, u) => { const v = 1 - u; return [v * v * a[0] + 2 * v * u * c[0] + u * u * b[0], v * v * a[1] + 2 * v * u * c[1] + u * u * b[1]]; };
+// distance from the hub end of an arc to where it leaves the FIR (matches engine arc geometry)
+function firExit(from, to, k, hubIsFrom) {
+  const A = toScreen(from), B = toScreen(to), dx = B[0] - A[0], dy = B[1] - A[1];
+  const M = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], Cc = [M[0] + dy * k, M[1] - dx * k];
+  const poly = firScreen();
+  for (let i = 0; i <= 400; i++) {
+    const u = hubIsFrom ? i / 400 : 1 - i / 400, q = bez(A, Cc, B, u);
+    if (!inPoly(q, poly)) { const H = hubIsFrom ? A : B; return { d: Math.hypot(q[0] - H[0], q[1] - H[1]), q, u }; }
+  }
+  return { d: 0, q: hubIsFrom ? A : B, u: hubIsFrom ? 0 : 1 };
+}
+
+// ---------- Europe + USA (knowledge sources, flat jade) ----------
+E.defineGroup('EUR', ['040','056','100','191','196','203','208','233','246','250','276','300','348','372','380','428','440','442','470','528','616','620','642','703','705','724','752','826','578','756','352','008','070','499','807','688','n:Kosovo','498','804','438','020','492','674'],
+  c => c[0] > -25 && c[0] < 45 && c[1] > 34.5 && c[1] < 72);
+const srcOut = t => 1 - seg(t, 6.45, 6.80);
+E.fill('EUR', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.12, 2.92)), opacity: t >= 2.10 ? 1 : 0, reveal: seg(t, 2.10, 2.50, 'out'), origin: EU, stroke: '#ffffff', strokeWidth: 1 }));
+E.fill('840', t => ({ color: mix(C.jadeFlash, C.jade, seg(t, 2.50, 3.30)), opacity: t >= 2.48 ? 1 : 0, reveal: seg(t, 2.48, 2.88, 'out'), origin: US, stroke: '#ffffff', strokeWidth: 1 }));
+E.pin({ at: EU, color: C.green, t0: 2.12, pulseR: 40, opacity: t => (t >= 2.12 ? 1 : 0) * (1 - seg(t, 6.45, 6.95)) });
+E.pin({ at: US, color: C.green, t0: 2.50, pulseR: 40, opacity: t => (t >= 2.50 ? 1 : 0) * (1 - seg(t, 6.45, 6.95)) });
+E.card({ zh: '歐洲', en: 'Europe', color: C.green, at: EU, t0: 2.18, enter: [0, -12], pos: q => [q[0] - 20, q[1] + 105],
+  opacity: t => seg(t, 2.18, 2.53, 'out') * srcOut(t) });
+E.card({ zh: '美國', en: 'United States', color: C.green, at: US, t0: 2.56, enter: [0, -12], pos: (q, w) => [q[0] + 20 - w, q[1] + 80],
+  opacity: t => seg(t, 2.56, 2.91, 'out') * srcOut(t) });
+const inOp = t => (t >= 2.85 ? 1 : 0) * (1 - seg(t, 6.45, 7.00));
+const pEU = [0, 1, 2, 3].map(i => ({ t0: 4.40 + 0.40 * i, dur: 1.10, dir: 1, ease: 'linear', r: 5 }));
+const pUS = [0, 1, 2, 3].map(i => ({ t0: 4.55 + 0.40 * i, dur: 1.20, dir: 1, ease: 'linear', r: 5 }));
+E.arc({ from: EU, to: TW, color: C.green, width: 3, bulge: 0.22, draw: t => seg(t, 2.85, 4.35), opacity: inOp, maskFrom: 13, maskTo: () => firExit(EU, TW, 0.22, false).d, particles: pEU });
+E.arc({ from: US, to: TW, color: C.green, width: 3, bulge: -0.22, draw: t => seg(t, 3.00, 4.45), opacity: inOp, maskFrom: 13, maskTo: () => firExit(US, TW, -0.22, false).d, particles: pUS });
+
+// ---------- cooperation ellipse (sea-only wash) ----------
+const ELL = { center: [118.31, 21.2], a: 525.1, b: 247.7, rot: -47.5 };
+const ellDraw = t => seg(t, 7.35, 8.85, 'inOut');
+E.ellipse({ ...ELL, color: C.navy, width: 2.5, start: 180, draw: ellDraw, seaOnly: true,
+  opacity: t => t >= 7.35 ? 1 : 0, scale: t => lerp(0.92, 1, seg(t, 7.35, 8.85, 'out')),
+  fillOpacity: t => 0.08 * seg(t, 8.40, 9.00) + 0.05 * bump(t, 13.95, 14.60) + 0.02 * seg(t, 14.85, 15.30),
+  outer: { d: 7, opacity: t => 0.3 * seg(t, 8.50, 9.00) },
+  ticks: { n: 160, long: 8, lenLong: 12, lenShort: 6, gap: 9, opacity: 0.45,
+    alpha: (i, t) => (i / 160 <= ellDraw(t) ? 1 : 0),
+    boost: (i, t) => { const x = seg(t, 13.95, 14.75, 'linear'); if (x <= 0 || x >= 1) return 0; const d = Math.abs(((i / 160 - x) % 1 + 1.5) % 1 - 0.5); return d < 0.06 ? 8 * (1 - d / 0.06) : 0; } },
+  ripples: [{ t0: 13.95, t1: 14.80, s1: 1.10, o0: 0.6 }] });
+
+// ---------- Taiwan ----------
+E.glow({ at: TW, color: C.twGlow, r: t => 50 + 30 * seg(t, 6.75, 7.4), opacity: t => 0.45 * Math.max(bump(t, 4.35, 5.15), bump(t, 6.75, 7.55)) });
+E.lift('158', t => ({
+  color: mix(C.twFlash, C.twFace, seg(t, 0.05, 0.85)), side: C.twSide, stroke: C.gold, strokeWidth: 1.4, shadowColor: C.twShadow, shadowAlpha: 0.3,
+  opacity: seg(t, 0.05, 0.20, 'out'), reveal: seg(t, 0.05, 0.50, 'out'), origin: TW,
+  lift: zf() * (keyed(t, [[0.05, 0], [0.55, 8, 'backOutSoft']]) + 5 * bump(t, 4.35, 4.95) + 6 * bump(t, 6.75, 7.30) + 6 * bump(t, 14.85, 15.40)),
+}));
+E.ripple({ at: TW, color: C.gold, t0: 0.15, t1: 1.25, r0: 14, r1: 240, o0: 0.45, width: 2 });
+E.ripple({ at: TW, color: C.gold, t0: 4.38, t1: 5.15, r0: 12, r1: 70, o0: 0.6, width: 2 });
+E.ripple({ at: TW, color: C.navy, t0: 6.85, t1: 7.85, r0: 12, r1: 420, o0: 0.6, width: 2.5 });
+E.ripple({ at: TW, color: C.navy, t0: 7.10, t1: 8.10, r0: 12, r1: 420, o0: 0.4, width: 2.5 });
+E.ripple({ at: TW, color: C.gold, t0: 14.85, t1: 15.55, r0: 10, r1: 46, o0: 0.6, width: 2 });
+
+// FIR polygon (gold), drawn in the opening; diamonds = where partner arcs leave it
+const P = [
+  { id: '392', zh: '日本', en: 'Japan', at: [138.3, 36.3], on: 9.90, bulge: -0.12, glyph: { minFrac: 0.02, drop: [[122, 20, 132, 30.6], [139, 20, 155, 31]] } },
+  { id: '410', zh: '韓國', en: 'Korea', at: [127.9, 36.4], on: 10.70, bulge: -0.10 },
+  { id: '608', zh: '菲律賓', en: 'Philippines', at: [121.1, 15.9], on: 11.50, bulge: 0.25 },
+  { id: '764', zh: '泰國', en: 'Thailand', at: [100.9, 15.6], on: 12.40, bulge: 0.12 },
+  { id: '702', zh: '新加坡', en: 'Singapore', at: [103.82, 1.35], on: 13.22, bulge: 0.10 },
+];
+P.forEach(p => { p.a0 = p.on - 0.45; });
+E.poly({ coords: FIR, closed: true, color: C.gold, width: t => lerp(2, 3, clamp01((ppd() - 6.5) / 10)), draw: t => seg(t, 0.15, 1.05, 'inOut'), opacity: t => t >= 0.15 ? 1 : 0, fillOpacity: 0 });
+// handoff diamonds (custom: position recomputed per frame where each arc exits the FIR)
+const dGroup = E.el('g', {}, document.getElementById('over'));
+const dias = P.map(() => E.el('rect', { x: -5, y: -5, width: 10, height: 10, fill: '#fff', stroke: C.gold, 'stroke-width': 2 }, dGroup));
+E.custom(t => P.forEach((p, i) => {
+  const sc = seg(t, p.a0, p.a0 + 0.25, 'backOut') * (1 + 0.5 * bump(t, 14.85, 15.35));
+  if (sc <= 0.01) { dias[i].setAttribute('opacity', 0); return; }
+  const q = firExit(TW, p.at, p.bulge, true).q;
+  E.setA(dias[i], { opacity: 1, transform: `translate(${q[0].toFixed(1)},${q[1].toFixed(1)}) rotate(45) scale(${sc})` });
+}));
+E.pin({ at: TW, color: C.gold, t0: 0.10, pulseR: 46, pulseDur: 0.8, scale: t => lerp(1, 0.55, seg(t, 6.45, 8.60)) });
+
+// Taiwan card: right of the FIR in the close-up, glides to its world and Asia spots
+const twGlyph = { key: '158', fill: C.twFace, stroke: C.gold, bg: 'transparent', drop: [[117, 23.5, 120.2, 27]], pad: 3 };
+const firE = () => toScreen([124, 23.5])[0];
+const TWPOS = { close: [34, 0], world: [22, 50], asia: [24, 34] };
+E.card({ zh: '臺灣', en: 'Taiwan', color: C.gold, at: TW, t0: 0.25, glyph: twGlyph, leader: { t0: 0.20, t1: 0.35, pinR: t => 11 * lerp(1, 0.55, seg(t, 6.45, 8.60)) },
+  pos: (q, w, h, t) => {
+    const a = seg(t, 0.80, 2.40, 'inOut'), b = seg(t, 6.45, 8.60, 'inOut');
+    const gx = lerp(lerp(TWPOS.close[0], TWPOS.world[0], a), TWPOS.asia[0], b), gy = lerp(lerp(TWPOS.close[1], TWPOS.world[1], a), TWPOS.asia[1], b);
+    return [firE() + gx, q[1] - h / 2 + gy];
+  } });
+
+// green big card, stacked under Taiwan's card, absorbed into Taiwan
+E.bigCard({ title: 'ATFM', lines: ['汲取歐美先進', '觀念與實務經驗'], color: C.green,
+  pos: t => { const q = twS(); return [firE() + 22, q[1] + 128]; },
+  enter: { t0: 4.15, t1: 4.65, dx: 0, dy: 24 }, panel: [4.40, 4.95], lineIn: [[4.55, 4.95], [4.95, 5.35]],
+  absorb: { t0: 6.40, t1: 6.85, to: twS } });
+
+// PARTNERS card -> |PARTNERS wordmark
+const SLOT = [1250, 652], MARK = [1340, 352];
+E.bigCard({ title: 'PARTNERS', lines: ['拓展國際', '合作版圖'], color: C.navy, pos: () => SLOT,
+  enter: { t0: 7.15, t1: 7.60, dx: 0, dy: 24 }, panel: [7.35, 7.85], lineIn: [[7.45, 7.80], [7.70, 8.10]],
+  collapse: { t0: 9.00, t1: 9.60, to: MARK, size: 80 } });
+E.bigCard({ title: 'ATFM', lines: ['與各國一同執行', '飛航流量管理措施'], color: C.navy, pos: () => SLOT,
+  enter: { t0: 14.95, t1: 15.45, dx: 0, dy: 24 }, panel: [15.15, 15.70], lineIn: [[15.25, 15.60], [15.55, 15.95]] });
+
+// ---------- partners ----------
+const PPOS = {
+  '392': (q, w, h) => [q[0] + 44, q[1] + 36],
+  '410': (q, w, h) => [q[0] - 40 - w, q[1] - h / 2],
+  '608': (q, w, h) => [q[0] + 92, q[1] - 10],
+  '764': (q, w, h) => [q[0] - 40 - w, q[1] - h / 2],
+  '702': (q, w, h) => [q[0] - 40 - w, q[1] - h / 2],
+};
+P.forEach((p, j) => {
+  const parts = [0, 1, 2, 3].map(m => ({ t0: 14.90 + 0.05 * j + 0.45 * m, dur: 0.9, dir: m % 2 ? -1 : 1, ease: 'sineInOut', r: 4.5, color: m % 2 ? C.gold : C.navy }));
+  E.arc({ from: TW, to: p.at, color: C.navy, width: t => 2.5 + 1.0 * seg(t, 14.85, 15.25), bulge: p.bulge, draw: t => seg(t, p.a0, p.on, 'inOut'), opacity: t => t >= p.a0 ? 1 : 0,
+    maskFrom: () => firExit(TW, p.at, p.bulge, true).d, maskTo: p.id === '702' ? 12 : 12, particles: parts });
+  E.lift(p.id, t => ({
+    color: mix(C.periFlash, C.peri, seg(t, p.on, p.on + 0.8)), side: C.periSide, stroke: '#ffffff', strokeWidth: 1.25, shadowColor: C.periShadow, shadowAlpha: 0.3,
+    opacity: t >= p.on ? 1 : 0, reveal: seg(t, p.on, p.on + 0.35, 'out'), origin: p.at,
+    lift: keyed(t, [[p.on, 0], [p.on + 0.35, 10, 'backOutSoft'], [p.on + 0.95, 6]]) + 5 * bump(t, 14.85, 15.40),
+  }));
+  E.pin({ at: p.at, color: C.navy, t0: p.on, pulseR: 40, pulseDur: 0.7 });
+  E.ripple({ at: p.at, color: C.navy, t0: 14.85, t1: 15.55, r0: 10, r1: 40, o0: 0.55, width: 2 });
+  E.card({ zh: p.zh, en: p.en, color: C.navy, at: p.at, t0: p.on + 0.05, pos: PPOS[p.id], enter: ['410', '764', '702'].includes(p.id) ? [14, 0] : [-14, 0], leader: { pinR: p.id === '702' ? 28 : 11 },
+    glyph: { key: p.id, fill: C.peri, stroke: C.navy, bg: 'transparent', pad: 3, ...(p.glyph || {}) } });
+});
+E.ring({ at: [103.82, 1.35], color: C.navy, r: 24, width: 2, draw: t => seg(t, 13.22, 13.57), opacity: t => t >= 13.22 ? 1 : 0,
+  ticks: { n: 36, len: 4, gap: 3, opacity: t => 0.5 * seg(t, 13.42, 13.72) } });
 
 window.boot(DURATION);
 })();

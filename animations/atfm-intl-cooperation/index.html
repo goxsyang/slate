@@ -26,7 +26,8 @@ html, body { background: #111; }
 .card .glyph svg { display: block; }
 .card .zh { font-weight: 700; color: var(--ink); font-size: 40px; line-height: 1.12; letter-spacing: .02em; }
 .card .en { font-weight: 500; color: var(--ink2); font-size: 26px; line-height: 1.2; letter-spacing: .01em; }
-.big { border-radius: 8px; overflow: hidden; box-shadow: 0 6px 16px rgba(40, 50, 60, .22); transform-origin: 0 0; }
+.big { border-radius: 8px; overflow: hidden; filter: drop-shadow(0 6px 8px rgba(40, 50, 60, .22)); transform-origin: 0 0; }
+.big .band, .big .panel { border-radius: 0; }
 .big .band { background: var(--c); color: #fff; font-weight: 900; font-size: 104px; line-height: 112px; height: 112px; padding: 0 28px; letter-spacing: .005em; }
 .big .panel { background: var(--card); border-left: 8px solid var(--c); color: var(--c); font-weight: 700; font-size: 52px; line-height: 64px; padding: 11px 20px 11px 20px; }
 .big .ln { white-space: nowrap; }
