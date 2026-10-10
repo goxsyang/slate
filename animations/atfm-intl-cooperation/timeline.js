@@ -1,5 +1,5 @@
 // Shot choreography: "In -> Absorb -> Out -> Together", opening and closing on the Taipei FIR.
-// Word onsets in the narration (s): 對外 0.05 · 我們 1.14 · 汲 1.54 · 歐 1.93 · 美 2.14 · 國際 2.51 · ATFM 3.58–4.35 · 觀念 4.40
+// Word onsets in the narration (s): 對外 0.05 · 我們 1.14 · 汲 1.33 · 取 1.51 · 歐 1.93 · 美 2.14 · 國際 2.48 · ATFM 3.55–4.33 · 觀念 4.38
 //   並 6.60 · 拓展 6.82
 //   版圖 ends 8.35 · 與 9.72 · 日本 9.90 · 韓國 10.70 · 菲律賓 11.50 · 泰國 12.40 · 新加坡 13.22 · 等國家 13.88
 //   一同 14.85 · 執行 15.22 · ATFM 15.78 · 措施 16.92
@@ -82,7 +82,7 @@ E.ellipse({ ...ELL, layer: 'over', color: C.navy, width: 2.5, start: 180, draw: 
 // ---------- Taiwan ----------
 // gold glow around Taiwan, painted under the land so it only tints the sea (never the mainland coast)
 E.underLandHooks.push((ctx, t) => {
-  const op = 0.45 * Math.max(bump(t, 4.35, 5.15), bump(t, 6.75, 7.55));
+  const op = 0.45 * Math.max(bump(t, 3.78, 4.58), bump(t, 6.75, 7.55));
   if (op <= 0.001) return;
   const q = toScreen(TW), r = 50 + 30 * seg(t, 6.75, 7.4);
   const g = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
@@ -93,10 +93,10 @@ E.lift('158', t => ({
   color: mix(C.twFlash, C.twFace, seg(t, 0.05, 0.85)), side: C.twSide, stroke: C.gold, strokeWidth: 1.4, shadowColor: C.twShadow, shadowAlpha: 0.3,
   minLevel: 3, // full detail, so Penghu, Green Island, Lanyu, Kinmen and Matsu never drop out
   opacity: seg(t, 0.05, 0.20, 'out'), reveal: seg(t, 0.05, 0.50, 'out'), origin: TW,
-  lift: zf() * (keyed(t, [[0.05, 0], [0.55, 8, 'backOutSoft']]) + 5 * bump(t, 4.35, 4.95) + 6 * bump(t, 6.75, 7.30) + 6 * bump(t, 14.85, 15.40)),
+  lift: zf() * (keyed(t, [[0.05, 0], [0.55, 8, 'backOutSoft']]) + 5 * bump(t, 3.78, 4.38) + 6 * bump(t, 6.75, 7.30) + 6 * bump(t, 14.85, 15.40)),
 }));
 E.ripple({ at: TW, color: C.gold, t0: 0.15, t1: 1.25, r0: 14, r1: 240, o0: 0.45, width: 2 });
-E.ripple({ at: TW, color: C.gold, t0: 4.38, t1: 5.15, r0: 12, r1: 70, o0: 0.6, width: 2 });
+E.ripple({ at: TW, color: C.gold, t0: 3.80, t1: 4.57, r0: 12, r1: 70, o0: 0.6, width: 2 }); // arcs land
 E.ripple({ at: TW, color: C.navy, t0: 6.85, t1: 7.85, r0: 12, r1: 420, o0: 0.6, width: 2.5 });
 E.ripple({ at: TW, color: C.navy, t0: 7.10, t1: 8.10, r0: 12, r1: 420, o0: 0.4, width: 2.5 });
 E.ripple({ at: TW, color: C.gold, t0: 14.85, t1: 15.55, r0: 10, r1: 46, o0: 0.6, width: 2 });
