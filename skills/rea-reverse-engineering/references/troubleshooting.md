@@ -60,7 +60,7 @@
 | `provider_unavailable` | 選定的引擎不能用；REA 不會自動切換到其他引擎【REA 文件】 | 看 `message`、`remediation.action`、`details.rejections`，然後執行 `rea doctor --provider ghidra --json` |
 | 切換 Node 版本（nvm 或 fnm）後，REA 伺服器起不來 | 【推論】註冊指向舊的全域安裝路徑 | 執行 `rea doctor --client claude_code --json`，必要時用新的 Node 重新安裝 REA 並重跑 setup |
 | 用了獨立設定檔，但檢查結果對不上 | 指令沒有加 `CLAUDE_CONFIG_DIR=…` 前綴，看到的是預設設定檔【REA 文件】 | 每個 `claude`、`rea` 指令都加同樣的前綴 |
-| local scope 的註冊沒出現在 doctor，也沒被 uninstall 移除 | `rea doctor`、`uninstall`、`update` 只讀使用者層級的註冊【REA 文件】 | 在該專案資料夾執行 `claude mcp remove --scope local rea` |
+| local scope 的註冊沒出現在 doctor，也沒被 uninstall 移除 | `rea doctor`、`uninstall`、`update` 只讀使用者層級的註冊【REA 文件】 | 在該專案資料夾執行 `claude mcp remove rea --scope local` |
 | 第三方 API 端點下 context 不夠用，或 autocompact 一直重複 | 使用第三方的 `ANTHROPIC_BASE_URL` 時，tool search 會關閉，約 207 個工具定義每次都會送出【REA 文件】 | 在 `mcpServers.rea.env` 加上 `"REA_MCP_INPUT_SCHEMA_PROFILE": "compact"` 並重新啟動；端點支援 `tool_reference` 時可設 `ENABLE_TOOL_SEARCH=true`；遇到無法辨識的模型時可設 `CLAUDE_CODE_MAX_CONTEXT_TOKENS`【REA 文件】 |
 
 ## D. Ghidra 執行期間

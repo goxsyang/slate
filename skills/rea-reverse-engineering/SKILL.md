@@ -172,7 +172,7 @@ bash "<本 skill 目錄>/scripts/preflight_macos.sh"
 
 ## 步驟 4：套用權限設定（在註冊 REA 之前）
 
-**為什麼要先做：** Claude Code v2.1.283 以後，工作階段預設從 auto 模式開始，沒有規則的動作交給分類器決定，不會問使用者。如果先註冊 REA 再設權限，重新啟動後的那段時間，所有 REA 工具（包括會執行程式碼的工具）都由分類器決定。`mcp__rea__…` 規則在 REA 註冊前就能寫入並生效。
+**為什麼要先做：** 依 Claude Code 文件，v2.1.283 起，終端機與 VS Code 的互動工作階段預設從 auto 模式開始：沒有符合規則的動作中，唯讀動作與工作目錄內的編輯直接核准，其餘交給分類器判斷，不會逐一詢問使用者（`~/.claude/settings.json` 另設了 `defaultMode` 時則照它）。如果先註冊 REA 再設權限，重新啟動後的那段時間，所有 REA 工具（包括會執行程式碼的工具）都由分類器決定。`mcp__rea__…` 規則在 REA 註冊前就能寫入並生效。
 
 讀 `references/permissions.md`，把片段給使用者看，說明原因，**取得明確同意後**才修改設定檔（修改前先備份，改完用 `node` 驗證 JSON 格式）：
 
@@ -206,7 +206,7 @@ bash "<本 skill 目錄>/scripts/preflight_macos.sh"
    - 重開會結束目前這段對話。如果這段對話原本就是在 `~/rea-lab` 開的，用 `claude --continue`（或啟動後輸入 `/resume` 選它）接續；否則在新的工作階段輸入「繼續 REA 安裝，從步驟 5 的驗證開始」，本 skill 會用 doctor 確認狀態後接著做。
    - **在呼叫任何 REA 工具之前**，請使用者確認兩件事：狀態列顯示 `⏸ manual mode on`；輸入 `/permissions` 看得到 `mcp__rea__` 規則。任何一項不符合就停下，回到步驟 4 檢查。
    - 接著執行 `rea doctor --client claude_code --skill --json`，再在 Claude Code 裡呼叫 `binary_session`（參數 `{}`），查看 `result.tool_availability`。`doctor` 只檢查檔案，不能證明已連線。
-6. **還原方式**一定要告訴使用者：`claude mcp remove --scope user rea`，再把 `~/.claude/skills/reverse-engineer-anything` 移到備份位置。`rea uninstall` 會一併移除其他 AI 工具的 REA 註冊，範圍比較廣。
+6. **還原方式**一定要告訴使用者：`claude mcp remove rea --scope user`，再把 `~/.claude/skills/reverse-engineer-anything` 移到備份位置。`rea uninstall` 會一併移除其他 AI 工具的 REA 註冊，範圍比較廣。
 
 選用：經使用者同意，可以在 `~/.claude/CLAUDE.md` 加一行（修改前先備份）：「用 REA 分析任何新檔案前，先執行 rea-reverse-engineering skill 步驟 0b 的授權確認。」這能讓之後的工作階段即使先載入 REA 內建 skill，也會先回到這裡。
 

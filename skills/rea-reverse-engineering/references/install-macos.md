@@ -349,7 +349,7 @@ GHIDRA_INSTALL_DIR="<GHIDRA 絕對路徑>" JAVA_HOME="<JDK 絕對路徑>" \
 
 | 位置 | 內容 | 還原方式 |
 |---|---|---|
-| `~/.claude.json` 的 `mcpServers.rea` | REA 的 MCP 註冊（含 env） | `claude mcp remove --scope user rea` |
+| `~/.claude.json` 的 `mcpServers.rea` | REA 的 MCP 註冊（含 env） | `claude mcp remove rea --scope user` |
 | `~/.claude/skills/reverse-engineer-anything/` | REA 內建分析流程 skill | 移到備份位置：`mv "$HOME/.claude/skills/reverse-engineer-anything" "$HOME/rea-skill-backup-$(date +%Y%m%d)"` |
 | `~/.claude.json.rea.backup`（以及可能的 `.recovery` 檔） | setup 修改前的快照 | 最後手段：先結束所有 Claude Code，再用它覆蓋 `~/.claude.json`；這會一併還原其他 Claude Code 狀態，所以優先用上面的 `claude mcp remove` |
 | npm 全域套件 `rea-agents` | REA 程式本體 | `npm uninstall --global rea-agents`【一般做法】 |
@@ -365,7 +365,7 @@ setup 預設註冊在使用者層級，所以 Claude Code 開啟的每個專案�
 
 ```bash
 cp "$HOME/.claude.json" "$HOME/.claude.json.before-scope-$(date +%Y%m%d%H%M%S)"
-claude mcp remove --scope user rea
+claude mcp remove rea --scope user
 mv "$HOME/.claude/skills/reverse-engineer-anything" "$HOME/rea-skill-backup-$(date +%Y%m%d%H%M%S)"
 ```
 
@@ -385,7 +385,7 @@ mv "$HOME/.claude/skills/reverse-engineer-anything" "$HOME/rea-skill-backup-$(da
    ```bash
    CLAUDE_CONFIG_DIR="$HOME/.claude-rea" GHIDRA_INSTALL_DIR="<GHIDRA 絕對路徑>" JAVA_HOME="<JDK 絕對路徑>" REA_ANALYSIS_PROVIDER=ghidra \
      rea doctor --client claude_code --skill --json
-   CLAUDE_CONFIG_DIR="$HOME/.claude-rea" claude mcp remove --scope user rea   # 移除時
+   CLAUDE_CONFIG_DIR="$HOME/.claude-rea" claude mcp remove rea --scope user   # 移除時
    ```
 
 ### 8.2 只給單一專案（local scope）
@@ -404,7 +404,7 @@ claude mcp add --scope local \
 ```
 
 - 實際的選項寫法以 `claude mcp add --help` 為準。
-- 移除：在同一個資料夾執行 `claude mcp remove --scope local rea`。
+- 移除：在同一個資料夾執行 `claude mcp remove rea --scope local`。
 - 更新 REA 後，這個註冊會自動使用新的全域安裝（路徑不變），但要重新核對權限清單。
 
 ### 8.3 節省 context
@@ -432,7 +432,7 @@ npm uninstall --global rea-agents   # 【一般做法】移除程式本體
 ```
 
 - 解除安裝會保留 Hopper、Node.js、Evidence 檔、擷取資料、無關的 skill 與其他 MCP 伺服器。【REA 文件】
-- local scope 的註冊要另外在該專案執行 `claude mcp remove --scope local rea`。用獨立設定檔時，每個指令都要加第 8.1 節的整組前綴。
+- local scope 的註冊要另外在該專案執行 `claude mcp remove rea --scope local`。用獨立設定檔時，每個指令都要加第 8.1 節的整組前綴。
 - 從 `~/.claude/settings.json` 移除 permissions.md 片段 A 加入的規則（`mcp__rea__…`、`Bash(rea *)`、`Bash(*rea-agents*)`、`Bash(npx *rea-agents*)` 與 CLI 對應的 deny 規則），並刪除 `~/rea-lab/.claude/settings.json`；修改前先備份。
 - 如果照 SKILL.md 步驟 5 在 `~/.claude/CLAUDE.md` 加過提醒那一行，也一併刪除。
 - Ghidra：不再需要時，刪除 `~/tools/ghidra_12.1.4_PUBLIC`。

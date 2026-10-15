@@ -17,7 +17,7 @@
 
 REA 不要求、也不提供任何權限核准機制，要不要詢問完全交給 MCP 用戶端（Claude Code）決定。REA 給每個工具標註的效果（annotations）「只是提示，不是授權控制」。REA 的 setup 也**不會**寫入任何 Claude Code 權限規則。【REA 文件：docs/mcp-contracts.md】
 
-**要在註冊 REA 之前就套用。** Claude Code v2.1.283 以後，互動模式預設從 auto 模式開始；沒有符合任何規則的動作會交給分類器判斷，不會問使用者。【Claude Code 文件】如果先註冊 REA 再設權限，重新啟動後到套用規則之前，所有 REA 工具（包括會執行程式碼的工具）都由分類器決定。`mcp__rea__…` 規則在伺服器還不存在時就可以寫入並生效，所以順序是：先套用本檔的片段 A、B，再執行 `rea setup`。
+**要在註冊 REA 之前就套用。** Claude Code v2.1.283 起，終端機與 VS Code 的互動工作階段預設從 auto 模式開始；沒有符合任何規則的動作中，唯讀動作與工作目錄內的編輯直接核准，其餘交給分類器判斷，不會逐一詢問使用者（`~/.claude/settings.json` 另設了 `defaultMode` 時則照它）。【Claude Code 文件：code.claude.com/docs/en/permission-modes】如果先註冊 REA 再設權限，重新啟動後到套用規則之前，所有 REA 工具（包括會執行程式碼的工具）都由分類器決定。`mcp__rea__…` 規則在伺服器還不存在時就可以寫入並生效，所以順序是：先套用本檔的片段 A、B，再執行 `rea setup`。
 
 REA 6.5.0 共有 207 個工具。這份清單是依 REA 原始碼的效果表 `src/contracts/toolEffects.ts` 逐一比對產生的，6.5.0 套件裡的 `dist/contracts/toolEffects.js` 與 2026-10-15 的 main 完全相同。本設定針對「只做靜態分析」的使用方式：
 
