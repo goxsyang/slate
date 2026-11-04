@@ -540,18 +540,19 @@
 
           // chips: leader draws, its joint dot pops, then the card pops off the leader end (02 first: the hero meets the
           // boundary first). chip02's leader draws from 41.45 (card 41.50); chip01's leader draws at the hero's touchdown
-          // (43.39), card 0.03 s later. Both leave together at 44.20.
-          [[chip02, G(41.45), G(41.5)], [chip01, hero.te, hero.te + 0.03]].forEach(function (c) {
-            var o = c[0], tL = c[1], tC = c[2];
+          // (43.39), card 0.03 s later. chip02 leaves at 44.20; chip01 (popped later, after the hero's touchdown) holds
+          // until 45.05 so 「機場端流量管理」 stays readable ≥ 1.6 s (hyperframes check line_unread floor).
+          [[chip02, G(41.45), G(41.5), G(44.2)], [chip01, hero.te, hero.te + 0.03, G(45.05)]].forEach(function (c) {
+            var o = c[0], tL = c[1], tC = c[2], tOut = c[3];
             ft(o.lead, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, tL);
             ft(o.inner, { opacity: 0, y: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, tL);
             K.draw(tl, o.line, tL, 0.35, "expo.out");
             ft(o.dot, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.3, ease: "back.out(2)" }, tL + 0.12);
             ft(o.chip, { opacity: 0, scale: 0.7, y: 10, transformOrigin: o.origin }, { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: "back.out(1.4)" }, tC);
             // out: leader and card fade together and the card alone lifts 8 px (its leader stays anchored on the node)
-            ft(o.lead, { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.in" }, G(44.2), true);
-            ft(o.inner, { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.in" }, G(44.2), true);
-            ft(o.chip, { y: 0 }, { y: -8, duration: 0.35, ease: "power2.in" }, G(44.2), true);
+            ft(o.lead, { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.in" }, tOut, true);
+            ft(o.inner, { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.in" }, tOut, true);
+            ft(o.chip, { y: 0 }, { y: -8, duration: 0.35, ease: "power2.in" }, tOut, true);
           });
 
           // hero highlight: revealed from BULAN to RCTP in lock-step with the hero (same window, both linear); it fades
