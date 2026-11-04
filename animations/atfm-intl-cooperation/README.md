@@ -30,13 +30,14 @@ Colours carry meaning:
 | 6.40–8.85 | 並拓展國際合作版圖 | The green card is absorbed into Taiwan, and a navy ripple goes out. The camera dives to the Asia-Pacific. The **PARTNERS / 拓展國際 / 合作版圖** card appears, and the ruler ellipse draws around the region with a sea-only wash. |
 | 9.00–9.60 | (breath) | The PARTNERS card collapses into a **\|PARTNERS** wordmark, as in the reference. |
 | 9.45–13.6 | 與日本 韓國 菲律賓 泰國 新加坡 | On each spoken name, an arc leaves the FIR through a gold handoff diamond. The partner's land shape floods periwinkle and lifts, and its pin and glyph card land. Singapore also gets a locator ring. |
-| 13.9–14.8 | 等國家 | A highlight sweeps around the ellipse's ruler ticks and an echo ripple goes out. No unnamed countries are lit. |
-| 14.85–17.42 | 一同執行 ATFM 措施 | All six shapes rise together and particles flow both ways on every arc. The navy **ATFM / 與各國一同執行 / 飛航流量管理措施** card appears. The camera comes to rest at 15.45 s, so the last ~2 s are a static hold that can be extended in the edit. |
+| 13.4–14.8 | 等國家 | Vietnam lights up on 等 (13.88 s) and Hong Kong on 國家 (14.20 s), each with an arc out of the FIR, a pin and a glyph card; Hong Kong also gets a locator ring. A highlight sweeps around the ellipse's ruler ticks. |
+| 14.85–17.42 | 一同執行 ATFM 措施 | Taiwan and all partners rise together and particles flow both ways on every arc. The navy **ATFM / 與各國一同執行 / 飛航流量管理措施** card appears. The camera comes to rest at 15.45 s, so the last ~2 s are a static hold that can be extended in the edit. |
 
 Sensitivity choices:
 - Mainland China is never labelled, filled or tinted. The ellipse wash and Taiwan's gold glow are painted under the land layer, so they tint the sea only.
 - Taiwan lights up with Penghu, Kinmen, Matsu, Green Island and Lanyu. Natural Earth has no Matsu, so `engine.js` adds it by hand.
 - Crimea is shown with Ukraine.
+- Hong Kong lights up from its own Natural Earth feature, so no mainland land is tinted. The Vietnam and Philippines shapes carry only their coastal islands; no Paracel or Spratly features are in the data, so nothing near Taiping Island is coloured.
 - The Taiwan card always sits east of the FIR, over the Pacific.
 - No national flags: the cooperation is between ATFM units, and the series identifies countries by their land shapes.
 

@@ -2,6 +2,7 @@
 // Word onsets in the narration (s): 對外 0.05 · 我們 1.14 · 汲 1.33 · 取 1.51 · 歐 1.93 · 美 2.14 · 國際 2.48 · ATFM 3.55–4.33 · 觀念 4.38
 //   並 6.60 · 拓展 6.82
 //   版圖 ends 8.35 · 與 9.72 · 日本 9.90 · 韓國 10.70 · 菲律賓 11.50 · 泰國 12.40 · 新加坡 13.22 · 等國家 13.88
+//   (on 等國家 Vietnam lights at 13.88 and Hong Kong at 14.20, added at the client's request)
 //   一同 14.85 · 執行 15.22 · ATFM 15.78 · 措施 16.92
 // Colours carry meaning: green = Europe/US (sources of ATFM know-how), gold = Taiwan / Taipei FIR,
 // navy + periwinkle = cooperation partners. Mainland China is never labelled, filled or tinted.
@@ -106,8 +107,11 @@ const P = [
   { id: '392', zh: '日本', en: 'Japan', at: [138.3, 36.3], on: 9.90, bulge: -0.12, glyph: { minFrac: 0.02, drop: [[122, 20, 132, 30.6], [139, 20, 155, 31]] } },
   { id: '410', zh: '韓國', en: 'Korea', at: [127.9, 36.4], on: 10.70, bulge: -0.10 },
   { id: '608', zh: '菲律賓', en: 'Philippines', at: [121.1, 15.9], on: 11.50, bulge: 0.25 },
-  { id: '764', zh: '泰國', en: 'Thailand', at: [100.9, 15.6], on: 12.40, bulge: 0.12 },
-  { id: '702', zh: '新加坡', en: 'Singapore', at: [103.82, 1.35], on: 13.22, bulge: 0.10 },
+  { id: '764', zh: '泰國', en: 'Thailand', at: [100.9, 15.6], on: 12.40, bulge: 0.15 },
+  { id: '702', zh: '新加坡', en: 'Singapore', at: [103.82, 1.35], on: 13.22, bulge: 0.10, small: true },
+  // 等國家: Vietnam on 等, Hong Kong on 國家 (added at the client's request)
+  { id: '704', zh: '越南', en: 'Vietnam', at: [105.85, 21.03], on: 13.88, bulge: -0.40 }, // Hanoi; arcs north, clear of Hong Kong
+  { id: '344', zh: '香港', en: 'Hong Kong', at: [114.17, 22.32], on: 14.20, bulge: 0, small: true },
 ];
 P.forEach(p => { p.a0 = p.on - 0.45; });
 E.poly({ coords: FIR, closed: true, color: C.gold, width: t => lerp(2.5, 5.5, clamp01((ppd() - 6.5) / 35)), draw: t => seg(t, 0.15, 1.05, 'inOut'), opacity: t => t >= 0.15 ? 1 : 0, fillOpacity: 0,
@@ -155,13 +159,17 @@ const PPOS = {
   '392': (q, w, h) => [q[0] + 76, q[1] + 22],
   '410': (q, w, h) => [q[0] - 40 - w, q[1] - h / 2],
   '608': (q, w, h) => [q[0] + 92, q[1] - 10],
-  '764': (q, w, h) => [q[0] - 96 - w, q[1] - h / 2],
+  '764': (q, w, h) => [q[0] - 96 - w, q[1] - h / 2 + 40],
   '702': (q, w, h) => [q[0] - 64 - w, q[1] - h / 2],
+  '704': (q, w, h) => [q[0] - 60 - w, q[1] - h / 2],
+  '344': (q, w, h) => [q[0] - 60 - w, q[1] - h - 70],
 };
+const LEFT_CARDS = ['410', '764', '702', '704', '344']; // cards left of their pin slide in from the pin side
 P.forEach((p, j) => {
-  const parts = [0, 1, 2, 3].map(m => ({ t0: 14.90 + 0.05 * j + 0.45 * m, dur: 0.9, dir: m % 2 ? -1 : 1, ease: 'sineInOut', r: 4.5, color: m % 2 ? C.gold : C.navy }));
+  const parts = [0, 1, 2, 3].map(m => ({ t0: 14.90 + 0.05 * j + 0.45 * m, dur: 0.9, dir: m % 2 ? -1 : 1, ease: 'sineInOut', r: 4.5, color: m % 2 ? C.gold : C.navy }))
+    .filter(pa => pa.t0 + pa.dur <= 17.30); // every particle is gone before the static end hold
   E.arc({ from: TW, to: p.at, color: C.navy, width: t => 2.5 + 1.0 * seg(t, 14.85, 15.25), bulge: p.bulge, draw: t => seg(t, p.a0, p.on, 'inOut'), opacity: t => t >= p.a0 ? 1 : 0,
-    maskFrom: () => firExit(TW, p.at, p.bulge, true).d, maskTo: p.id === '702' ? 12 : 12, particles: parts });
+    maskFrom: () => firExit(TW, p.at, p.bulge, true).d, maskTo: p.small ? 30 : 12, particles: parts });
   E.lift(p.id, t => ({
     color: mix(C.periFlash, C.peri, seg(t, p.on, p.on + 0.8)), side: C.periSide, stroke: C.periLine, strokeWidth: 1.0, shadowColor: C.periShadow, shadowAlpha: 0.3,
     opacity: t >= p.on ? 1 : 0, reveal: seg(t, p.on, p.on + 0.35, 'out'), origin: p.at,
@@ -169,12 +177,13 @@ P.forEach((p, j) => {
   }));
   E.pin({ at: p.at, color: C.navy, t0: p.on, pulseR: 40, pulseDur: 0.7 });
   E.ripple({ at: p.at, color: C.navy, t0: 14.85, t1: 15.55, r0: 10, r1: 40, o0: 0.55, width: 2 });
-  E.card({ zh: p.zh, en: p.en, color: C.navy, at: p.at, t0: p.on + 0.05, pos: PPOS[p.id], enter: ['410', '764', '702'].includes(p.id) ? [14, 0] : [-14, 0], leader: { pinR: p.id === '702' ? 28 : 11 },
+  E.card({ zh: p.zh, en: p.en, color: C.navy, at: p.at, t0: p.on + 0.05, pos: PPOS[p.id], enter: LEFT_CARDS.includes(p.id) ? [14, 0] : [-14, 0], leader: { pinR: p.small ? 28 : 11 },
     glyph: { key: p.id, fill: C.peri, stroke: C.navy, bg: 'transparent', pad: 3, ...(p.glyph || {}) } });
 });
 document.getElementById('over').appendChild(dGroup); // handoff diamonds sit on top of the arc ends
-E.ring({ at: [103.82, 1.35], color: C.navy, r: 24, width: 2, draw: t => seg(t, 13.22, 13.57), opacity: t => t >= 13.22 ? 1 : 0,
-  ticks: { n: 36, len: 4, gap: 3, opacity: t => 0.5 * seg(t, 13.42, 13.72) } });
+// locator rings for partners too small to read as a shape on the map (Singapore, Hong Kong)
+P.filter(p => p.small).forEach(p => E.ring({ at: p.at, color: C.navy, r: 24, width: 2, draw: t => seg(t, p.on, p.on + 0.35), opacity: t => t >= p.on ? 1 : 0,
+  ticks: { n: 36, len: 4, gap: 3, opacity: t => 0.5 * seg(t, p.on + 0.20, p.on + 0.50) } }));
 
 window.boot(DURATION);
 })();
