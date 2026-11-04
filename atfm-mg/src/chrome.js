@@ -11,8 +11,7 @@
     { at: 0.0, eyebrow: "單日案例 · 5 月 5 日", title: "把等待留在地面" },
     { at: 5.62, eyebrow: "協調帶來的效益", title: "減碳、燃油與空中盤旋" },
     { at: W.atfm - 0.55, eyebrow: "ATFM 飛航流量管理", title: "為航空公司帶來的真實價值", mark: { chars: 4, at: W.value } },
-    { at: 17.25, eyebrow: "03　投入範圍", title: "硬體投入，自主研發完成" },
-    { at: 24.45, eyebrow: "04　公共價值", title: "為國家節省公帑" },
+    { at: 17.25, eyebrow: "03　投入範圍", title: "硬體投入" },
   ];
   // header 2 -> 3 keeps the gap silent; chrome clears during the VO pause
   const CLEAR_AT = 16.55;
@@ -20,8 +19,6 @@
   const FOOTS = [
     { at: 0.55, out: 5.5, text: "CTOT 為時段安排；528 分鐘是累計地面等待時間。" },
     { at: 5.85, out: CLEAR_AT, text: "57.9 噸為原稿案例數據，並非畫面中單架航機的排放量。" },
-    { at: 17.6, out: 24.3, text: "645 萬元僅對應硬體費用；全案的人力、研發、建置與維護須另依口徑核算。" },
-    { at: 24.75, out: null, text: "以 645 萬元為 1 格；約 4 億元 ≈ 62 格。" },
   ];
 
   // SplitText collapses U+3000 into a plain space; restore the full-width gap
