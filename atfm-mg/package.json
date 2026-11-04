@@ -1,0 +1,16 @@
+{
+  "name": "atfm-mg",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ATFM benefits MG insert (VO 00;08;40 - 00;09;08), HTML/GSAP composition rendered at 59.94 fps",
+  "scripts": {
+    "stills": "node tools/render.mjs stills",
+    "render": "node tools/render.mjs video --out out/ATFM_benefits_0840_5994.mp4",
+    "render:review": "node tools/render.mjs video --review --out out/ATFM_benefits_0840_5994_review.mp4",
+    "fonts": "bash tools/fetch_fonts.sh",
+    "subset": "python3 tools/subset_fonts.py"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0"
+  }
+}
