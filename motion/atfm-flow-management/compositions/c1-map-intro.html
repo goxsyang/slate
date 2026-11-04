@@ -34,7 +34,7 @@
            x ≈ 981–1039, y ≈ 444–478, 19 px above the RCTP pill (y 497–541). The A1 BULAN leg that climbs at −41° on its
            right now carries every A1 flight (southbound through traffic + NE arrivals, client review R2), so the box is
            centred on the tick and 4 px higher than before: ≥ 9 px from the passing wingtips, ≥ 23 px from M750 at SANAS */
-        #c1-root .c1-ab { left: 0px; bottom: 56px; transform: translateX(-50%); }
+        #c1-root .c1-ab { left: -29px; bottom: 56px; }   /* centred by number (box ≈ 58 px wide), no CSS translate */
         #c1-root .c1-lf { right: 18px; bottom: 0px; }     /* left of the node (RCTP), above the A1 leg that leaves it SW */
         /* airway designator pills (SVG, client review R3): mono 30/600 in the airway's colour */
         #c1-root .c1-pill-tx { font-family: "ATFM Mono", monospace; font-size: 30px; font-weight: 600; letter-spacing: 0.04em; }
@@ -121,22 +121,26 @@
           // ---------- airway designators (client review R3: 「左邊為 A1，右邊為 M750」) ----------
           // Mono 30/600 in the airway's own colour on a cream pill with a 1 px teal-soft ring, centred ON the line and turned
           // to its screen angle, at constant screen size (K.mapFixed); shown with the fix tags from the F1 push.
-          // Placement: between ENVAR and ANLOT the twin airways are only 15–21 px apart at z 2, so a 32 px pill centred on
-          // M750 there would be wedged between the two lines with A1's stroke cutting its rim. A1 sits 40 wu outside ELATO
-          // on its SW extension (≈ 85 % opaque there), between the FIR west edge and the extension fade, where the pair is
-          // 23 px apart. M750 sits on its NE leg, 55 % of the way from SANAS to MOLKA, where A1 (APU → BULAN) runs parallel
-          // (within 0.4°) 11.85 wu away (22.5–23.7 px at z 1.9–2.0); the pill is nudged 1.5 px off the M750 axis, away from
-          // A1, so its rim keeps 5.8–7.0 px from A1's stroke. On screen A1 is the left pill and M750 the right one (the
-          // client's 「左邊為 A1，右邊為 M750」); M750's clears the MOLKA node by ≥ 27 px, the APU tag by ≥ 29 px and the
-          // SANAS / MOLKA / BULAN tags by ≥ 37 px.
-          // Layering: the pills are appended to m.world after the aircraft — labels on top of traffic, so a plane that
-          // crosses one passes under it and the designator stays readable for its whole life.
+          // Placement — the same anchors as c5's recap (one place per designator in the whole film): between ENVAR and ANLOT
+          // the twin airways are only 15–21 px apart at z 2, so a pill centred on either line there would be wedged between
+          // the two with the other stroke cutting its rim. Each pill therefore sits on its airway's extension just outside
+          // the FIR, at the line's exit end, where the pair has diverged to 12.4 wu (23.6–24.8 px at z 1.9–2.0): A1 62.5 wu
+          // SW of ELATO (left, low), M750 100 wu NE of MOLKA (right, high) — the client's 「左邊為 A1，右邊為 M750」. Body
+          // 30 px tall, as c5 (58 / 97 px long): its rim keeps ≥ 6 px from the neighbouring stroke. A1's box (x ≈ 606–682,
+          // y ≈ 768–834) clears the ELATO tag by ≥ 42 px and the ENVAR tag by ≥ 82 px; M750's (x ≈ 1259–1385, y ≈ 248–351)
+          // is ≥ 100 px from the BULAN / MOLKA tags and the MOLKA node, and its top stays ≥ 248 until it is gone (7.07).
+          // Layering (as c5): each pill is split into two map-fixed layers at the same point and angle. The cream BODY (blurred
+          // shadow + pill) sits in world order right above the airways, under the nodes, fix ticks and planes; the GLYPHS
+          // are appended after the last aircraft. Every point on a line is overflown every 1.4 s and each pill is up for
+          // 1.4–1.6 s, so some flight always crosses it: it flies over the cream box and under the letters, so neither the
+          // plane (nor a wingtip) is ever hidden by the box nor the designator by the plane.
           m.defs.appendChild(K.s("filter", { id: "c1-pill-sh", x: "-30%", y: "-80%", width: "160%", height: "260%" }, [K.s("feGaussianBlur", { stdDeviation: "3" })]));
           function unit(a, b) { var dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); return [dx / l, dy / l]; }
-          // outer = mapFixed → inner .c1-pill-in (fade / rise) → [blurred shadow (screen-down), rotated pill + label];
+          // body: outer = mapFixed → inner .c1-pill-in (fade / rise) → [blurred shadow (screen-down), rotated pill];
+          // text: tOuter = mapFixed (same point) → tInner .c1-pill-in (same fade / rise) → rotated label;
           // off = screen px across the line (+ = to the right of the direction of travel)
           function mkPill(text, color, pt, dir, len, off) {
-            var H = 32, ang = Math.round((Math.atan2(dir[1], dir[0]) * 18000) / Math.PI) / 100, sh = off ? " translate(0 " + off + ")" : "";
+            var H = 30, ang = Math.round((Math.atan2(dir[1], dir[0]) * 18000) / Math.PI) / 100, sh = off ? " translate(0 " + off + ")" : "";
             var box = { x: String(-len / 2), y: String(-H / 2), width: String(len), height: String(H), rx: "10" };
             var outer = K.s("g", { class: "c1-pill" });
             var inner = K.s("g", { class: "c1-pill-in", opacity: "0" }, [
@@ -145,21 +149,30 @@
               ]),
               K.s("g", { transform: "rotate(" + ang + ")" + sh }, [
                 K.s("rect", Object.assign({}, box, { fill: "#FBF7F2", stroke: "#A9C7BD", "stroke-width": "1" })),
+              ]),
+            ]);
+            outer.appendChild(inner);
+            var tOuter = K.s("g", { class: "c1-pill-text" });
+            var tInner = K.s("g", { class: "c1-pill-in", opacity: "0" }, [
+              K.s("g", { transform: "rotate(" + ang + ")" + sh }, [
                 // baseline at half the cap height (Plex Mono caps/digits 0.698 em); x 0.6 cancels the trailing letter-spacing
                 K.s("text", { class: "c1-pill-tx", x: "0.6", y: "10.5", "text-anchor": "middle", fill: color, text: text }),
               ]),
             ]);
-            outer.appendChild(inner);
+            tOuter.appendChild(tInner);
             K.mapFixed(m, outer, pt[0], pt[1], 1);
-            return { g: outer, inner: inner };
+            K.mapFixed(m, tOuter, pt[0], pt[1], 1);
+            return { g: outer, inner: inner, tg: tOuter, tInner: tInner };
           }
           var U_A1 = unit(FIX.ELATO, FIX.MKG), U_M750 = unit(FIX.SANAS, FIX.MOLKA);
           var PILL = {
-            A1: mkPill("A1", TEAL, [FIX.ELATO[0] - U_A1[0] * 40, FIX.ELATO[1] - U_A1[1] * 40], U_A1, 60),
-            M750: mkPill("M750", TEAL2, [FIX.SANAS[0] + (FIX.MOLKA[0] - FIX.SANAS[0]) * 0.55, FIX.SANAS[1] + (FIX.MOLKA[1] - FIX.SANAS[1]) * 0.55], U_M750, 98, 1.5),
+            A1: mkPill("A1", TEAL, [FIX.ELATO[0] - U_A1[0] * 62.5, FIX.ELATO[1] - U_A1[1] * 62.5], U_A1, 58),
+            M750: mkPill("M750", TEAL2, [FIX.MOLKA[0] + U_M750[0] * 100, FIX.MOLKA[1] + U_M750[1] * 100], U_M750, 97),
           };
 
           [MP.SB, MP.NE, MP.M, R.M750, R.A1, R.SPUR].forEach(function (p) { m.world.appendChild(p); });
+          // pill bodies right above the airways (nodes, ticks and planes are appended later, so they draw over them)
+          [PILL.M750.g, PILL.A1.g].forEach(function (g) { m.world.appendChild(g); });
           var LEN = { SB: MP.SB.getTotalLength(), NE: MP.NE.getTotalLength(), M: MP.M.getTotalLength() }; // ≈ 797.5 / 378.6 / 794.9
           var EXT = 260;                      // BULAN / ENVAR sit 260 wu into their motion paths
           var S_VIS = 130;                    // planes become visible 130 wu before the boundary (ext line ≥ 50 % opaque)
@@ -320,14 +333,15 @@
           // last step of the 「全方位」 sweep, a real crossing); they entered at BULAN 2.31 s earlier. NE arrivals enter at
           // BULAN 0.7 s after each through flight — exactly halfway, so the shared BULAN → APU leg carries one flight every
           // 0.7 s (84 wu, ≥ 155 px apart) — and land at RCTP 0.99 s later: a 2.73 · 4.13 · 5.53 · 6.93 metronome.
-          // The dive arrival takes the next through-flight slot instead (it would have crossed BULAN at 6.64 and exited at
-          // ELATO at 8.95): it turns off at APU and lands at 7.63, so the dive into Taoyuan follows a landing in rather than
-          // a flight leaving the airport (the shared leg keeps its even 0.7 s spacing). M750 transits (unchanged) cross
-          // ENVAR at 1.25 + 1.4k.
+          // The last through-flight slot (BULAN 6.64, which would exit at ELATO at 8.95, after the cut) is flown by the dive
+          // arrival instead: it turns off at APU and lands at 7.63, so the dive into Taoyuan follows a landing in rather
+          // than a flight leaving the airport (the shared leg keeps its even 0.7 s spacing; the 8.33 arrival still crosses
+          // BULAN at 7.34). M750 transits (unchanged) cross ENVAR at 1.25 + 1.4k.
           var D_SB = (S_ELATO - EXT) / V, D_NE = (LEN.NE - EXT) / V;                                   // 2.31 s · 0.99 s
-          var T_ELATO = [1.95, 3.35, 4.75, 6.15, 7.55];
-          var T_LAND = T_ELATO.map(function (te) { return te - D_SB + 0.7 + D_NE; });                  // 2.73 · 4.13 · 5.53 · 6.93 · (8.33)
-          var T_DIVE = T_ELATO[T_ELATO.length - 1] + 1.4 - D_SB + D_NE;                                // 7.63 (BULAN 6.64)
+          var SLOT = [1.95, 3.35, 4.75, 6.15, 7.55, 8.95];                                              // southbound slots (ELATO-exit times)
+          var T_ELATO = SLOT.slice(0, 5);                                                               // through flights
+          var T_LAND = SLOT.map(function (te) { return te - D_SB + 0.7 + D_NE; });                     // (1.33) · 2.73 · 4.13 · 5.53 · 6.93 · (8.33)
+          var T_DIVE = SLOT[5] - D_SB + D_NE;                                                           // 7.63 (BULAN 6.64)
           var T_ENVAR = [-0.15, 1.25, 2.65, 4.05, 5.45, 6.85];
 
           // ---------- beats ----------
@@ -431,11 +445,12 @@
           ft(tAPU.inner, { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 1, scale: 0.7, duration: 0.35, ease: "power2.out" }, 6.25);
           ft(tAPU.inner, { scale: 0.7 }, { scale: 1, duration: 0.4, ease: "sine.inOut" }, 6.95, true);
           tagIn(TAG.APU, 6.25);
-          // airway designators (R3) rise with the F1 push while no transit is on their spot: M750 first (5.45 — the 4.05
-          // transit reaches its pill only at 5.70, by when it is 80 % up, and passes under it 5.70–6.23), A1 with the
-          // A1-side MKG tag (5.64; chip02's leader, which crossed that spot, is gone by 5.58)
-          tagIn(PILL.M750.inner, 5.45);
-          tagIn(PILL.A1.inner, 5.64);
+          // airway designators (R3) rise with the F1 push: M750 first (5.45), A1 with the A1-side MKG tag (5.64; chip02,
+          // whose card ends 11 px left of the A1 pill's spot, is gone by 5.58). Body and glyph layers rise together; the
+          // traffic that crosses them (e.g. the fading 2.65 transit over M750 at 5.50–6.00, the 6.15 southbound exit over
+          // A1 at 6.50–6.83) flies over the cream body and under the letters.
+          [PILL.M750.inner, PILL.M750.tInner].forEach(function (el) { tagIn(el, 5.45); });
+          [PILL.A1.inner, PILL.A1.tInner].forEach(function (el) { tagIn(el, 5.64); });
 
           // event pulses — RCTP: every NE-arrival landing (two rings alternate, so overlaps never fight); ENVAR: every
           // transit entry; ELATO: every southbound exit once the node is up (3.35 · 4.75; the 6.15 exit is the 「全方位」
@@ -456,9 +471,10 @@
           ft(nRCTP.inner, { scale: 1.8 }, { scale: 2.6, duration: 0.45, ease: "power2.out" }, 7.7, true);
           ft(nRCTP.inner, { opacity: 1 }, { opacity: 0, duration: 0.12, ease: "power2.out" }, 7.7, true);
           // name tags and airway pills leave as the dive starts (6.92–7.14): screen-sized text must not ride the zoom into
-          // the terminal, and under F1_v3 ENVAR's pill would cross the band's opaque bottom edge (842) at 7.14
+          // the terminal, and under F1_v3 ENVAR's pill would cross the band's opaque bottom edge (842) at 7.14. The airway
+          // pills go 0.07 s ahead (6.85–7.07): the dive carries the A1 pill's lower corner down to y 842 at 7.07 (847 at 7.10).
           Object.keys(TAG).forEach(function (k) { ft(TAG[k], { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power2.in" }, 6.92, true); });
-          [PILL.A1, PILL.M750].forEach(function (p) { ft(p.inner, { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power2.in" }, 6.92, true); });
+          [PILL.A1.inner, PILL.A1.tInner, PILL.M750.inner, PILL.M750.tInner].forEach(function (el) { ft(el, { opacity: 1 }, { opacity: 0, duration: 0.22, ease: "power2.in" }, 6.85, true); });
           // band fade 7.55–8.00 (spec 7.50–8.15): ≈ 0.89 at 7.70, ≈ 0.56 at 7.85, 0 at 8.00. This crossfades against
           // c2's DST (≈ 0.41 at 7.80, ≈ 0.68 at 7.90), so the coastline behind the terminal clears sooner and the frame never dips blank.
           ft(band, { opacity: 1 }, { opacity: 0, duration: 0.45, ease: "power1.in" }, 7.55, true);
@@ -507,8 +523,8 @@
             if (tF0 < END - 0.1) ft(p, { opacity: 1 }, { opacity: 0, duration: Math.min(70 / V, END - tF0), ease: "power1.in" }, tF0, true);
             else if (TC + 0.6 > 6.95) ft(p, { opacity: 1 }, { opacity: 0, duration: 0.25, ease: "power1.in" }, 7.35, true);
           });
-          // airway designators on top of the traffic (see "airway designators" above)
-          [PILL.M750.g, PILL.A1.g].forEach(function (g) { m.world.appendChild(g); });
+          // airway designator GLYPHS on top of the traffic (their cream bodies are under it; see "airway designators" above)
+          [PILL.M750.tg, PILL.A1.tg].forEach(function (g) { m.world.appendChild(g); });
 
           tl.set({}, {}, END);
           window.__timelines = window.__timelines || {};

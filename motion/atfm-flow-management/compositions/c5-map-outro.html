@@ -38,40 +38,60 @@
           //     cross BULAN (41.23) · 42.43 (hero, 02) · 43.63 · 44.83 · 46.03 · 47.23 · 48.43 · (49.63)
           //     land RCTP   42.19 · 43.39 (hero, 01) · 44.59 · 45.79 · 46.99 · 48.19 · (49.39 · 50.59)
           //   A1 through traffic, southbound (BULAN → APU → MKG → ELATO, AIRWAY.A1_SB), exiting at ELATO — two of them:
-          //     exit ELATO  41.28 · 48.80 (sweep end)                cross BULAN (39.04) · 46.56
-          //     The 48.80 one sits 0.53 s (66 wu) behind an arrival on the shared BULAN → APU leg and 0.67 s (83 wu) ahead
-          //     of the next; its head-on passes with the M750 transits fall where the twin airways are ≥ 10 wu apart (never
-          //     in the MKG pinch, 7 wu, while visible). No through-flight crosses BULAN in 41.5–46.5, so the hero's 02 / 01
-          //     beats stand alone. (A third, mid-scene through-flight was tried at every phase: each one either flew over
-          //     the A1 pill during a pulse cluster, passed a transit inside the MKG pinch, or tail-gated an arrival.)
+          //     exit ELATO  41.28 · 48.66 (sweep end)                cross BULAN (39.04) · 46.42
+          //     The 48.66 one sits 0.39 s (48 wu) behind the 46.03 arrival on the shared BULAN → APU leg and 0.81 s (100 wu)
+          //     ahead of the next. No through-flight crosses BULAN in 41.5–46.4, so the hero's 02 / 01 beats stand alone.
+          //     (A third, mid-scene through-flight was tried at every phase: each one either flew over the A1 pill during a
+          //     pulse cluster, passed a transit inside the MKG pinch, or tail-gated an arrival.)
           //   M750 transits (ENVAR → ANLOT → SANAS → MOLKA, unchanged), every 2.4 s:
           //     cross ENVAR (39.80) · 42.20 · 44.60 · 47.00 · (49.40)      exit MOLKA 42.02 · 44.42 · 46.82 · (49.22)
-          //   Southbound A1 and eastbound M750 traffic pass each other head-on on the parallel airways (10–12 wu apart,
-          //   21–25 px at z ≈ 2): unavoidable on twin airways flown in opposite directions; each pass keeps the two aircraft
-          //   within 45 px for ≈ 0.15 s (≈ 9 frames), wingtips overlapping ≤ 4 px. The whole arrival train is timed so that
-          //   no pass falls on a pulse at a node: an arrival crosses BULAN 0.41 s after a transit has left MOLKA, so they
-          //   pass ≈ 15 wu up the NE extension 0.16 s before the BULAN ring (the hero meets the 39.80 transit at 42.27,
-          //   ≈ 30 px NE of BULAN; when the hero's 02 ring fires at 42.43 the transit is ≈ 80 px away, outbound). The hero
-          //   is drawn above all other traffic. Pulse rhythm around each MOLKA exit: MOLKA 44.42 · RCTP 44.59 · ENVAR 44.60
-          //   · BULAN 44.83 (and 46.82 · 46.99 · 47.00 · 47.23): the two east-edge rings, 31 px apart, are 0.41 s apart.
-          //   Closing sweep BULAN 48.23 → MOLKA 48.42 → ENVAR 48.61 → ELATO 48.80 (0.19 s steps, as c1). The last step is a
-          //   real crossing (the 48.80 through-flight leaves at ELATO); BULAN / MOLKA / ENVAR are the sweep's own pulses (the
-          //   one allowed exception, STORYBOARD §0.2). The 48.43 arrival crosses BULAN inside the still-growing sweep ring
-          //   and gets no ring of its own (two rings 0.2 s apart on one node would fight).
+          //   Southbound A1 and eastbound M750 traffic pass each other head-on on the parallel airways (9–12 wu apart,
+          //   18–25 px at z ≈ 2): unavoidable on twin airways flown in opposite directions; each pass keeps the two aircraft
+          //   within 45 px for ≈ 0.15 s (≈ 9 frames). Where the passes fall (none on a node while its ring is up):
+          //   · arrivals: each crosses BULAN 0.41 s after a transit has left MOLKA, so they pass ≈ 15 wu up the NE extension
+          //     0.16 s before the BULAN ring (the hero meets the 39.80 transit at 42.27, ≈ 30 px NE of BULAN; when the hero's
+          //     02 ring fires at 42.43 the transit is ≈ 80 px away, outbound); the other passes are mid-leg SANAS → MOLKA
+          //     (41.67 · 44.07 · 46.47 · 48.87) or far up the NE extension (42.87 · 45.27 · 47.67).
+          //   · the 48.66 through-flight meets the 44.60 transit at 46.66, 23 wu SW of MOLKA (≈ 60 px from BULAN, after
+          //     BULAN's 46.42 ring has started and before MOLKA's 46.82 ring: clear of both), the 47.00 transit at 47.86,
+          //     15 wu NE of MKG where the airways are 8.8 wu apart (18 px centre to centre, no ring nearby), and the 49.40
+          //     transit on the SW extension at the cut (≈ 38 px).
+          //   · the 41.28 through-flight meets the 42.20 transit at 41.77, 55 wu SW of ENVAR (before the A1 pill shows).
+          //   The hero is drawn above all other traffic. Pulse rhythm around each MOLKA exit: MOLKA 44.42 · RCTP 44.59 ·
+          //   ENVAR 44.60 · BULAN 44.83 (and 46.42 · 46.82 · 46.99 · 47.00 · 47.23): the two east-edge rings, 31 px apart,
+          //   are 0.41 s apart.
+          //   Closing sweep BULAN 48.09 → MOLKA 48.28 → ENVAR 48.47 → ELATO 48.66 (0.19 s steps, as c1). The last step is a
+          //   real crossing (the 48.66 through-flight leaves at ELATO); BULAN / MOLKA / ENVAR are the sweep's own pulses (the
+          //   one allowed exception, STORYBOARD §0.2), each after that node's previous ring has died. The 48.43 arrival then
+          //   crosses BULAN 0.34 s after the sweep step and gets its own (real) ring on BULAN's other ring.
           //
           // DECLARED DEVIATIONS from STORYBOARD Frame 5 / §0A / §0D (built values — do not "correct" them back):
           //   · V = 123.745 wu/s (not 110): the delivered cruise speed, kept so the M750 transits are unchanged.
           //   · M750 transits every 2.4 s (not 1.8 / 1.4): with 1.8 s the periods force a 0.3 s pair every cycle on the twin
           //     airways (≈ 50 px centre-to-centre, wingtips 20 px apart).
           //   · Hero: BULAN 42.43 → RCTP 43.39 (§0D allows ≤ 43.45); chip02 card pops 41.50 (leader 41.45); chip01 leader
-          //     43.42, card 43.47 (right after the landing); both chips leave at 44.20 (they left at 43.60 when chip01 popped
-          //     at 42.30 — it now needs time to be read), so the VO12 cards overlap the VO13 title for ≈ 0.35–0.7 s.
+          //     at the touchdown (43.39), card 43.42; both chips leave at 44.20 (they left at 43.60 when chip01 popped at
+          //     42.30 — it now needs time to be read). VO12 「這 2 項功能相互配合」 ends at 43.19, so chip01 is fully up only
+          //     as the VO12 title leaves and both VO12 cards stay ≈ 0.5–0.8 s into VO13 (forced: landing ≤ 43.45 and the
+          //     chip after the landing, §0D R2).
+          //   · The 42.20 transit passes ≈ 30 px from RCTP at 43.56, while the hero's 01 ring is up (r ≈ 18–23 px): forced by
+          //     the frozen M750 stream + the §0D window (BULAN crossing ≥ 42.0, landing ≤ 43.45) — every allowed landing time
+          //     puts this transit within ≈ 30 px of RCTP during the ring. It reads as a separate plane on the other line.
           //   · R3 pills: inside the FIR the two airways run only 7–10 wu (14–20 px) apart in the SW quadrant, so a 30-px-type
           //     pill centred on one line would cover the other. Each pill therefore sits on its airway's extension just
           //     outside the FIR, where the lines diverge: `A1` on the A1 extension 62.5 wu SW of ELATO (A1's exit end,
-          //     left), `M750` on the M750 extension 72 wu NE of MOLKA (M750's exit end, right) — rotated to the line,
-          //     ≥ 5 px clear of the neighbouring stroke, constant screen size. Each pill is two layers: the cream body
-          //     under the traffic and the designator glyphs above it, so an aircraft crossing a pill never hides a letter.
+          //     left), `M750` on the M750 extension 100 wu NE of MOLKA (M750's exit end, right) — rotated to the line,
+          //     ≥ 5 px clear of the neighbouring stroke, constant screen size. Each pill is two layers: the cream body (and
+          //     c1's blurred drop shadow) under the traffic and the designator glyphs above it, so an aircraft crossing a
+          //     pill never hides a letter. These positions differ from c1 on purpose (c1: M750 inside the FIR at 55 %
+          //     SANAS → MOLKA, A1 40 wu SW of ELATO): in c5 the hero-highlight casing on A1 BULAN → APU would touch a pill at
+          //     c1's M750 spot, and at 40 wu the A1 pill would sit on chip02's leader (it crosses A1 23 wu SW of ELATO).
+          //     M750 at 100 wu (not 72): transits then cover it 0.56–1.06 s after each MOLKA exit (42.58–43.08 · 44.98–45.48
+          //     · 47.38–47.88), clear of every BULAN (+0.41 s) and RCTP (+0.17 / +1.37 s) beat.
+          //   · R3 pill timing (§0D: "from 41.3"): `A1` fades in at 41.95 — the 41.28 through-flight flies over the pill
+          //     41.63–41.94 and meets the 42.20 transit beside it at 41.77, during chip02's pop; 41.95 is the first clean
+          //     frame. `M750` fades in at 42.22, the first frame its rotated box is inside the band (top ≥ 245; 244 px at
+          //     FBp_v3, ≥ 238 throughout).
           //   · The charted 10-wu APU → RCTP final is drawn from 41.10; the hero highlight shows it once. The dashed FIR
           //     outline retires under the gold at 45.6. chip02's leader crosses the faded A1 extension ≈ 23 wu SW of ELATO
           //     (planes are layered above it).
@@ -201,11 +221,17 @@
           // Placement (see the header): on each airway's extension just outside the FIR, where the twin airways have
           // diverged to 12.4 wu (24–25 px at z 1.95–2.05) — A1 at its SW exit end, M750 at its NE exit end. A1: 62.5 wu SW
           // of ELATO — ≥ 13 px below chip02's leader at every state the chip is up, ≥ 24 px right of the card, bottom
-          // corner ≤ 841 at FBp. M750: 72 wu NE of MOLKA — ≥ 50 px from the BULAN / MOLKA tags and from BULAN's largest
-          // ring. Transits fly over the M750 pill 0.33–0.84 s after each MOLKA exit (42.35–42.86 · 44.75–45.26 ·
-          // 47.15–47.66), the 41.28 through-flight over the A1 pill 41.63–41.94, and arrivals on the neighbouring A1
-          // extension graze the M750 pill's long edge (wingtips ≤ 5 px over it): all of them pass under the glyphs.
+          // corner ≤ 841 at FBp. M750: 100 wu NE of MOLKA — far from the BULAN / MOLKA tags and BULAN's largest ring, top
+          // ≥ 244 at every state it is up. Transits fly over the M750 pill 0.56–1.06 s after each MOLKA exit (42.58–43.08 ·
+          // 44.98–45.48 · 47.38–47.88), between the BULAN (+0.41) and RCTP (+1.37) beats; arrivals on the neighbouring A1
+          // extension graze its long edge (wingtips ≤ 5 px over it) 0.72 s before their BULAN crossing. The A1 pill shows
+          // only once the 41.28 through-flight has flown past it (41.95): from then on no aircraft flies over it before the
+          // cut (transits on the neighbouring M750 extension graze its long edge, as arrivals graze M750's). Every
+          // crossing passes under the glyphs.
+          // Styling as c1's pills: cream body, 1 px teal-soft ring, rx 10, and a blurred warm drop shadow 5 px screen-down.
+          // Height 30 (c1: 32): at 32 the A1 pill comes to 11.8 px from chip02's leader and its bottom corner to y 842 at FBp.
           var PILL_H = 30, PILL_PAD = 10, MONO_ADV = 18, MONO_LS = 1.2; // Plex Mono advance 0.6 em; letter-spacing 0.04 em
+          m.defs.appendChild(K.s("filter", { id: "c5-pill-sh", x: "-30%", y: "-80%", width: "160%", height: "260%" }, [K.s("feGaussianBlur", { stdDeviation: "3" })]));
           function mkPill(text, col, base, from, dist) {
             var dx = base[0] - from[0], dy = base[1] - from[1], len = Math.hypot(dx, dy);
             var x = base[0] + (dx / len) * dist, y = base[1] + (dy / len) * dist;
@@ -213,8 +239,14 @@
             if (ang > 90) ang -= 180; else if (ang < -90) ang += 180; // upright, reading left → right
             var w = Math.round(text.length * (MONO_ADV + MONO_LS) + 2 * PILL_PAD);
             var rot = "rotate(" + ang.toFixed(2) + ")";
-            var body = K.s("g", { transform: rot }, [
-              K.s("rect", { x: String(-w / 2), y: String(-PILL_H / 2), width: String(w), height: String(PILL_H), rx: "10", fill: "#FBF7F2", stroke: "#A9C7BD", "stroke-width": "1" }),
+            var body = K.s("g", {}, [
+              // c1's drop shadow: the inset body, blurred, offset 5 px straight down on screen (translate before rotate)
+              K.s("g", { transform: "translate(0 5) " + rot }, [
+                K.s("rect", { x: String(-w / 2 + 4), y: String(-PILL_H / 2 + 3), width: String(w - 8), height: String(PILL_H - 6), rx: "8", fill: "#3C3024", opacity: "0.22", filter: "url(#c5-pill-sh)" }),
+              ]),
+              K.s("g", { transform: rot }, [
+                K.s("rect", { x: String(-w / 2), y: String(-PILL_H / 2), width: String(w), height: String(PILL_H), rx: "10", fill: "#FBF7F2", stroke: "#A9C7BD", "stroke-width": "1" }),
+              ]),
             ]);
             var glyphs = K.s("g", { transform: rot }, [
               // baseline at half the cap height (0.698 em) below centre; +0.6 offsets the trailing letter-spacing
@@ -231,7 +263,7 @@
           }
           var pill = {
             A1: mkPill("A1", "#1F6B62", FIX.ELATO, FIX.MKG, 62.5),
-            M750: mkPill("M750", "#3E8C80", FIX.MOLKA, FIX.SANAS, 72),
+            M750: mkPill("M750", "#3E8C80", FIX.MOLKA, FIX.SANAS, 100),
           };
 
           // ---------- fixes (world, above the airways, under the planes): 5 px tick dots + soft tags ----------
@@ -353,7 +385,7 @@
           // Card over the mainland coast / Strait, straddling the FIR's west edge (the gold redraw reaches that edge only
           // after 45.2, when the card is long gone): at B_v3 x 569–953, y 354–430 (RCTP (991, 540)) — 93 px left of the
           // BULAN tag, ≥ 100 px from every A1 / M750 stroke and aircraft (the NE arrivals come down to the right of it, the
-          // southbound through-flights leave APU below it). Pops at 43.47, right after the hero lands (43.39); the camera
+          // southbound through-flights leave APU below it). Pops at 43.42, right after the hero lands (43.39); the camera
           // holds B_v3 until 43.85 and the box moves < 1 px before it leaves (44.20). The card straddles the dashed FIR
           // west edge (accepted, see the header).
           var chip01 = mkChip(PT.RCTP, num("01", "機場端流量管理"), -38, -110, { right: -38, top: -186, w: 384 }, "384px 76px", 14);
@@ -464,14 +496,14 @@
           // RCTP receives every 1.2 s, all from the NE: BULAN crossings (41.23) · hero 42.43 · 43.63 · 44.83 · 46.03 · 47.23 ·
           // 48.43 · 49.63 → landings 42.19 · 43.39 · 44.59 · 45.79 · 46.99 · 48.19 · (49.39 · 50.59). (The 40.99 landing falls
           // inside the crossfade, before the RCTP node exists, and is not flown.) Southbound through-flights leave at ELATO
-          // 41.28 and 48.80; the 48.80 one runs 0.53 s (66 wu) behind the 46.03 arrival on the shared BULAN → APU leg and
-          // 0.67 s (83 wu) ahead of the next. The 41.28 one has flown the A1 pill before the 42.19 landing beat and passes
-          // the 42.20 transit 60 wu outside the FIR (12.4 wu apart). M750 transits (unchanged) cross ENVAR (39.80) · 42.20 ·
+          // 41.28 and 48.66; the 48.66 one runs 0.39 s (48 wu) behind the 46.03 arrival on the shared BULAN → APU leg and
+          // 0.81 s (100 wu) ahead of the next. The 41.28 one has flown past the (not yet shown) A1 pill by 41.94 and passes
+          // the 42.20 transit 55 wu outside the FIR (12.4 wu apart). M750 transits (unchanged) cross ENVAR (39.80) · 42.20 ·
           // 44.60 · 47.00 · (49.40) and leave at MOLKA 42.02 · 44.42 · 46.82 · (49.22). Scene opening (40.7): the 41.28
           // through-flight is just SW of MKG heading SW, the 39.80 transit near ANLOT heading NE (they passed at 40.57,
           // before the scene); the 42.19 arrival and the hero are still on the NE extension, above the band.
           var arr = [41.23, 42.43, 43.63, 44.83, 46.03, 47.23, 48.43, 49.63].map(arrNE), hero = arr[1];
-          var thru = [41.28, 48.8].map(thruSB);
+          var thru = [41.28, 48.66].map(thruSB);
           var tr = [39.8, 42.2, 44.6, 47.0, 49.4].map(transit);
           // depth is DOM order only (mapPlane is unaffected): the hero flies above every other aircraft, and the R3
           // designator glyphs sit above all traffic (their cream pill bodies stay under it)
@@ -490,9 +522,10 @@
             popIn(nB[e[0]].inner, G(e[1]), 0.6, 0.55, "back.out(1.5)");
             tagIn(tag[e[0]], G(e[2]));
           });
-          // R3 designators fade in with the nodes: A1 (SW, inside the band from the start) at 41.30; M750 (NE extension)
-          // once its whole rotated box is inside the band (top ≥ 245 at 42.00).
-          [[pill.A1, 41.3], [pill.M750, 42.0]].forEach(function (e) {
+          // R3 designators (declared deviation from §0D's "from 41.3", see the header): A1 at 41.95, the first frame after
+          // the 41.28 through-flight has flown past it and the 42.20 transit has cleared it (they meet beside it at 41.77,
+          // during chip02's pop); M750 (NE extension) at 42.22, once its whole rotated box is inside the band (top ≥ 245).
+          [[pill.A1, 41.95], [pill.M750, 42.22]].forEach(function (e) {
             [e[0].inner, e[0].tInner].forEach(function (el) { // body and glyph layers fade in together
               ft(el, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power3.out" }, G(e[1]));
             });
@@ -506,9 +539,9 @@
           });
 
           // chips: leader draws, its joint dot pops, then the card pops off the leader end (02 first: the hero meets the
-          // boundary first). chip02's leader draws from 41.45 (card 41.50); chip01's leader 43.42, card 43.47 — right after
-          // the hero lands (43.39). Both leave together at 44.20.
-          [[chip02, G(41.45), G(41.5)], [chip01, G(43.42), G(43.47)]].forEach(function (c) {
+          // boundary first). chip02's leader draws from 41.45 (card 41.50); chip01's leader draws at the hero's touchdown
+          // (43.39), card 0.03 s later. Both leave together at 44.20.
+          [[chip02, G(41.45), G(41.5)], [chip01, hero.te, hero.te + 0.03]].forEach(function (c) {
             var o = c[0], tL = c[1], tC = c[2];
             ft(o.lead, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, tL);
             ft(o.inner, { opacity: 0, y: 0 }, { opacity: 1, duration: 0.01, ease: "none" }, tL);
@@ -553,26 +586,27 @@
           var evRCTP = [];
           arr.forEach(function (a) { if (a.te < END) evRCTP.push(a === hero ? ev(a.te, 9, 40, 1.0, 0.6) : ev(a.te, 9, 32, 0.9, 0.5)); });
           pulses(nRCTP, evRCTP);
-          // Closing sweep around the FIR edge, BULAN 48.23 → MOLKA 48.42 → ENVAR 48.61 → ELATO 48.80 (0.19 s steps, as c1).
-          // ELATO is a real crossing (the 48.80 through-flight leaves); BULAN / MOLKA / ENVAR are the sweep's own pulses —
-          // the one exception STORYBOARD §0.2 allows — each ≥ 1.0 s after that node's last real ring. The 48.43 arrival
-          // crosses BULAN 0.2 s into the sweep ring (r ≈ 17 and growing) and gets no ring of its own, so no two rings
-          // fight on one node.
-          var SWEEP = { BULAN: G(48.23), MOLKA: G(48.42), ENVAR: G(48.61), ELATO: G(48.8) };
+          // Closing sweep around the FIR edge, BULAN 48.09 → MOLKA 48.28 → ENVAR 48.47 → ELATO 48.66 (0.19 s steps, as c1),
+          // ending on the 48.66 through-flight's real ELATO exit. BULAN / MOLKA / ENVAR are the sweep's own pulses — the one
+          // exception STORYBOARD §0.2 allows — each starting after that node's previous ring has died (BULAN 47.23 ring ends
+          // 48.03; MOLKA 46.82 → 47.62; ENVAR 47.00 → 47.80).
+          var SWEEP = { ELATO: thru[1].tx };
+          SWEEP.ENVAR = SWEEP.ELATO - 0.19; SWEEP.MOLKA = SWEEP.ELATO - 0.38; SWEEP.BULAN = SWEEP.ELATO - 0.57;
           function at(t, T) { return Math.abs(t - T) < 0.005; }
           // BULAN: every A1 aircraft enters there — arrivals 42.43 (hero, 02: bigger ring) · 43.63 · 44.83 · 46.03 · 47.23
-          // and the 48.80 through-flight at 46.56 (≥ 0.53 s apart), then the sweep step 48.23. The 41.23 arrival and the
+          // · 48.43 and the 48.66 through-flight at 46.42 (≥ 0.34 s apart), plus the sweep step 48.09 (between the 47.23
+          // and 48.43 crossings, so it and the 48.43 ring alternate onto BULAN's two rings). The 41.23 arrival and the
           // 39.04 through-flight crossed before BULAN's node popped (41.72): no pulse.
           // Boundary rings start at r 10, just inside the node's cream ring, and grow out of it.
-          var evBULAN = arr.concat(thru).filter(function (a) { return a.tb >= G(41.72) + 0.1 && a.tb < SWEEP.BULAN - 0.02; }).map(function (a) {
+          var evBULAN = arr.concat(thru).filter(function (a) { return a.tb >= G(41.72) + 0.1 && a.tb < END - 0.02; }).map(function (a) {
             return a === hero ? ev(a.tb, 10, 30, 0.9, 0.6) : ev(a.tb, 10, 26, 0.8, 0.45);
           });
           evBULAN.push(ev(SWEEP.BULAN, 10, 26, 0.8, 0.85));
-          // ELATO: the southbound through-flights leave — 41.28 (0.1 s into ELATO's node pop) · 48.80 (the sweep's last step)
+          // ELATO: the southbound through-flights leave — 41.28 (0.1 s into ELATO's node pop) · 48.66 (the sweep's last step)
           var evELATO = thru.map(function (a) { return at(a.tx, SWEEP.ELATO) ? ev(a.tx, 10, 30, 0.5, 0.85) : ev(a.tx, 10, 26, 0.8, 0.45); }).filter(function (e) { return e.t >= 0.3 && e.t < END; });
-          // ENVAR: transits enter — 42.20 · 44.60 · 47.00 (the 39.80 crossing is before the scene). MOLKA: transits leave —
-          // 44.42 · 46.82 (49.22 is past END; the 39.80 transit's 42.02 exit comes just before MOLKA's node pops (42.06):
-          // no pulse, like the BULAN crossings before 41.72).
+          // ENVAR: transits enter — 42.20 · 44.60 · 47.00 (the 39.80 crossing is before the scene), then the sweep step
+          // 48.47. MOLKA: transits leave — 44.42 · 46.82 (49.22 is past END; the 39.80 transit's 42.02 exit comes just before
+          // MOLKA's node pops (42.06): no pulse, like the BULAN crossings before 41.72), then the sweep step 48.28.
           var evENVAR = tr.map(function (a) { return ev(a.tb, 10, 26, 0.8, 0.45); }).filter(function (e) { return e.t >= 1.0 && e.t < END - 0.02; });
           var evMOLKA = tr.map(function (a) { return ev(a.tx, 10, 26, 0.8, 0.45); }).filter(function (e) { return e.t >= G(42.06) + 0.2 && e.t < END - 0.02; });
           evMOLKA.push(ev(SWEEP.MOLKA, 10, 26, 0.8, 0.85));
