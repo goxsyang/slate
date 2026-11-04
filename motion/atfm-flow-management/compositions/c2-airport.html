@@ -130,22 +130,7 @@
           var route2G = K.s("g", { class: "c2-route" }); // slides in with DEP so the arc's start stays on the runway end
           route2G.appendChild(route2);
           gR.appendChild(route2G);
-          // runway-works hatch on the DST runway, R′(0.60)–R′(0.94): N2's turn-off (RO = R′(0.46)) stays 44 px clear of its start
-          var hatchO = K.s("g", { transform: "translate(1660.5 686.65) rotate(12.5)" });
-          var hatch = K.s("g");
-          // 16 px tall on the 11 px painted runway (2.5 px over each edge, like real works barriers) so it reads at 1080p
-          hatch.appendChild(K.s("rect", { x: "0", y: "-8", width: "106.2", height: "16", rx: "3", fill: "url(#c2-hatch)", stroke: TERRA, "stroke-width": "2" }));
-          hatchO.appendChild(hatch);
-          gR.appendChild(hatchO);
-          // cones (h 19 → w 14.8; bottom-centres on R′(0.64/0.74/0.84))
-          var CONE_H = 19, CONE_W = CONE_H * 0.78;
-          var cones = [[1672.7, 689.36], [1703.2, 696.14], [1733.7, 702.91]].map(function (p) {
-            var c = K.cones({ n: 1, h: CONE_H });
-            c.setAttribute("x", String(Math.round((p[0] - CONE_W / 2) * 10) / 10));
-            c.setAttribute("y", String(Math.round((p[1] - CONE_H) * 10) / 10));
-            gR.appendChild(c);
-            return c.__cones[0];
-          });
+          // (client review R1: the runway-works hatch, cones and 跑道維護 chip were removed — the weather alone constrains the destination)
 
           // planes — each in its own wrapper <g> (opacity / slide); the plane <g> itself is driven only by `along`
           var gP = K.s("g", { class: "c2-planes" });
@@ -296,13 +281,10 @@
             c.lab = k;
           }
 
-          // 3 · cause chips — right of the panel (x 1480–1810, y 420–560), in pop order: 天氣 upper-left, 跑道維護 lower-right
+          // 3 · cause chip — right of the panel, above the cloud (client review R1: only 天氣 remains)
           var chipWx = K.chip("天氣", { x: 1480, y: 420, warn: true });
-          var chipRw = K.chip("跑道維護", { x: 1612, y: 470, warn: true }); // bottom 546, 14 px above the cloud (top 560)
           chipWx.classList.add("c2-cause");
-          chipRw.classList.add("c2-cause");
           ui.appendChild(chipWx);
-          ui.appendChild(chipRw);
           // 4 · DEP chip stack at (110, 500): one opaque box (terra-soft → mint) that keeps SIG2's end covered; only the text swaps
           var chipWrap = K.el("div", { class: "k-chip is-warn c2-chipwrap" }, [sizer("已接收新時間")]);
           var chipHold = K.el("span", { class: "c2-swap", text: "地面等待", style: { color: TERRA } });
@@ -344,15 +326,8 @@
           tl.fromTo(cloud, { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.9, ease: "power3.out" }, G(12.85));
           K.pop(tl, chipWx, G(12.9), { dur: 0.55, ease: "back.out(1.5)" });
           K.rain(tl, rainSvg, { id: "c2-rain", x: 1600, y: 648, w: 140, h: 76, n: 12, t0: G(12.95), t1: G(24.25) });
-          // 「跑道」
-          tl.fromTo(hatch, { scaleX: 0, opacity: 0, transformOrigin: "0% 50%" }, { scaleX: 1, opacity: 1, duration: 0.6, ease: "power3.out" }, G(13.65));
-          K.pop(tl, chipRw, G(13.7), { dur: 0.55, ease: "back.out(1.5)" });
-          cones.forEach(function (c, i) {
-            tl.fromTo(c, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.45, ease: "back.out(1.6)" }, G(13.8) + 0.08 * i);
-          });
           tl.to(cloud, { x: -6, duration: 2.2, ease: "sine.inOut", yoyo: true, repeat: 3 }, G(13.8)); // ends 22.60 at x 0
           K.out(tl, chipWx, G(15.7), { dur: 0.35 });
-          K.out(tl, chipRw, G(15.75), { dur: 0.35 });
 
           // --- VO5 「降低」: hours 1000 and 1100 drop to AAR 23 (pink, red ATFM); B and C become regulated (pink) and hold ---
           P.setAAR(tl, 1, 23, true, G(15.85));

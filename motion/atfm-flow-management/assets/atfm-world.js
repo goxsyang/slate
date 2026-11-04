@@ -46,6 +46,9 @@
     // arrival into Taoyuan along A1 from the SW (ELATO → MKG → APU) then the short final to RCTP; and from the NE (BULAN → APU → RCTP)
     A1_ARR_SW: { fixes: ["ELATO", "MKG", "APU", "RCTP"], d: airwayD(["ELATO", "MKG", "APU", "RCTP"], 260, 0) },
     A1_ARR_NE: { fixes: ["BULAN", "APU", "RCTP"], d: airwayD(["BULAN", "APU", "RCTP"], 260, 0) },
+    // CLIENT REVIEW (round 1): A1 at ELATO is mostly a SOUTHBOUND one-way — traffic on A1 flies NE → SW.
+    A1_SB:     { fixes: ["BULAN", "APU", "MKG", "ELATO"], d: airwayD(["BULAN", "APU", "MKG", "ELATO"], 260, 260) }, // through traffic, southbound, with both extensions
+    A1_DEP_SW: { fixes: ["RCTP", "MKG", "ELATO"], d: airwayD(["RCTP", "MKG", "ELATO"], 0, 260) },                  // departure from Taoyuan southbound via MKG → ELATO
   };
   // CTOT (計算起飛時間) cooperation partners named by the client — for the relay / outro copy:
   var CTOT_PARTNERS = ["日本", "香港", "韓國", "菲律賓", "泰國", "新加坡", "越南"];
@@ -67,6 +70,9 @@
       F0: { cx: -20, cy: -40, z: 1.0 }, F0d: { cx: -14, cy: -42, z: 1.04 }, F1: { cx: -8, cy: -50, z: 1.9 },
       // v2 (real-airway rework): tighter opening so the FIR + both airways read at once (FIR x 817–1108, y 336–731)
       F0_v2: { cx: -10, cy: -45, z: 1.35 }, F0d_v2: { cx: -6, cy: -47, z: 1.4 },
+      // v3 (client review: less empty space left/right, Taiwan larger in the middle). FIR at z 1.85: x 760–1160, y 270–812.
+      F0_v3: { cx: -8, cy: -50, z: 1.85 }, F0d_v3: { cx: -6, cy: -50, z: 1.9 }, F1_v3: { cx: -8, cy: -50, z: 2.0 },
+      B_v3: { cx: -8, cy: -50, z: 1.95 }, FB_v3: { cx: -6, cy: -50, z: 2.0 }, FBp_v3: { cx: -4, cy: -50, z: 2.05 },
       F2: { cx: -120.87, cy: -75.91, z: 4.2 }, F2z: { cx: -102.5, cy: -72.24, z: 4.9 },
       S: { cx: 0, cy: 39.7, z: 3.0 }, B: { cx: -5, cy: -45, z: 1.6 }, FB: { cx: -2, cy: -46, z: 1.72 }, FBp: { cx: 0, cy: -47, z: 1.78 },
     },
