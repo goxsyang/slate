@@ -5,6 +5,13 @@
 > ticks light up instead of an 8.8-turn minute hand; S1's right group shows as
 > a 30 % ghost from 0.55 s; the 645 is pressed into the unit square). The scene
 > files in `src/scenes/` are the source of truth for final timings.
+>
+> **Client revision (S3):** the side table + small switch were removed (single
+> cabinet, `assets/rack_cabinet.png`, cables kept inside it); the title is now
+> 「硬體投入」 and stays to the end; the former 「04　公共價值」 page with the
+> 62-square grid was cancelled and merged into S3 as a right-hand schematic
+> 「軟體自主研發完成 ＋ 後續維護費用 → 為國家節省公帑 約 4 億元」; the S3/S4
+> footnotes were deleted. The S3 notes below describe the original brief.
 
 30.03 s motion-graphics insert for the ATFM film, voice-over 00;08;40 – 00;09;08.
 Rendered 1920×1080 @ 59.94 fps (drop-frame timeline). **Clip frame 0 = edit

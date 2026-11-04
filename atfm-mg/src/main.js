@@ -11,7 +11,7 @@
   const ASSETS = [
     "assets/plane_side.png",
     "assets/plane_fly.png",
-    "assets/rack.png",
+    "assets/rack_cabinet.png",
     "assets/apron.png",
   ];
 
