@@ -10,7 +10,7 @@
   const HEADERS = [
     { at: 0.0, eyebrow: "單日案例 · 5 月 5 日", title: "把等待留在地面" },
     { at: 5.62, eyebrow: "協調帶來的效益", title: "減碳、燃油與空中盤旋" },
-    { at: W.atfm - 0.55, eyebrow: "ATFM 航空交通流量管理", title: "為航空公司帶來的真實價值", mark: { chars: 4, at: W.value } },
+    { at: W.atfm - 0.55, eyebrow: "ATFM 飛航流量管理", title: "為航空公司帶來的真實價值", mark: { chars: 4, at: W.value } },
     { at: 17.25, eyebrow: "03　投入範圍", title: "硬體投入，自主研發完成" },
     { at: 24.45, eyebrow: "04　公共價值", title: "為國家節省公帑" },
   ];

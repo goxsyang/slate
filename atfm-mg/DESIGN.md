@@ -153,7 +153,7 @@ Choreography:
 ### S2 — 協調帶來的效益 (file `src/scenes/s2_benefits.js`, window 5.6 → 17.2)
 
 Chrome: 5.62 「協調帶來的效益／減碳、燃油與空中盤旋」 ; 12.30
-「ATFM 航空交通流量管理／為航空公司帶來的真實價值」 (chrome draws a terracotta
+「ATFM 飛航流量管理／為航空公司帶來的真實價值」 (chrome draws a terracotta
 underline under 「真實價值」 at 15.0) ; everything clears at 16.55.
 Footnote 「57.9 噸為原稿案例數據，並非畫面中單架航機的排放量。」.
 
