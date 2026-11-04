@@ -1,0 +1,108 @@
+// Build assets/map-data.js from Natural Earth 10m land + VATSIM FIR boundaries.
+// World units: Mercator, S px per radian, origin at (LON0, LAT0) = Taiwan centre.
+// Usage: node tools/build-map.mjs <land.geojson> <Boundaries.geojson> <out.js>
+import fs from "node:fs";
+const [landPath, firPath, outPath] = process.argv.slice(2);
+const S = 1900, LON0 = 121, LAT0 = 23.7;
+const rad = Math.PI / 180;
+const my = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * rad) / 2));
+const Y0 = my(LAT0);
+const proj = ([lon, lat]) => [S * (lon - LON0) * rad, -S * (my(lat) - Y0)];
+
+function rdp(pts, eps) {
+  if (pts.length < 3) return pts;
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop(); const [ax, ay] = pts[a], [bx, by] = pts[b];
+    const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1e-9;
+    let md = -1, mi = -1;
+    for (let i = a + 1; i < b; i++) {
+      const d = Math.abs(dy * pts[i][0] - dx * pts[i][1] + bx * ay - by * ax) / L;
+      if (d > md) { md = d; mi = i; }
+    }
+    if (md > eps) { keep[mi] = 1; stack.push([a, mi], [mi, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+const area = (r) => { let s = 0; for (let i = 0; i < r.length; i++) { const [x1, y1] = r[i], [x2, y2] = r[(i + 1) % r.length]; s += x1 * y2 - x2 * y1; } return Math.abs(s / 2); };
+const f1 = (v) => (Math.round(v * 10) / 10).toString();
+function ringsToPath(rings, eps, minArea, close = true) {
+  let d = "", n = 0;
+  for (const ring of rings) {
+    const q = ring.map(proj);
+    let p;
+    if (close && q.length > 4) { // closed ring: simplify two halves so RDP has a real baseline
+      const h = Math.floor(q.length / 2);
+      p = rdp(q.slice(0, h + 1), eps).concat(rdp(q.slice(h), eps).slice(1));
+    } else p = rdp(q, eps);
+    if (close && (p.length < 4 || area(p) < minArea)) continue;
+    d += "M" + p.map(([x, y]) => f1(x) + " " + f1(y)).join("L") + (close ? "Z" : "");
+    n += p.length;
+  }
+  return { d, n };
+}
+const land = JSON.parse(fs.readFileSync(landPath, "utf8"));
+const rings = [];
+for (const f of land.features) {
+  const g = f.geometry; if (!g) continue;
+  const polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : [];
+  for (const poly of polys) for (const r of poly) rings.push(r);
+}
+{ const seen = new Set(); for (let i = rings.length - 1; i >= 0; i--) { const k = JSON.stringify(rings[i]); if (seen.has(k)) rings.splice(i, 1); else seen.add(k); } }
+const landP = ringsToPath(rings, 0.09, 0.6);
+// Taiwan gold layer: allow-list by ring centroid (lon/lat boxes). Nanri Island (PRC-administered,
+// 119.44–119.57E 25.17–25.25N) is explicitly excluded. Outlying islands (Kinmen/Matsu/Wuqiu) behind a toggle.
+const TW_OUTLYING = true;
+const TW_ALLOW = [
+  [119.95, 122.05, 21.85, 25.35], // main island + Green Island, Lanyu, Xiaoliuqiu, Guishan, Waisanding
+  [119.30, 119.75, 23.15, 23.85], // Penghu
+];
+const TW_OUTER = [
+  [119.43, 119.50, 24.95, 25.01], // Wuqiu
+  [118.18, 118.52, 24.36, 24.535], // Kinmen + Lieyu (excludes Dadeng/Xiaodeng at 24.54–24.57N, PRC)
+  [119.85, 120.55, 25.90, 26.40], // Matsu
+];
+const NANRI = [119.44, 119.57, 25.17, 25.25];
+const cen = (r) => { let a = 0, b = 0; for (const [lo, la] of r) { a += lo; b += la; } return [a / r.length, b / r.length]; };
+const inBox = ([lo, la], [x0, x1, y0, y1]) => lo >= x0 && lo <= x1 && la >= y0 && la <= y1;
+const inTW = (r) => { const c = cen(r); if (inBox(c, NANRI)) return false; return TW_ALLOW.some((b) => inBox(c, b)) || (TW_OUTLYING && TW_OUTER.some((b) => inBox(c, b))); };
+const twRings = rings.filter(inTW);
+console.log("taiwan rings", twRings.length, twRings.map((r) => cen(r).map((v) => v.toFixed(2)).join(",")).join(" | "));
+const twP = ringsToPath(twRings, 0.04, 0.02);
+
+// Taipei FIR — OFFICIAL lateral limits, CAA eAIP ENR 2.1 (TAIPEI FIR), also in ICAO APAC ANP updates:
+//   210000N 1173000E – 210000N 1213000E – 233000N 1240000E – 290000N 1240000E – 290000N 1173000E – 210000N 1173000E
+// (firPath arg kept for CLI compatibility; the VATSIM operational outline is no longer used.)
+const FIR_RCAA = [[117.5, 21], [121.5, 21], [124, 23.5], [124, 29], [117.5, 29], [117.5, 21]];
+const firOut = {
+  RCAA: {
+    d: "M" + FIR_RCAA.slice(0, -1).map(proj).map(([x, y]) => f1(x) + " " + f1(y)).join("L") + "Z",
+    vertices: FIR_RCAA.slice(0, -1),
+    label: [120.75, 25],
+    source: "CAA eAIP ENR 2.1 TAIPEI FIR lateral limits",
+  },
+};
+// graticule every 5 degrees
+let grat = "";
+for (let lon = 90; lon <= 160; lon += 5) { const pts = []; for (let lat = -5; lat <= 50; lat += 1) pts.push(proj([lon, lat])); grat += "M" + pts.map(([x, y]) => f1(x) + " " + f1(y)).join("L"); }
+for (let lat = 0; lat <= 50; lat += 5) { const pts = []; for (let lon = 88; lon <= 160; lon += 1) pts.push(proj([lon, lat])); grat += "M" + pts.map(([x, y]) => f1(x) + " " + f1(y)).join("L"); }
+
+const out = `// Generated by tools/build-map.mjs — do not edit by hand.
+// Sources: Natural Earth 10m land + minor islands (public domain); Taipei FIR: official lateral limits, CAA eAIP ENR 2.1.
+// Projection: Mercator, ${S}px/rad, origin lon ${LON0} / lat ${LAT0}. Use ATFM_MAP.project([lon,lat]) for world coords.
+(function(){
+var S=${S},LON0=${LON0},LAT0=${LAT0},R=Math.PI/180;
+function my(l){return Math.log(Math.tan(Math.PI/4+l*R/2));}
+var Y0=my(LAT0);
+window.ATFM_MAP={
+  project:function(p){return [S*(p[0]-LON0)*R,-S*(my(p[1])-Y0)];},
+  land:${JSON.stringify(landP.d)},
+  taiwan:${JSON.stringify(twP.d)},
+  graticule:${JSON.stringify(grat)},
+  fir:${JSON.stringify(firOut)}
+};
+})();
+`;
+fs.writeFileSync(outPath, out);
+console.log("land points", landP.n, "bytes", out.length, "firs", Object.keys(firOut));
